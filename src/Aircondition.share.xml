@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-model href="../../Organization/knxprod-support/knx_project_20/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<KNX xmlns:op="http://github.com/OpenKNX/OpenKNXproducer" xmlns="http://knx.org/xml/project/20" CreatedBy="KNX MT" ToolVersion="5.1.255.16695">
+  <!-- Enable IPTool of ETS. This hide ip settings in network tab -->
+  <op:config name="%NET_IPConfigTool%" value="0" />
+  <op:config name="%NET_WifiTool%" value="0" />
+  <op:config name="%NET_LanMode%" value="0" />
+  <op:config name="%NET_ServiceNTP%" value="1" />
+  <op:config name="%NET_ServiceOTA%" value="1" />
+  <op:config name="%NET_ShowMediumInfo%" value="0" />
+
+  <!-- Prepare: Not ready to use -->
+  <op:config name="%NET_ServiceHTTP%" value="0" />
+
+
+  <ManufacturerData>
+    <Manufacturer>
+      <ApplicationPrograms>
+        <ApplicationProgram>
+          <Static>
+            <ParameterTypes>
+              <!-- Base Type -->
+              <ParameterType Id="%AID%_PT-AIRDeviceType" Name="AIRDeviceType">
+                <TypeRestriction Base="Value" SizeInBit="4">
+                  <Enumeration Text="Bitte wählen..." Value="0" Id="%ENID%" />
+                  <Enumeration Text="Toshiba / Midea" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Mitsubishi" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Daikin" Value="3" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+
+               <!-- *** Mitsubishi *** -->
+              <ParameterType Id="%AID%_PT-AIRMitsubishiMinimumTemperature" Name="AIRMitsubishiMinimumTemperature">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="16°" Value="16" Id="%ENID%" />
+                  <Enumeration Text="19°" Value="19" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+    
+            </ParameterTypes>
+            <Parameters>
+              <!-- Base Settings -->
+              <Union SizeInBit="8">
+                <Memory CodeSegment="%MID%" Offset="0" BitOffset="0" />
+                <!-- Device Type -->
+                <Parameter Id="%AID%_UP-%TT%00000" Offset="0"  BitOffset="0" Name="DeviceType" ParameterType="%AID%_PT-AIRDeviceType" Text="Hersteller" Value="0" />
+                <!-- 4 bits free -->
+              </Union>
+
+               <!-- *** Mitsubishi *** -->
+              <Union SizeInBit="8">
+                <Memory CodeSegment="%MID%" Offset="1" BitOffset="0" />
+                <!-- Minimum Temperature -->
+                <Parameter Id="%AID%_UP-%TT%00200" Offset="0"  BitOffset="0" Name="Mit_MinTemp" ParameterType="%AID%_PT-AIRMitsubishiMinimumTemperature" Text="Minimale Soll-Temperatur" Value="19" />
+              </Union>
+
+            </Parameters>
+            <ParameterRefs> 
+              <!-- Base Settings -->
+
+              <!-- Device Type -->
+              <ParameterRef Id="%AID%_UP-%TT%00000_R-%TT%0000001" RefId="%AID%_UP-%TT%00000" />
+
+              <!-- *** Mitsubishi *** -->
+
+              <!-- Minimum Temperature -->
+              <ParameterRef Id="%AID%_UP-%TT%00200_R-%TT%0020001" RefId="%AID%_UP-%TT%00200" />
+
+            </ParameterRefs>
+            <ComObjectTable>
+            </ComObjectTable>
+            <ComObjectRefs>
+            </ComObjectRefs>
+          </Static>
+          <Dynamic>
+            <Channel Id="%AID%_CH-%PREFIX%" Number="%PREFIX%" Name="Main" Text="Klimaanlage" Icon="air-conditioner" HelpContext="AIR-Klimanalage">
+              <ParameterBlock Id="%AID%_PB-nnn" Name="Basic" Text="Allgemein" Icon="air-conditioner" HelpContext="AIR-Klimanalage">
+                <ParameterSeparator Id="%AID%_PS-nnn" Text="Klimaanlage" UIHint="Headline" />
+                <ParameterSeparator Id="%AID%_PS-nnn" Text="Version: %ModuleVersion%" />
+                <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
+             
+                <!-- Device Type -->
+                <ParameterRefRef RefId="%AID%_UP-%TT%00000_R-%TT%0000001" IndentLevel="1" HelpContext="%DOC%" />
+                <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                  <when test="0">
+                    <!-- No device type selected -->
+                  </when>
+                  <when test="1">
+                    <!-- Tosiba / Midea -->
+                  </when>
+                  <when test="2">
+                    <!-- Mitsubishi -->
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00200_R-%TT%0020001" IndentLevel="1" HelpContext="%DOC%" />   
+                  </when>
+                    <when test="3">
+                    <!-- Daikin -->
+                  </when>
+                </choose>
+             
+
+              </ParameterBlock>
+            </Channel>
+          </Dynamic>
+        </ApplicationProgram>
+      </ApplicationPrograms>
+      <Baggages>
+        <Baggage TargetPath="" Name="Help_de.zip" Id="%FILE-HELP-de%">
+          <FileInfo TimeInfo="%DATETIME%" />
+        </Baggage>
+        <Baggage TargetPath="" Name="Icons.zip" Id="%FILE-ICONS%">
+          <FileInfo TimeInfo="%DATETIME%" />
+        </Baggage>
+      </Baggages>
+    </Manufacturer>
+  </ManufacturerData>
+</KNX>
