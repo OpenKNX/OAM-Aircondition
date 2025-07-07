@@ -213,6 +213,113 @@
 // Minimale Soll-Temperatur
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
 
+#define AIR_KoPower 400
+#define AIR_KoPowerStatus 401
+#define AIR_KoOperationMode 402
+#define AIR_KoOperationModeState 403
+#define AIR_KoOperationModeAutomatic 404
+#define AIR_KoOperationModeAutomaticState 405
+#define AIR_KoOperationModeCooling 406
+#define AIR_KoOperationModeCoolingState 407
+#define AIR_KoOperationModeHeating 408
+#define AIR_KoOperationModeHeatingState 409
+#define AIR_KoOperationModeVentilation 410
+#define AIR_KoOperationModeVentilationState 411
+#define AIR_KoOperationModeDehumidification 412
+#define AIR_KoOperationModeDehumidificationState 413
+#define AIR_KoFanSpeed 414
+#define AIR_KoFanSpeedState 415
+#define AIR_KoFanOnOffState 416
+#define AIR_KoFanSpeedUpDown 417
+#define AIR_KoLouverVerticalMove 418
+#define AIR_KoLouverVerticalMoveState 419
+#define AIR_KoLouverVerticalUpDown 420
+#define AIR_KoLouverHorizontalMove 421
+#define AIR_KoLouverHorizontalMoveState 422
+#define AIR_KoLouverHorizontalUpDown 423
+#define AIR_KoLouverMode 424
+#define AIR_KoLouverModeState 425
+#define AIR_KoLockRelease 426
+#define AIR_KoLockReleaseState 427
+#define AIR_KoSetTemperature 428
+#define AIR_KoSetTemperatureState 429
+#define AIR_KoSetTemperatureUpDown 430
+#define AIR_KoRoomTemperatureState 431
+#define AIR_KoOutsideTemperatureState 432
+#define AIR_KoRoomTemperatureInput 433
+#define AIR_KoScene 434
+
+// Ein
+#define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
+// Ein Status
+#define KoAIR_PowerStatus                         (knx.getGroupObject(AIR_KoPowerStatus))
+// Betriebsmodus
+#define KoAIR_OperationMode                       (knx.getGroupObject(AIR_KoOperationMode))
+// Betriebsmodus Status
+#define KoAIR_OperationModeState                  (knx.getGroupObject(AIR_KoOperationModeState))
+// Betriebsmodus Automatik
+#define KoAIR_OperationModeAutomatic              (knx.getGroupObject(AIR_KoOperationModeAutomatic))
+// Betriebsmodus Automatik Status
+#define KoAIR_OperationModeAutomaticState         (knx.getGroupObject(AIR_KoOperationModeAutomaticState))
+// Betriebsmodus Kühlen
+#define KoAIR_OperationModeCooling                (knx.getGroupObject(AIR_KoOperationModeCooling))
+// Betriebsmodus Kühlen Status
+#define KoAIR_OperationModeCoolingState           (knx.getGroupObject(AIR_KoOperationModeCoolingState))
+// Betriebsmodus Heizen
+#define KoAIR_OperationModeHeating                (knx.getGroupObject(AIR_KoOperationModeHeating))
+// Betriebsmodus Heizen Status
+#define KoAIR_OperationModeHeatingState           (knx.getGroupObject(AIR_KoOperationModeHeatingState))
+// Betriebsmodus Lüften
+#define KoAIR_OperationModeVentilation            (knx.getGroupObject(AIR_KoOperationModeVentilation))
+// Betriebsmodus Lüften Status
+#define KoAIR_OperationModeVentilationState       (knx.getGroupObject(AIR_KoOperationModeVentilationState))
+// Betriebsmodus Entfeuchten
+#define KoAIR_OperationModeDehumidification       (knx.getGroupObject(AIR_KoOperationModeDehumidification))
+// Betriebsmodus Entfeuchten Status
+#define KoAIR_OperationModeDehumidificationState  (knx.getGroupObject(AIR_KoOperationModeDehumidificationState))
+// Lüftergeschwindigkeit
+#define KoAIR_FanSpeed                            (knx.getGroupObject(AIR_KoFanSpeed))
+// Lüftergeschwindigkeit Status
+#define KoAIR_FanSpeedState                       (knx.getGroupObject(AIR_KoFanSpeedState))
+// Lüfter ein/aus Status
+#define KoAIR_FanOnOffState                       (knx.getGroupObject(AIR_KoFanOnOffState))
+// Lüfter schneller/langsamer
+#define KoAIR_FanSpeedUpDown                      (knx.getGroupObject(AIR_KoFanSpeedUpDown))
+// Lamelle Vertikal Bewegen
+#define KoAIR_LouverVerticalMove                  (knx.getGroupObject(AIR_KoLouverVerticalMove))
+// Lamelle Vertikal Bewegen Status
+#define KoAIR_LouverVerticalMoveState             (knx.getGroupObject(AIR_KoLouverVerticalMoveState))
+// Lamelle Vertikal Höher/Tiefer
+#define KoAIR_LouverVerticalUpDown                (knx.getGroupObject(AIR_KoLouverVerticalUpDown))
+// Lamelle Horizontal Bewegen
+#define KoAIR_LouverHorizontalMove                (knx.getGroupObject(AIR_KoLouverHorizontalMove))
+// Lamelle Horizontal Bewegen Status
+#define KoAIR_LouverHorizontalMoveState           (knx.getGroupObject(AIR_KoLouverHorizontalMoveState))
+// Lamelle Horizontal Höher/Tiefer
+#define KoAIR_LouverHorizontalUpDown              (knx.getGroupObject(AIR_KoLouverHorizontalUpDown))
+// Lamelle Modus
+#define KoAIR_LouverMode                          (knx.getGroupObject(AIR_KoLouverMode))
+// Lamelle Modus Status
+#define KoAIR_LouverModeState                     (knx.getGroupObject(AIR_KoLouverModeState))
+// Sperre / Freigabe
+#define KoAIR_LockRelease                         (knx.getGroupObject(AIR_KoLockRelease))
+// Sperre / Freigabe Aktiv
+#define KoAIR_LockReleaseState                    (knx.getGroupObject(AIR_KoLockReleaseState))
+// Solltemperatur
+#define KoAIR_SetTemperature                      (knx.getGroupObject(AIR_KoSetTemperature))
+// Solltemperatur Status
+#define KoAIR_SetTemperatureState                 (knx.getGroupObject(AIR_KoSetTemperatureState))
+// Solltemperatur mehr/weniger
+#define KoAIR_SetTemperatureUpDown                (knx.getGroupObject(AIR_KoSetTemperatureUpDown))
+// Raumtemperatur Status
+#define KoAIR_RoomTemperatureState                (knx.getGroupObject(AIR_KoRoomTemperatureState))
+// Außentemperatur Status
+#define KoAIR_OutsideTemperatureState             (knx.getGroupObject(AIR_KoOutsideTemperatureState))
+// Eingang Raumtemperatur
+#define KoAIR_RoomTemperatureInput                (knx.getGroupObject(AIR_KoRoomTemperatureInput))
+// Szene
+#define KoAIR_Scene                               (knx.getGroupObject(AIR_KoScene))
+
 #define LOG_BuzzerInstalled                     223      // 1 Bit, Bit 7
 #define     LOG_BuzzerInstalledMask 0x80
 #define     LOG_BuzzerInstalledShift 7

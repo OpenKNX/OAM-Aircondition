@@ -14,7 +14,7 @@
     BuildSuffix=""
     BuildSuffixText=""
     MediumTypes="MT-0 MT-5"
-    OrderNumber="MGKnxSON" />
+    OrderNumber="MGKnxAIR" />
   
     <op:define prefix="BASE" ModuleType="10"
     share="../lib/OGM-Common/src/Common.share.xml">
@@ -34,7 +34,7 @@
 
   <op:define prefix="AIR" ModuleType="20"
     share="../src/Aircondition.share.xml"
-    KoOffset="400">
+    KoSingleOffset="400">
   </op:define>
 
   <op:define prefix="LOG" ModuleType="10"

@@ -32,7 +32,7 @@
 
   <op:define prefix="AIR" ModuleType="20"
     share="../src/Aircondition.share.xml"
-    KoOffset="400">
+    KoSingleOffset="400">
   </op:define>
 
   <op:define prefix="LOG" ModuleType="10"
