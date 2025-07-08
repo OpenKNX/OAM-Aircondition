@@ -19,21 +19,102 @@ Die Sonos App besteht aus folgenden Modulen:
 
 Mit dieser Anwendung kann eine Klimaanlage über KNX gesteuert werden.
 
+<!-- DOCEND -->
+## Hardware
+
+In diesem Abschnitt wird eingestellt, welche Klimaanlage gesteuert werden soll.
+
 <!-- DOC -->
 ### Hersteller
 
-Auswahl des Herstellers der Klimaanlage
+Auswahl des Herstellers der Klimaanlage:
 
-- Toshiba / Midea
-- Mitsubishi
 - Daikin
+- Midea
+- Mitsubishi
+- Toshiba
 
 <!-- DOCEND -->
-## Mitsubishi
+### Mitsubishi
 
-Folgende Einstellungen stehen nur für Mitsubishi Klimageräte zur Verfügung.
+Folgende Einstellungen stehen nur für Mitsubishi Klimageräte zur Verfügung:
 
 <!-- DOC -->
-### Minimale Soll-Temperatur
+#### Minimale Soll-Temperatur
 
 Hier muss die für das Klimagerät passende minimale Solltemperatur eingestellt werden.
+
+<!-- DOC -->
+## Basiseinstellungen
+
+In diesem Abschnitt werden allgemeine Konfiguration vorgenommen
+
+<!-- DOC -->
+### Nach Busspannungsausfall / Neustart
+
+Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Neustart geschalten werden soll.
+
+- Kein Änderung
+  Das Klimagerät erhält keine Steuerbefehle.
+- Einstellungen wiederherstellen
+  Die Einstellung werden wieder hergestellt und das Klimagerät entsprechend konfiguriert.  
+
+<!-- DOC -->
+### Freigabe- / Sperrobjekt
+
+Über diesen Konfigurationswert kann ein Sperrobjekt bzw. Freigabeobjekt angezeigt werden.
+Über diese Objekt kann die Bedienung gesperrt werden.
+
+- Keines
+- Freigabe
+  1-Bit, Standardmäßig ist die Bedienung gesperrt.
+  Benötigt "1" zur Freigabe
+- Sperre
+  1-Bit, Standardmäßig ist die Bedienung freigeben.
+  Benötigt "1" zur Sperre
+
+<!-- DOC -->
+#### Verhalten bei Freigabe
+
+<!-- DOC Skip="1" -->
+Diese Einstellung wird nur angezeigt, wenn ein Freigabeobjekt konfiguriert ist.
+
+Zur Auswahl:
+- Keine Änderung
+- Einschalten
+- Ausschalten
+
+<!-- DOC -->
+#### Verhalten bei Freigabe Ende
+
+<!-- DOC Skip="1" -->
+Diese Einstellung wird nur angezeigt, wenn ein Freigabeobjekt konfiguriert ist.
+
+Zur Auswahl:
+- Keine Änderung
+- Einschalten
+- Ausschalten
+
+<!-- DOC -->
+#### Verhalten-bei-Sperre
+
+<!-- DOC Skip="1" -->
+Diese Einstellung wird nur angezeigt, wenn ein Sperrobjekt konfiguriert ist.
+
+Zur Auswahl:
+- Keine Änderung
+- Einschalten
+- Ausschalten
+
+<!-- DOC -->
+#### Verhalten bei Sperre Ende
+
+Zur Auswahl:
+- Keine Änderung
+- Einschalten
+- Ausschalten
+
+<!-- DOC -->
+## Szenen
+
+In diesem Abschnitt können Szenenummer und das zugehörige Verhalten konfiguriert werden.

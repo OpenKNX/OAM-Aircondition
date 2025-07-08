@@ -23,9 +23,34 @@
               <ParameterType Id="%AID%_PT-AIRDeviceType" Name="AIRDeviceType">
                 <TypeRestriction Base="Value" SizeInBit="4">
                   <Enumeration Text="Bitte wählen..." Value="0" Id="%ENID%" />
-                  <Enumeration Text="Toshiba / Midea" Value="1" Id="%ENID%" />
-                  <Enumeration Text="Mitsubishi" Value="2" Id="%ENID%" />
-                  <Enumeration Text="Daikin" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Daikin" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Midea" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Toshiba" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRStartBehavior" Name="AIRStartBehavior">
+                <TypeRestriction Base="Value" SizeInBit="2">
+                  <Enumeration Text="Keine Änderung" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Einstellungen wiederherstellen" Value="1" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+              
+
+              <ParameterType Id="%AID%_PT-AIRLockReleaseKo" Name="AIRLockReleaseKo">
+                <TypeRestriction Base="Value" SizeInBit="2">
+                  <Enumeration Text="Keines" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Freigabe" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Sperre" Value="2" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRLockReleaseBehavior" Name="AIRLockReleaseBehavior">
+                <TypeRestriction Base="Value" SizeInBit="2">
+                  <Enumeration Text="Keine Änderung" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Ausschalten" Value="2" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
 
@@ -41,16 +66,30 @@
             </ParameterTypes>
             <Parameters>
               <!-- Base Settings -->
-              <Union SizeInBit="8">
+              <Union SizeInBit="16">
                 <Memory CodeSegment="%MID%" Offset="0" BitOffset="0" />
                 <!-- Device Type -->
                 <Parameter Id="%AID%_UP-%TT%00000" Offset="0"  BitOffset="0" Name="DeviceType" ParameterType="%AID%_PT-AIRDeviceType" Text="Hersteller" Value="0" />
-                <!-- 4 bits free -->
+                <!-- Start Behavior -->
+                <Parameter Id="%AID%_UP-%TT%00001" Offset="0"  BitOffset="4" Name="StartBehavior" ParameterType="%AID%_PT-AIRStartBehavior" Text="Nach Busspannungsausfall / Neustart" Value="0" />
+                <!-- 2 Bits free -->
+
+                <!-- Lock Release Ko -->
+                <Parameter Id="%AID%_UP-%TT%00002" Offset="1"  BitOffset="0" Name="LockReleaseKo" ParameterType="%AID%_PT-AIRLockReleaseKo" Text="Freigabe- / Sperrobjekt" Value="0" />
+                <!-- Release Behavior On -->
+                <Parameter Id="%AID%_UP-%TT%00003" Offset="1"  BitOffset="2" Name="ReleaseBehaviorOn"  ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Freigabe" Value="0" />
+                <!-- Release Behavior Off -->
+                <Parameter Id="%AID%_UP-%TT%00004" Offset="1"  BitOffset="4" Name="ReleaseBehaviorOff" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Freigabe Ende" Value="0" />
+                <!-- Lock Behavior On -->
+                <Parameter Id="%AID%_UP-%TT%00005" Offset="0"  BitOffset="2" Name="LockBehaviorOn"  ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Sperre" Value="0" />
+                <!-- Lock Behavior Off -->
+                <Parameter Id="%AID%_UP-%TT%00006" Offset="1"  BitOffset="3" Name="LockBehaviorOff" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Sperre Ende" Value="0" />
+                <!-- 2 Bits free -->
               </Union>
 
                <!-- *** Mitsubishi *** -->
               <Union SizeInBit="8">
-                <Memory CodeSegment="%MID%" Offset="1" BitOffset="0" />
+                <Memory CodeSegment="%MID%" Offset="2" BitOffset="0" />
                 <!-- Minimum Temperature -->
                 <Parameter Id="%AID%_UP-%TT%00200" Offset="0"  BitOffset="0" Name="Mit_MinTemp" ParameterType="%AID%_PT-AIRMitsubishiMinimumTemperature" Text="Minimale Soll-Temperatur" Value="19" />
               </Union>
@@ -61,6 +100,18 @@
 
               <!-- Device Type -->
               <ParameterRef Id="%AID%_UP-%TT%00000_R-%TT%0000001" RefId="%AID%_UP-%TT%00000" />
+              <!-- Start Behavior -->
+              <ParameterRef Id="%AID%_UP-%TT%00001_R-%TT%0000101" RefId="%AID%_UP-%TT%00001" />
+              <!-- Lock Release Ko -->
+              <ParameterRef Id="%AID%_UP-%TT%00002_R-%TT%0000201" RefId="%AID%_UP-%TT%00002" />
+              <!-- Release Behavior On -->
+              <ParameterRef Id="%AID%_UP-%TT%00003_R-%TT%0000301" RefId="%AID%_UP-%TT%00003" />
+              <!-- Release Behavior Off -->
+              <ParameterRef Id="%AID%_UP-%TT%00004_R-%TT%0000401" RefId="%AID%_UP-%TT%00004" />
+              <!-- Lock Behavior On -->
+              <ParameterRef Id="%AID%_UP-%TT%00005_R-%TT%0000501" RefId="%AID%_UP-%TT%00005" />
+              <!-- Lock Behavior Off -->
+              <ParameterRef Id="%AID%_UP-%TT%00006_R-%TT%0000601" RefId="%AID%_UP-%TT%00006" />
 
               <!-- *** Mitsubishi *** -->
 
@@ -234,9 +285,11 @@ Szene
               <!-- Lamelle Modus Status -->
               <ComObjectRef Id="%AID%_O-%TT%00025_R-%TT%0002501" RefId="%AID%_O-%TT%00025" />
               <!-- Sperre / Freigabe -->
-              <ComObjectRef Id="%AID%_O-%TT%00026_R-%TT%0002601" RefId="%AID%_O-%TT%00026" />
-              <!-- Sperre / Freigabe Aktiv -->
-              <ComObjectRef Id="%AID%_O-%TT%00027_R-%TT%0002701" RefId="%AID%_O-%TT%00027" />
+              <ComObjectRef Id="%AID%_O-%TT%00026_R-%TT%0002601" RefId="%AID%_O-%TT%00026" Text="Freigabe" FunctionText="Freigabe" DatapointType="DPST-1-3" />
+              <ComObjectRef Id="%AID%_O-%TT%00026_R-%TT%0002602" RefId="%AID%_O-%TT%00026" Text="Sperre" FunctionText="Sperre" DatapointType="DPST-1-1" />
+              <!-- Sperre / Freigabe Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00027_R-%TT%0002701" RefId="%AID%_O-%TT%00027" Text="Freigabe Status" FunctionText="Freigabe Status"/>
+              <ComObjectRef Id="%AID%_O-%TT%00027_R-%TT%0002702" RefId="%AID%_O-%TT%00027" Text="Sperre Status" FunctionText="Sperre Status" />
               <!-- Solltemperatur -->
               <ComObjectRef Id="%AID%_O-%TT%00028_R-%TT%0002801" RefId="%AID%_O-%TT%00028" />
               <!-- Solltemperatur Status -->
@@ -261,6 +314,8 @@ Szene
                 <ParameterSeparator Id="%AID%_PS-nnn" Text="Version: %ModuleVersion%" />
                 <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
              
+                <ParameterSeparator Id="%AID%_PS-nnn" Text="Hardware Auswahl" UIHint="Headline" />
+       
                 <!-- Device Type -->
                 <ParameterRefRef RefId="%AID%_UP-%TT%00000_R-%TT%0000001" IndentLevel="1" HelpContext="%DOC%" />
                 <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
@@ -268,16 +323,48 @@ Szene
                     <!-- No device type selected -->
                   </when>
                   <when test="1">
-                    <!-- Tosiba / Midea -->
-                  </when>
-                  <when test="2">
-                    <!-- Mitsubishi -->
-                    <ParameterRefRef RefId="%AID%_UP-%TT%00200_R-%TT%0020001" IndentLevel="1" HelpContext="%DOC%" />   
-                  </when>
-                    <when test="3">
                     <!-- Daikin -->
                   </when>
+                  <when test="2">
+                    <!-- Midea -->
+                  </when>
+                  <when test="3">
+                    <!-- Mitsubishi -->
+                    <!-- Minimum Temperature -->
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00200_R-%TT%0020001" IndentLevel="1" HelpContext="%DOC%" />   
+                  </when>
+                    <when test="4">
+                    <!-- Toshiba -->
+                  </when>
                 </choose>
+                <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
+             
+                <ParameterSeparator Id="%AID%_PS-nnn" Text="Basiseinstellungen" UIHint="Headline" />
+                <!-- Start Behavior -->
+                <ParameterRefRef RefId="%AID%_UP-%TT%00001_R-%TT%0000101" IndentLevel="1" HelpContext="%DOC%"/>
+                <!-- Lock Release Ko -->
+                <ParameterRefRef RefId="%AID%_UP-%TT%00002_R-%TT%0000201" IndentLevel="1" HelpContext="%DOC%"/>
+                <choose ParamRefId="%AID%_UP-%TT%00002_R-%TT%0000201">
+                  <when test="1">
+                    <!-- Release -->
+
+                    <!-- Release Behavior On -->
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00003_R-%TT%0000301" IndentLevel="2" HelpContext="%DOC%"/>
+                    <!-- Release Behavior Off -->
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00004_R-%TT%0000401" IndentLevel="2" HelpContext="%DOC%"/>
+
+                  </when>
+                  <when test="2">
+                    <!-- Lock -->
+
+                    <!-- Lock Behavior On -->
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00005_R-%TT%0000501" IndentLevel="2" HelpContext="%DOC%"/>
+                    <!-- Lock Behavior Off -->
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00006_R-%TT%0000601" IndentLevel="2" HelpContext="%DOC%"/>
+                  </when>
+                  
+                </choose>
+               
 
                 <!-- Power -->
                 <ComObjectRefRef RefId="%AID%_O-%TT%00000_R-%TT%0000001" />
@@ -331,10 +418,27 @@ Szene
                 <ComObjectRefRef RefId="%AID%_O-%TT%00024_R-%TT%0002401" />
                 <!-- Lamelle Modus Status -->
                 <ComObjectRefRef RefId="%AID%_O-%TT%00025_R-%TT%0002501" />
-                <!-- Sperre / Freigabe -->
-                <ComObjectRefRef RefId="%AID%_O-%TT%00026_R-%TT%0002601" />
-                <!-- Sperre / Freigabe Aktiv -->
-                <ComObjectRefRef RefId="%AID%_O-%TT%00027_R-%TT%0002701" />
+
+                <!-- Lock Release Ko -->
+                <choose ParamRefId="%AID%_UP-%TT%00002_R-%TT%0000201" >
+                  <when test="1">
+                    <!-- Freigabe -->
+                    
+                    <!-- Freigabe -->
+                    <ComObjectRefRef RefId="%AID%_O-%TT%00026_R-%TT%0002601" />
+                    <!-- Freigabe Status -->
+                    <ComObjectRefRef RefId="%AID%_O-%TT%00027_R-%TT%0002701" />
+                  </when>
+                  <when test="2">
+                    <!-- Sperre -->
+                    
+                    <!-- Sperre -->
+                    <ComObjectRefRef RefId="%AID%_O-%TT%00026_R-%TT%0002602" />
+                    <!-- Sperre Status -->
+                    <ComObjectRefRef RefId="%AID%_O-%TT%00027_R-%TT%0002702" />
+                  </when>
+                </choose>
+
                 <!-- Solltemperatur -->
                 <ComObjectRefRef RefId="%AID%_O-%TT%00028_R-%TT%0002801" />
                 <!-- Solltemperatur Status -->
@@ -347,6 +451,12 @@ Szene
                 <ComObjectRefRef RefId="%AID%_O-%TT%00032_R-%TT%0003201" />
                 <!-- Eingang Raumtemperatur -->
                 <ComObjectRefRef RefId="%AID%_O-%TT%00033_R-%TT%0003301" />
+              </ParameterBlock>
+              <ParameterBlock Id="%AID%_PB-nnn" Name="Scene" Text="Szenen" Icon="air-conditioner" HelpContext="AIR-Szenen">
+                <ParameterSeparator Id="%AID%_PS-nnn" Text="Szenen" UIHint="Headline" />
+               
+                <ParameterSeparator Id="%AID%_PS-nnn" Text="To Do..." />
+           
                 <!-- Szene -->
                 <ComObjectRefRef RefId="%AID%_O-%TT%00034_R-%TT%0003401" />
                 

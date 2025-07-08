@@ -1,8 +1,9 @@
 ﻿### Hersteller
 
-Auswahl des Herstellers der Klimaanlage
+Auswahl des Herstellers der Klimaanlage:
 
-- Toshiba / Midea
-- Mitsubishi
 - Daikin
+- Midea
+- Mitsubishi
+- Toshiba
 
