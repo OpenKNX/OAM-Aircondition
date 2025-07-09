@@ -123,7 +123,7 @@
               <!-- Power -->
               <ComObject Id="%AID%_O-%TT%00000" Number="0" Name="Power" Text="Ein"  FunctionText="Ein" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Power Status -->
-              <ComObject Id="%AID%_O-%TT%00001" Number="1" Name="PowerStatus" Text="Ein Status" FunctionText="Ein Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00001" Number="1" Name="PowerState" Text="Ein Status" FunctionText="Ein Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Betriebsmodus -->
               <ComObject Id="%AID%_O-%TT%00002" Number="2" Name="OperationMode" Text="Betriebsmodus"  FunctionText="Betriebsmodus" ObjectSize="1 Byte" DatapointType="DPST-20-105" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Betriebsmodus Status -->

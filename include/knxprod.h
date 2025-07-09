@@ -244,7 +244,7 @@
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
 
 #define AIR_KoPower 400
-#define AIR_KoPowerStatus 401
+#define AIR_KoPowerState 401
 #define AIR_KoOperationMode 402
 #define AIR_KoOperationModeState 403
 #define AIR_KoOperationModeAutomatic 404
@@ -282,7 +282,7 @@
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
 // Ein Status
-#define KoAIR_PowerStatus                         (knx.getGroupObject(AIR_KoPowerStatus))
+#define KoAIR_PowerState                          (knx.getGroupObject(AIR_KoPowerState))
 // Betriebsmodus
 #define KoAIR_OperationMode                       (knx.getGroupObject(AIR_KoOperationMode))
 // Betriebsmodus Status
