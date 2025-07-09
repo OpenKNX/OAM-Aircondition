@@ -1,6 +1,9 @@
 #include "OpenKNX.h"
 #include "AirconditionModule.h"
+#include "Driver/Midea/MideaDriver.h"
+#include "Driver/Mitsubishi/MitsubishiDriver.h"
 #include "Driver/Toshiba/ToshibaDriver.h"
+
 
 AirconditionModule openknxAircondition;
 
@@ -27,17 +30,19 @@ void AirconditionModule::setup()
             logInfoP("No AirCondition Device Type selected");
             break;
         case 1: // Daikin
-            logInfoP("Daikin driver not yet implemented");
+            logInfoP("Initialize MideaDriver");
+            airConditionDriver = new MideaDriver(*this);
             break;
         case 2: // Midea
-            logInfoP("Initialize ToshibaDriver", ParamAIR_DeviceType);
+            logInfoP("Initialize ToshibaDriver");
             airConditionDriver = new ToshibaDriver(*this);
             break;
         case 3: // Mitsubishi
-            logInfoP("Mitsubishi driver not yet implemented");
+            logInfoP("Initialize MitsubishiDriver");
+            airConditionDriver = new MitsubishiDriver(*this);
             break;
         case 4: // Toshiba
-            logInfoP("Initialize ToshibaDriver", ParamAIR_DeviceType);
+            logInfoP("Initialize ToshibaDriver");
             airConditionDriver = new ToshibaDriver(*this);
             break;
         default:
