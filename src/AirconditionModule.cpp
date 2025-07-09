@@ -52,7 +52,9 @@ void AirconditionModule::setup()
     if (airConditionDriver != nullptr)
     {
         setLocked(false);
+        logInfoP("Start driver");
         airConditionDriver->setup();
+        logInfoP("Driver started");
     }
 }
 
@@ -73,9 +75,15 @@ void AirconditionModule::setLocked(bool locked)
                 if (KoAIR_LockReleaseState.valueCompare(release, DPT_Switch) && initialized)
                 {
                     if (release)
+                    {
+                        logInfoP("AirCondition released");
                         handleChangeParameterValue = ParamAIR_ReleaseBehaviorOn;
+                    }
                     else
+                    {
+                        logInfoP("AirCondition not released");
                         handleChangeParameterValue = ParamAIR_ReleaseBehaviorOff;
+                    }
                 }
             }
             break;
@@ -84,31 +92,44 @@ void AirconditionModule::setLocked(bool locked)
                 if (KoAIR_LockReleaseState.valueCompare(locked, DPT_Switch) && initialized)
                 {
                     if (locked)
+                    {
+                        logInfoP("AirCondition locked");
                         handleChangeParameterValue = ParamAIR_LockBehaviorOn;
+                    }
                     else
+                    {
+                        logInfoP("AirCondition unlocked");
                         handleChangeParameterValue = ParamAIR_LockBehaviorOff;
+                    }
                 }
             }
     }
-    // <Enumeration Text="Keine Änderung" Value="0" Id="%ENID%" />
-    // <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
-    // <Enumeration Text="Ausschalten" Value="2" Id="%ENID%" />
-    switch (handleChangeParameterValue)
+    if (!initialized)
     {
-        case 0: // Do nothing
-            break;
-        case 1: // Power on
-            airConditionDriver->setPower(true);
-            break;
-        case 2: // Power off
-            airConditionDriver->setPower(false);
-            break;
+        // <Enumeration Text="Keine Änderung" Value="0" Id="%ENID%" />
+        // <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
+        // <Enumeration Text="Ausschalten" Value="2" Id="%ENID%" />
+        switch (handleChangeParameterValue)
+        {
+            case 0: // Do nothing
+                break;
+            case 1: // Power on
+                airConditionDriver->setPower(true);
+                break;
+            case 2: // Power off
+                airConditionDriver->setPower(false);
+                break;
+        }
     }
 }
 
 
 void AirconditionModule::loop()
 {
+    if (airConditionDriver != nullptr)
+    {
+        airConditionDriver->loop();
+    }
 }
 
 void AirconditionModule::showInformations()
@@ -221,21 +242,27 @@ void AirconditionModule::processInputKo(GroupObject &ko)
                     switch (hvacMode)
                     {
                         case 0: // Auto
+                            logInfoP("Set mode to Auto");
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
                             break;
                         case 1: // Head
+                            logInfoP("Set mode to Heat");
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
                             break;
                         case 3: // Cool
+                            logInfoP("Set mode to Cool");
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
                             break;
                         case 6: // Off
+                            logInfoP("Set mode to Off");
                             airConditionDriver->setPower(false);
                             break;
                         case 9: // Fan
+                            logInfoP("Set mode to Fan");
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
                             break;
                         case 14: // Dry
+                            logInfoP("Set mode to Dry");
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
                             break;
                         default:
@@ -245,37 +272,69 @@ void AirconditionModule::processInputKo(GroupObject &ko)
                 break;
             case AIR_KoOperationModeAutomatic:
                 if (ko.value(DPT_Switch))
+                {
+                    logInfoP("Set mode to Auto");
                     airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
+                }
                 else
+                {
+                    logInfoP("Set power to Off");
                     airConditionDriver->setPower(false);
+                }
                 break;
             case AIR_KoOperationModeCooling:
                 if (ko.value(DPT_Switch))
+                {
+                    logInfoP("Set mode to Cool");
                     airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
+                }
                 else
+                {
+                    logInfoP("Set power to Off");
                     airConditionDriver->setPower(false);
+                }
                 break;
             case AIR_KoOperationModeHeating:
                 if (ko.value(DPT_Switch))
+                {                    
+                    logInfoP("Set mode to Heat");
                     airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
+                }
                 else
+                {
+                    logInfoP("Set power to Off");
                     airConditionDriver->setPower(false);
+                }
                 break;
             case AIR_KoOperationModeVentilation:
                 if (ko.value(DPT_Switch))
+                {
+                    logInfoP("Set mode to Fan");
                     airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
+                }
                 else
+                {
+                    logInfoP("Set power to Off");
                     airConditionDriver->setPower(false);
-             case AIR_KoOperationModeDehumidification:
+                }
+                break;
+            case AIR_KoOperationModeDehumidification:
                 if (ko.value(DPT_Switch))
+                {
+                    logInfoP("Set mode to Dry");
                     airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
+                }
                 else
+                {
+                    logInfoP("Set power to Off");
                     airConditionDriver->setPower(false);
+                }
                 break;
             case AIR_KoFanSpeed:  
                 {
                     uint8_t fanSpeedPercent = ko.value(DPT_Scaling);
                     unsigned int fanSpeed =  airConditionDriver->getMaximumFanSpeed() * fanSpeedPercent / 100;
+                    logInfoP("Set fan speed to %u (%u%%)", fanSpeed, fanSpeedPercent);
                     airConditionDriver->setFanSpeed(fanSpeed);
                 }
                 break;
@@ -287,27 +346,37 @@ void AirconditionModule::processInputKo(GroupObject &ko)
                     {
                         // Increase fan speed
                         if (currentFanSpeed < airConditionDriver->getMaximumFanSpeed())
+                        {
+                            logInfoP("Increase fan speed from %u to %u", currentFanSpeed, currentFanSpeed + 1);
                             airConditionDriver->setFanSpeed(currentFanSpeed + 1);
+                        }
+                        else
+                        {
+                            logInfoP("Fan speed is already at maximum %u", currentFanSpeed);
+                        }
                     }
                     else
                     {
                         // Decrease fan speed
                         if (currentFanSpeed > 0)
+                        {
+                            logInfoP("Decrease fan speed from %u to %u", currentFanSpeed, currentFanSpeed - 1);
                             airConditionDriver->setFanSpeed(currentFanSpeed - 1);
+                        }
+                        else
+                        {
+                            logInfoP("Fan speed is already at minimum 0");
+                        }
                     }  
                 }
                 break;
             case AIR_KoLouverVerticalMove:
-                if (ko.value(DPT_Switch))
-                    airConditionDriver->setSwingVertical(true);
-                else
-                    airConditionDriver->setSwingVertical(false);
+                logInfoP("Set vertical swing to %s", ko.value(DPT_Switch) ? "on" : "off");
+                airConditionDriver->setSwingVertical(ko.value(DPT_Switch));
                 break;
             case AIR_KoLouverHorizontalMove:
-                if (ko.value(DPT_Switch))
-                    airConditionDriver->setSwingHorizontal(true);
-                else
-                    airConditionDriver->setSwingHorizontal(false);
+                logInfoP("Set horizontal swing to %s", ko.value(DPT_Switch) ? "on" : "off");
+                airConditionDriver->setSwingHorizontal(ko.value(DPT_Switch));
                 break;
             case AIR_KoSetTemperature:
                 {
@@ -319,6 +388,7 @@ void AirconditionModule::processInputKo(GroupObject &ko)
                                 airConditionDriver->getMaximumTargetTemperature());
                         return;
                     }
+                    logInfoP("Set target temperature to %.1f °C", targetTemperature);
                     airConditionDriver->setTargetTemperature(targetTemperature);
                 }
                 break;       
@@ -328,12 +398,26 @@ void AirconditionModule::processInputKo(GroupObject &ko)
                     if (ko.value(DPT_Switch))
                     {             
                         if (currentTemperature < airConditionDriver->getMaximumTargetTemperature())
+                        {
+                            logInfoP("Increase target temperature from %.1f °C to %.1f °C", currentTemperature, currentTemperature + 1.f);
                             airConditionDriver->setTargetTemperature(currentTemperature + 1.f);
+                        }
+                        else
+                        {
+                            logInfoP("Target temperature is already at maximum %.1f °C", airConditionDriver->getMaximumTargetTemperature());
+                        }   
                     }
                     else
                     {             
                         if (currentTemperature > airConditionDriver->getMinimumTargetTemperature())
+                        {
+                            logInfoP("Decrease target temperature from %.1f °C to %.1f °C", currentTemperature, currentTemperature - 1.f);
                             airConditionDriver->setTargetTemperature(currentTemperature - 1.f); 
+                        }
+                        else
+                        {
+                            logInfoP("Target temperature is already at minimum %.1f °C", airConditionDriver->getMinimumTargetTemperature());
+                        }
                     }
                 }
                 break;  
@@ -345,6 +429,7 @@ void AirconditionModule::processInputKo(GroupObject &ko)
                         logErrorP("Room temperature %f is out of range (-50 - 50)", roomTemperature);
                         return;
                     }
+                    logInfoP("Set external sensor room temperature to %.1f °C", roomTemperature);
                     airConditionDriver->setExternalSensorRoomTemperature(roomTemperature);
                 }
                 break;
@@ -356,6 +441,7 @@ void AirconditionModule::processInputKo(GroupObject &ko)
 
 void AirconditionModule::powerChanged(bool power)
 {
+    logInfoP("AirCondition report power changed to %s", power ? "on" : "off");
     KoAIR_PowerState.valueCompare(power, DPT_Switch);
     if (!power)
     {
@@ -368,19 +454,23 @@ void AirconditionModule::powerChanged(bool power)
 }
 void AirconditionModule::targetTemperatureChanged(float temperature)
 {
+    logInfoP("AirCondition report target temperature changed to %.1f °C", temperature);
     KoAIR_SetTemperatureState.valueCompare(temperature, DPT_Value_Temp);
 }
 void AirconditionModule::fanSpeedChanged(int fanSpeed)
 {
     unsigned int fanSpeedPercent = fanSpeed * 100 / airConditionDriver->getMaximumFanSpeed();
+    logInfoP("AirCondition report fan speed changed to %u (%u%%)", fanSpeed, fanSpeedPercent);
     KoAIR_FanSpeedState.valueCompare((uint8_t) fanSpeedPercent, DPT_Scaling);
 }
 void AirconditionModule::modeChanged(AirConditionMode mode)
 {
+
     uint8_t hvacMode = 0;
     switch (mode)
     {
         case AirConditionMode::AirConditionModeAuto:
+            logInfoP("AirCondition report mode changed to Auto");
             hvacMode= 0;
             KoAIR_OperationModeAutomaticState.valueCompare(true, DPT_Switch);
             KoAIR_OperationModeCoolingState.valueCompare(false, DPT_Switch);
@@ -389,6 +479,7 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
             KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
             break;
         case AirConditionMode::AirConditionModeCool:
+            logInfoP("AirCondition report mode changed to Cool");
             hvacMode = 3;
             KoAIR_OperationModeAutomaticState.valueCompare(false, DPT_Switch);
             KoAIR_OperationModeCoolingState.valueCompare(true, DPT_Switch);
@@ -397,6 +488,7 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
             KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
             break;
         case AirConditionMode::AirConditionModeHeat:
+            logInfoP("AirCondition report mode changed to Heat");
             hvacMode = 1;
             KoAIR_OperationModeAutomaticState.valueCompare(false, DPT_Switch);
             KoAIR_OperationModeCoolingState.valueCompare(false, DPT_Switch);
@@ -405,6 +497,7 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
             KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
             break;
         case AirConditionMode::AirConditionModeDry:
+            logInfoP("AirCondition report mode changed to Dry");
             hvacMode = 14;
             KoAIR_OperationModeAutomaticState.valueCompare(false, DPT_Switch);
             KoAIR_OperationModeCoolingState.valueCompare(false, DPT_Switch);
@@ -413,6 +506,7 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
             KoAIR_OperationModeDehumidificationState.valueCompare(true, DPT_Switch);
             break;
         case AirConditionMode::AirConditionModeFan:
+            logInfoP("AirCondition report mode changed to Fan");
             hvacMode = 9;
             KoAIR_OperationModeAutomaticState.valueCompare(false, DPT_Switch);
             KoAIR_OperationModeCoolingState.valueCompare(false, DPT_Switch);
@@ -421,7 +515,7 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
             KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
             break;
         default:
-            logErrorP("Unknown AirConditionMode %d", mode);
+            logErrorP("AirCondition report mode changed to unknown mode %d", mode);
             return;
     }
     KoAIR_OperationModeState.valueCompare(hvacMode, DPT_HVACContrMode);
@@ -429,31 +523,37 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
 
 void AirconditionModule::swingHorizontalChanged(bool swing)
 {
+    logInfoP("AirCondition report horizontal swing changed to %s", swing ? "on" : "off");
     KoAIR_LouverHorizontalMoveState.valueNoSend(swing, DPT_Switch);
 }
 
 void AirconditionModule::swingVerticalChanged(bool swing)
 {
+    logInfoP("AirCondition report vertical swing changed to %s", swing ? "on" : "off");
     KoAIR_LouverVerticalMoveState.valueNoSend(swing, DPT_Switch);
 }
 
 void AirconditionModule::swingHorizontalFixPositionChanged(int position)
 {
+    logInfoP("AirCondition report horizontal fix position changed to %d", position);
     // To Do: Implementation for horizontal fix position KO
 }
 
 void AirconditionModule::swingVerticalFixPositionChanged(int position)
 {
+    logInfoP("AirCondition report vertical fix position changed to %d", position);
     // To Do: Implementation for vertical fix position KO
 }
 
 void AirconditionModule::roomTemperatureChanged(float temperature)
 {
+    logInfoP("AirCondition report room temperature changed to %.1f °C", temperature);
     KoAIR_RoomTemperatureState.valueCompare(temperature, DPT_Value_Temp);
 }
 
 void AirconditionModule::outsideTemperaturChanged(float temperature)
 {
+    logInfoP("AirCondition report outside temperature changed to %.1f °C", temperature);
     KoAIR_OutsideTemperatureState.valueCompare(temperature, DPT_Value_Temp);
 }
 
