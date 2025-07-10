@@ -10,7 +10,7 @@
                                              
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 43
-#define MAIN_ApplicationVersion 0
+#define MAIN_ApplicationVersion 3
 #define MAIN_ParameterSize 6004
 #define MAIN_MaxKoNumber 399
 #define MAIN_OrderNumber "MGKnxAIR"
@@ -218,7 +218,7 @@
 #define AIR_ReleaseBehaviorOff                  222      // 2 Bits, Bit 3-2
 #define     AIR_ReleaseBehaviorOffMask 0x0C
 #define     AIR_ReleaseBehaviorOffShift 2
-#define AIR_LockBehaviorOn                      221      // 2 Bits, Bit 5-4
+#define AIR_LockBehaviorOn                      222      // 2 Bits, Bit 5-4
 #define     AIR_LockBehaviorOnMask 0x30
 #define     AIR_LockBehaviorOnShift 4
 #define AIR_LockBehaviorOff                     222      // 2 Bits, Bit 4-3
