@@ -3,7 +3,9 @@
 
 class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedback
 {
+    AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
     AirConditionDriver* airConditionDriver = nullptr;
+    
     void setLocked(bool locked);
 
   public:

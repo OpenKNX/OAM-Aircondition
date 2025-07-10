@@ -14,7 +14,7 @@ const std::string AirconditionModule::name()
 
 const std::string AirconditionModule::version()
 {
-    return MAIN_ApplicationVersion;
+    return std::to_string(MAIN_ApplicationVersion);
 }
 
 void AirconditionModule::setup()
@@ -234,23 +234,31 @@ void AirconditionModule::processInputKo(GroupObject &ko)
         switch (ko.asap())
         {
             case AIR_KoPower:
-                airConditionDriver->setPower(ko.value(DPT_Switch));
+            {
+                bool power = ko.value(DPT_Switch);
+                airConditionDriver->setPower(power);
+                if (power)
+                    airConditionDriver->setMode(_lastMode); // Reset mode to last known state
                 break;
+            }
             case AIR_KoOperationMode:
                 {
-                    uint8_t hvacMode = ko.value(DPT_HVACContrMode);
+                    uint8_t hvacMode = ko.value(DPT_Value_1_Ucount /*DPT_HVACContrMode currently not supported*/);
                     switch (hvacMode)
                     {
                         case 0: // Auto
                             logInfoP("Set mode to Auto");
+                            _lastMode = AirConditionMode::AirConditionModeAuto;
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
                             break;
                         case 1: // Head
                             logInfoP("Set mode to Heat");
+                            _lastMode = AirConditionMode::AirConditionModeHeat;
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
                             break;
                         case 3: // Cool
                             logInfoP("Set mode to Cool");
+                            _lastMode = AirConditionMode::AirConditionModeCool;
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
                             break;
                         case 6: // Off
@@ -259,14 +267,20 @@ void AirconditionModule::processInputKo(GroupObject &ko)
                             break;
                         case 9: // Fan
                             logInfoP("Set mode to Fan");
+                            _lastMode = AirConditionMode::AirConditionModeFan;
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
                             break;
                         case 14: // Dry
                             logInfoP("Set mode to Dry");
+                            _lastMode = AirConditionMode::AirConditionModeDry;
                             airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
                             break;
                         default:
                             logErrorP("Unknown HVAC mode %d", hvacMode);
+                    }
+                    if (hvacMode != 6) // If not Off, set power to true
+                    {
+                        airConditionDriver->setPower(true);
                     }
                 }
                 break;
@@ -445,12 +459,22 @@ void AirconditionModule::powerChanged(bool power)
     KoAIR_PowerState.valueCompare(power, DPT_Switch);
     if (!power)
     {
+        KoAIR_OperationModeState.valueCompare((uint8_t) 6, DPT_Value_1_Ucount /*DPT_HVACContrMode currently not supported*/);
         KoAIR_OperationModeAutomaticState.valueCompare(false, DPT_Switch);
         KoAIR_OperationModeCoolingState.valueCompare(false, DPT_Switch);
         KoAIR_OperationModeHeatingState.valueCompare(false, DPT_Switch);
         KoAIR_OperationModeVentilationState.valueCompare(false, DPT_Switch);
         KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
     }
+    else
+    {
+        KoAIR_OperationModeAutomaticState.valueCompare(true, DPT_Switch);
+        KoAIR_OperationModeCoolingState.valueCompare(false, DPT_Switch);
+        KoAIR_OperationModeHeatingState.valueCompare(false, DPT_Switch);
+        KoAIR_OperationModeVentilationState.valueCompare(false, DPT_Switch);
+        KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
+    }
+
 }
 void AirconditionModule::targetTemperatureChanged(float temperature)
 {
@@ -465,7 +489,7 @@ void AirconditionModule::fanSpeedChanged(int fanSpeed)
 }
 void AirconditionModule::modeChanged(AirConditionMode mode)
 {
-
+    _lastMode = mode;
     uint8_t hvacMode = 0;
     switch (mode)
     {
@@ -518,7 +542,7 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
             logErrorP("AirCondition report mode changed to unknown mode %d", mode);
             return;
     }
-    KoAIR_OperationModeState.valueCompare(hvacMode, DPT_HVACContrMode);
+    KoAIR_OperationModeState.valueCompare(hvacMode, DPT_Value_1_Ucount /*DPT_HVACContrMode currently not supported*/);
 }
 
 void AirconditionModule::swingHorizontalChanged(bool swing)
