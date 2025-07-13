@@ -1,0 +1,2 @@
+- Swing horizontal
+- Swing vertical

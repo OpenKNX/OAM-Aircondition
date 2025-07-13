@@ -3,6 +3,14 @@
 
 class MitsubishiDriver : public AirConditionDriver
 {
+
+    private:
+        void requestInitialData();
+        void requestSettingsData();
+        void requestStatusData();
+        uint32_t _lastStatusRequest = 0;
+        uint32_t _lastSettingsRequest = 0;
+
     public:
         MitsubishiDriver(AirConditionDriverStatusFeedback& statusFeedback);
   
