@@ -10,39 +10,39 @@ const std::string MideaDriver::name() const
     return "Midea";
 }
 
-void MideaDriver::showInformations() const
+void MideaDriver::showInformations()
 {
    
 }
 
-void MideaDriver::setup() const
+void MideaDriver::setup()
 {
     // Initialization code for Midea air conditioner
 }
 
-void MideaDriver::loop() const
+void MideaDriver::loop()
 {
     // Loop code for Midea air conditioner
 }
 
-float MideaDriver::getMinimumTargetTemperature() const
+float MideaDriver::getMinimumTargetTemperature()
 {
     return 17.0f;
 }
-float MideaDriver::getMaximumTargetTemperature() const
+float MideaDriver::getMaximumTargetTemperature()
 {
     return 30.0f;
 }
 
-unsigned int MideaDriver::getMaximumFanSpeed() const
+unsigned int MideaDriver::getMaximumFanSpeed()
 {
     return 5; 
 }
-unsigned int MideaDriver::getMaximumHorizontalFixPosition() const
+unsigned int MideaDriver::getMaximumHorizontalFixPosition()
 {
     return 5; 
 }
-unsigned int MideaDriver::getMaximumVertiacalFixPosition() const
+unsigned int MideaDriver::getMaximumVertiacalFixPosition()
 {
     return 5; 
 }

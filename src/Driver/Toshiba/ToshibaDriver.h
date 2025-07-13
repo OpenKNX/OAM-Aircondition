@@ -1,9 +1,132 @@
-#pragma once
-#include "../Midea/MideaDriver.h"
+// This code is based on:
+// https://github.com/pedobry/esphome_toshiba_suzumi
 
-class ToshibaDriver : public MideaDriver
+#pragma once
+#include "../../AirConditionDriver.h"
+
+enum class ToshibaCommandType : uint8_t
 {
-    public:
-        ToshibaDriver(AirConditionDriverStatusFeedback& statusFeedback);
-        virtual const std::string name() const override;
+    ToshibaCommandTypeHandshake = 0, // dummy command to handle all handshake requests
+    ToshibaCommandTypeDelay = 1,     // dummy command to issue a delay in communication
+    ToshibaCommandTypePowerState = 128,
+    ToshibaCommandTypePowerSel = 135,
+    ToshibaCommandTypeComfortSleep = 148, // { ON = 65, OFF = 66 }
+    ToshibaCommandTypeFan = 160,
+    ToshibaCommandTypeSwing = 163,
+    ToshibaCommandTypeMode = 176,
+    ToshibaCommandTypeTargetTemperature = 179,
+    ToshibaCommandTypeRoomTemperature = 187,
+    ToshibaCommandTypeOutdoorTemperature = 190,
+    ToshibaCommandTypeWifiLED = 223,
+    ToshibaCommandTypeSpecialMode = 247,
+};
+
+enum class ToshibaState : uint8_t
+{
+    ToshibaStateOn = 48,
+    ToshibaStateOff = 49
+};
+
+enum ToshibaSpecialMode : uint8_t
+{
+    ToshibaSpecialModeStandard = 0,
+    ToshibaSpecialModeHiPower = 1,
+    ToshibaSpecialModeEco = 3,
+    ToshibaSpecialModeFireplace1 = 32,
+    ToshibaSpecialModeFireplace2 = 48,
+    ToshibaSpecialModeEightDegree = 4,
+    ToshibaSpecialModeSilent1 = 2,
+    ToshibaSpecialModeSilent2 = 10,
+    ToshibaSpecialModeSleep = 5,
+    ToshibaSpecialModeFloor = 6,
+    ToshibaSpecialModeComfort = 7
+};
+
+enum ToshibaDriverMode : uint8_t
+{
+    ToshibaDriverModeAuto = 65,
+    ToshibaDriverModeCool = 66,
+    ToshibaDriverModeHeat = 67,
+    ToshibaDriverModeDry = 68,
+    ToshibaDriverModeFanOnly = 69
+};
+
+enum ToshibaFan : uint8_t
+{
+    ToshibaFanQuit = 49,
+    ToshibaFanLow = 50,
+    ToshibaFanMode2 = 51,
+    ToshibaFanMedium = 52,
+    ToshibaFanMode4 = 53,
+    ToshibaFanHigh = 54,
+    ToshibaFanAuto = 65
+};
+
+enum class ToshibaSwingMode : uint8_t
+{
+    ToshibaSwingModeOff = 49,
+    ToshibaSwingModeBoth = 67,
+    ToshibaSwingModeVertical = 65,
+    ToshibaSwingModeHorizontal = 66
+};
+
+struct ToshibaCommand
+{
+    ToshibaCommandType cmd;
+    std::vector<uint8_t> payload;
+    int delay;
+};
+
+class ToshibaDriver : public AirConditionDriver
+{
+  private:
+    static const std::vector<uint8_t> PayloadHandshake[6];
+    static const std::vector<uint8_t> PayloadPostHandshake[2];
+    static const uint8_t EightDegreeSpecialModeTempOffset;
+    static const uint8_t StandardModeMinTemp;
+
+    void sendCommand(ToshibaCommandType cmd, uint8_t payload = 0);
+    void enqueueCommand(const ToshibaCommand &command);
+    void startCommunication();
+    void processCommandQueue();
+    void requestData(ToshibaCommandType cmd);
+    void requestTemperatures();
+    void requestInitialData();
+    void handleReceivedByte(uint8_t c);
+    bool validateMessage();
+    void parseResponse(std::vector<uint8_t> rawData);
+    uint8_t checksum(std::vector<uint8_t> data, uint8_t length);
+    void sendToUart(const ToshibaCommand command);
+
+    std::vector<uint8_t> _receivedMessage = {};
+    std::vector<ToshibaCommand> _commandQueue = {};
+    uint32_t _lastTemperatureRequest = 0;
+    uint32_t _lastCommandTimestamp = 0;
+    uint32_t _lastReceivedByteTimestamp = 0;
+    ToshibaSpecialMode _specialMode = ToshibaSpecialMode::ToshibaSpecialModeStandard;
+    ToshibaSwingMode _swingMode = ToshibaSwingMode::ToshibaSwingModeOff;
+
+  public:
+    ToshibaDriver(AirConditionDriverStatusFeedback &statusFeedback);
+
+    virtual void setup() override;
+    virtual void loop() override;
+
+    virtual const std::string name() const override;
+    virtual void showInformations() override;
+    virtual float getMinimumTargetTemperature() override;
+    virtual float getMaximumTargetTemperature() override;
+    virtual unsigned int getMaximumFanSpeed() override;
+    virtual unsigned int getMaximumHorizontalFixPosition() override;
+    virtual unsigned int getMaximumVertiacalFixPosition() override;
+
+    virtual void setPower(bool power) override;
+    virtual void setMode(AirConditionMode mode) override;
+    virtual void setTargetTemperature(float temperaturCelius) override;
+    virtual void setFanSpeed(unsigned int speed) override;
+    virtual void setSwingHorizontal(bool swing) override;
+    virtual void setSwingVertical(bool swing) override;
+    virtual void setSwingHorizontalFixPosition(unsigned int position) override;
+    virtual void setSwingVerticalFixPosition(unsigned int position) override;
+    virtual void setExternalSensorRoomTemperature(float temperaturCelius) override;
 };
