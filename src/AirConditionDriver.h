@@ -34,31 +34,26 @@ public:
 protected:
     // Reference to the status feedback interface
     AirConditionDriverStatusFeedback& statusFeedback;
-
-    AirConditionDriver(AirConditionDriverStatusFeedback& statusFeedback)
-        : statusFeedback(statusFeedback)
-    {
-    }
+    AirConditionDriver(AirConditionDriverStatusFeedback& statusFeedback);
 public:
+    static std::string toHexString(const std::vector<uint8_t>& data);
+    static std::string toHexString(const uint8_t* data, size_t length); 
     // Lifecycle methods
-    virtual void setup() const = 0;
-    virtual void loop() const = 0;
+    virtual void setup() = 0;
+    virtual void loop() = 0;
     virtual void processInputKo(GroupObject &ko) {}
     virtual bool processCommand(const std::string cmd, bool debugKo) { return false; }
 
     // Information about the air condition device
     virtual const std::string name() const = 0;
-    const std::string logPrefix() const 
-    {
-        return name();
-    };
+    const std::string logPrefix() const;
    
-    virtual void showInformations() const = 0;
-    virtual float getMinimumTargetTemperature() const = 0; 
-    virtual float getMaximumTargetTemperature() const = 0;
-    virtual unsigned int getMaximumFanSpeed() const = 0; 
-    virtual unsigned int getMaximumHorizontalFixPosition() const = 0; 
-    virtual unsigned int getMaximumVertiacalFixPosition() const = 0; 
+    virtual void showInformations() = 0;
+    virtual float getMinimumTargetTemperature() = 0; 
+    virtual float getMaximumTargetTemperature() = 0;
+    virtual unsigned int getMaximumFanSpeed() = 0; 
+    virtual unsigned int getMaximumHorizontalFixPosition() = 0; 
+    virtual unsigned int getMaximumVertiacalFixPosition() = 0; 
 
     // Methods to control the air condition device
     virtual void setPower(bool power) = 0;

@@ -10,39 +10,39 @@ const std::string MitsubishiDriver::name() const
     return "Mitsubishi";
 }
 
-void MitsubishiDriver::showInformations() const
+void MitsubishiDriver::showInformations()
 {
    
 }
 
-void MitsubishiDriver::setup() const
+void MitsubishiDriver::setup()
 {
     // Initialization code for Mitsubishi air conditioner
 }
 
-void MitsubishiDriver::loop() const
+void MitsubishiDriver::loop()
 {
     // Loop code for Mitsubishi air conditioner
 }
 
-float MitsubishiDriver::getMinimumTargetTemperature() const
+float MitsubishiDriver::getMinimumTargetTemperature()
 {
     return  (float) ParamAIR_Mit_MinTemp;
 }
-float MitsubishiDriver::getMaximumTargetTemperature() const
+float MitsubishiDriver::getMaximumTargetTemperature()
 {
     return 30.0f; // To Do (Mitsubishi): Check maximum temperature
 }
 
-unsigned int MitsubishiDriver::getMaximumFanSpeed() const
+unsigned int MitsubishiDriver::getMaximumFanSpeed()
 {
     return 5; // To Do (Mitsubishi): Check maximum fan speed
 }
-unsigned int MitsubishiDriver::getMaximumHorizontalFixPosition() const
+unsigned int MitsubishiDriver::getMaximumHorizontalFixPosition()
 {
     return 5; // To Do (Mitsubishi): Check maximum horizontal fix position
 }
-unsigned int MitsubishiDriver::getMaximumVertiacalFixPosition() const
+unsigned int MitsubishiDriver::getMaximumVertiacalFixPosition()
 {
     return 5; // To Do (Mitsubishi): Check maximum vertical fix position
 }

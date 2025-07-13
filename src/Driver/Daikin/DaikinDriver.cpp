@@ -10,39 +10,39 @@ const std::string DaikinDriver::name() const
     return "Daikin";
 }
 
-void DaikinDriver::showInformations() const
+void DaikinDriver::showInformations()
 {
    
 }
 
-void DaikinDriver::setup() const
+void DaikinDriver::setup()
 {
     // Initialization code for Daikin air conditioner
 }
 
-void DaikinDriver::loop() const
+void DaikinDriver::loop()
 {
     // Loop code for Daikin air conditioner
 }
 
-float DaikinDriver::getMinimumTargetTemperature() const
+float DaikinDriver::getMinimumTargetTemperature()
 {
     return 17.0f; // To Do (Daikin): Check minimum temperature
 }
-float DaikinDriver::getMaximumTargetTemperature() const
+float DaikinDriver::getMaximumTargetTemperature()
 {
     return 30.0f; // To Do (Daikin): Check maximum temperature
 }
 
-unsigned int DaikinDriver::getMaximumFanSpeed() const
+unsigned int DaikinDriver::getMaximumFanSpeed()
 {
     return 5; // To Do (Daikin): Check maximum fan speed
 }
-unsigned int DaikinDriver::getMaximumHorizontalFixPosition() const
+unsigned int DaikinDriver::getMaximumHorizontalFixPosition()
 {
     return 5; // To Do (Daikin): Check maximum horizontal fix position
 }
-unsigned int DaikinDriver::getMaximumVertiacalFixPosition() const
+unsigned int DaikinDriver::getMaximumVertiacalFixPosition()
 {
     return 5; // To Do (Daikin): Check maximum vertical fix position
 }
