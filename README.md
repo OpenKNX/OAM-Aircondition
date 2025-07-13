@@ -1,17 +1,17 @@
 
-# OAM-Sonsos
+# OAM-Aircondition
 
-This modul allows to control Sonsos speaker via the unoffical local API
+This modul allows to control several brands of HVAC Units 
+
+- Daikin (Wwork in Progress)
+- Midea (WIP)
+- Mitsubishi (WIP)
+- Toshiba (WIP)
+
 
 ## Features
 
-- Grouping / Ungrouping
-- Switch to next playing group
-- Change volume
-- Mute
-- Play / Pause
-- Start playing radio, mediafiles etc.
-- Play notifcation sound over the current running music
+TBD
 
 ## Anwenderdokumentation
 
@@ -19,15 +19,11 @@ Die Anwenderdokumentation ist [hier](./doc/Applikationsbeschreibung.md) zu finde
 
 ## Firmware
 
-Eine vorkomplierte Firmware ist [hier](https://github.com/OpenKNX/OAM-Sonos/releases) zu finden. ZIP Datei herunterladen, entpacken und der Anleitung im Readme folgen.
+Eine vorkomplierte Firmware ist [hier](https://github.com/OpenKNX/OAM-Aircondition/releases) zu finden. ZIP Datei herunterladen, entpacken und der Anleitung im Readme folgen.
 
 ## Hardware
 
-Als Hardware kann jede OpenKNX oder OpenKNX-Ready Hardware mit LAN oder WLAN verwendet werden.
-Die vorkompilierte Firmware unterstützt:
-
-- [REG1-LAN-TP-Base](https://github.com/OpenKNX/OpenKNX/wiki/REG1-LAN-TP-Base)
-- [Adafruit ESP32 Feather V2](https://github.com/OpenKNX/OpenKNX/wiki/Adafruit-ESP32-Feather-V2)
+TBD
 
 ## Lizenz
 
