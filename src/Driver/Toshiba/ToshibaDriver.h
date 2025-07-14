@@ -8,23 +8,23 @@ enum class ToshibaCommandType : uint8_t
 {
     ToshibaCommandTypeHandshake = 0, // dummy command to handle all handshake requests
     ToshibaCommandTypeDelay = 1,     // dummy command to issue a delay in communication
-    ToshibaCommandTypePowerState = 128,
-    ToshibaCommandTypePowerSel = 135,
-    ToshibaCommandTypeComfortSleep = 148, // { ON = 65, OFF = 66 }
-    ToshibaCommandTypeFan = 160,
-    ToshibaCommandTypeSwing = 163,
-    ToshibaCommandTypeMode = 176,
-    ToshibaCommandTypeTargetTemperature = 179,
-    ToshibaCommandTypeRoomTemperature = 187,
-    ToshibaCommandTypeOutdoorTemperature = 190,
-    ToshibaCommandTypeWifiLED = 223,
-    ToshibaCommandTypeSpecialMode = 247,
+    ToshibaCommandTypePowerState = 0x80, //128,
+    ToshibaCommandTypePowerSel = 0x87, // 135,
+    ToshibaCommandTypeComfortSleep = 0x94, // 148 { ON = 0x41 (65), OFF = 0x42 (66) }
+    ToshibaCommandTypeFan = 0xA0, // 160,
+    ToshibaCommandTypeSwing = 0xA3, // 163,
+    ToshibaCommandTypeMode = 0xB0, // 176,
+    ToshibaCommandTypeTargetTemperature = 0xB3, // 179,
+    ToshibaCommandTypeRoomTemperature = 0xBB, // 187,
+    ToshibaCommandTypeOutdoorTemperature = 0xBE, // 190,
+    ToshibaCommandTypeWifiLED = 0xDF, // 223,
+    ToshibaCommandTypeSpecialMode = 0xF7, // 247,
 };
 
 enum class ToshibaState : uint8_t
 {
-    ToshibaStateOn = 48,
-    ToshibaStateOff = 49
+    ToshibaStateOn = 0x30, // 48
+    ToshibaStateOff = 0x31, // 49
 };
 
 enum ToshibaSpecialMode : uint8_t
