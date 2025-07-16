@@ -4,7 +4,7 @@
 #include "ToshibaDriver.h"
 
 static const int RECEIVE_TIMEOUT = 200;
-static const int COMMAND_DELAY = 100;
+static const int COMMAND_DELAY = 600;
 constexpr const char *SPECIAL_MODE_EIGHT_DEG = "8 degrees";
 
 static const uint8_t SPECIAL_MODE_EIGHT_DEG_MIN_TEMP = 5;
@@ -22,6 +22,7 @@ const std::vector<uint8_t> ToshibaDriver::PayloadHandshake[6] = {
     {2, 0, 1, 2, 0, 0, 2, 0, 0, 254},
     {2, 0, 2, 0, 0, 0, 0, 254},
 };
+
 
 const std::vector<uint8_t> ToshibaDriver::PayloadPostHandshake[2] = {
     {2, 0, 2, 1, 0, 0, 2, 0, 0, 251},
@@ -54,6 +55,7 @@ void ToshibaDriver::startCommunication()
     enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeDelay, .delay = 2000});
     enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeHandshake, .payload = PayloadPostHandshake[0]});
     enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeHandshake, .payload = PayloadPostHandshake[1]});
+    enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeDelay, .delay = 1000});
 }
 
 void ToshibaDriver::requestData(ToshibaCommandType cmd)
@@ -82,7 +84,7 @@ void ToshibaDriver::requestInitialData()
 
 void ToshibaDriver::setup()
 {
-    OPENKNX_AIR_CONDITION_SERIAL.begin(9600, SERIAL_8N1, OPENKNX_AIR_CONDITION_SERIAL_RX, OPENKNX_AIR_CONDITION_SERIAL_TX);
+    OPENKNX_AIR_CONDITION_SERIAL.begin(9600, SERIAL_8E1, OPENKNX_AIR_CONDITION_SERIAL_RX, OPENKNX_AIR_CONDITION_SERIAL_TX);
     startCommunication();
     requestInitialData();
 
@@ -330,6 +332,7 @@ void ToshibaDriver::requestTemperatures()
 
 void ToshibaDriver::handleReceivedByte(uint8_t c)
 {
+    logDebugP("Received byte: %02X", c);
     _receivedMessage.push_back(c);
     if (!validateMessage())
     {
@@ -340,6 +343,24 @@ void ToshibaDriver::handleReceivedByte(uint8_t c)
         _lastReceivedByteTimestamp = millis();
     }
 }
+
+/*
+  byte packet[12 + dataLen + 1];    // base + dataLen + checksum
+        memset(packet, 0, sizeof(packet));  // set all index to 0
+        memcpy(packet, header, headerLen);  // add header
+        packet[3] = packetType; // add packet type
+        packet[6] = sizeof(packet) - 8; // add packet size
+        // add unknown byte
+        packet[7] = 1;
+        packet[8] = 48;
+        packet[9] = 1;
+        packet[11] = dataLen;  // add data type
+        memcpy(packet + 12, data, dataLen);   // add data
+        packet[sizeof(packet) - 1] = checksum(438, data, dataLen);  // add checksum
+
+        #ifdef HVAC_DEBUG
+        DEBUG_PORT.println(F("HVAC> Command/Query packet was created"));
+*/
 
 void ToshibaDriver::sendCommand(ToshibaCommandType cmd, uint8_t value)
 {
@@ -378,9 +399,15 @@ void ToshibaDriver::processCommandQueue()
     if (cmdDelay > COMMAND_DELAY && !_commandQueue.empty() && this->_receivedMessage.empty())
     {
         auto newCommand = _commandQueue.front();
-        if (newCommand.cmd == ToshibaCommandType::ToshibaCommandTypeDelay && cmdDelay < newCommand.delay)
+        if (newCommand.cmd == ToshibaCommandType::ToshibaCommandTypeDelay)
         {
-            // delay command did not finished yet
+            if (cmdDelay < newCommand.delay)
+            {
+                // delay command did not finished yet
+                return;
+            }
+            logDebugP("Delay command finished waiting {%d}ms, removing from queue", (int) newCommand.delay);
+            _commandQueue.erase(_commandQueue.begin());
             return;
         }
         sendToUart(_commandQueue.front());
