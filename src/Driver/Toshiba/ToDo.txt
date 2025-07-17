@@ -1,3 +1,35 @@
 - Lammellen
 - Power Modes
 - 8 Degree Suppport
+
+
+HVAC> Sending data-> 2 255 255 0 0 0 0 2 
+HVAC> Sending data-> 2 255 255 1 0 0 1 2 254 
+HVAC> Sending data-> 2 0 0 0 0 0 2 2 2 250 
+HVAC> Sending data-> 2 0 1 129 1 0 2 0 0 123 
+HVAC> Sending data-> 2 0 1 2 0 0 2 0 0 254 
+HVAC> Sending data-> 2 0 2 0 0 0 0 254 
+HVAC> First handshake sent. Waiting for SYN/ACK packet
+HVAC> Received data length: 40
+HVAC> Data: 1 4 9 1 1 2 3 3 12 4 1 2 1 2 5 17 17 17 17 17 1 1 1 1 1 2 1 1 1 1 1 1 1 2 1 2 1 7 1 174 
+HVAC> Header start not found
+HVAC> Fore handshake ack
+HVAC> Header start not found
+HVAC> Fore handshake ack
+HVAC> Send ACK for handshake
+HVAC> Sending data-> 2 0 2 1 0 0 2 0 0 251 
+HVAC> Sending data-> 2 0 2 2 0 0 2 0 0 250 
+HVAC> Waiting for ready feedback
+HVAC> Received data length: 20
+HVAC> Data: 2 0 2 129 0 0 2 0 0 123 2 0 2 130 0 0 2 0 0 122 
+
+HVAC> Header start not found
+HVAC> Fore handshake ack
+HVAC> Header start found at: 0
+HVAC> Received OP packet from hvac
+HVAC> Received confirm handshake, your code may crash or hw problem cause node mcu restarted
+HVAC> Command/Query packet was created
+HVAC> Sending data-> 2 0 3 16 0 0 6 1 48 1 0 1 128 52 
+HVAC> Received data length: 17
+HVAC> Data: 2 0 3 144 0 0 9 1 48 1 0 0 0 2 128 49 127 
+HVAC> Header start found at: 0

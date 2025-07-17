@@ -38,3 +38,21 @@ std::string AirConditionDriver::toHexString(const uint8_t* data, size_t length)
     }
     return result;
 }
+
+
+const char* AirConditionDriver::getDriverStateString(AirConditionDriverState state)
+{
+    switch (state)
+    {
+        case AirConditionDriverState::AirConditionDriverStateNotStarted:
+            return "Not Started";
+        case AirConditionDriverState::AirConditionDriverStateStarting:
+            return "Starting";
+        case AirConditionDriverState::AirConditionDriverStateOk:
+            return "Ok";
+        case AirConditionDriverState::AirConditionDriverStateError:
+            return "Error";
+        default:
+            return "Unknown State";
+    }
+}

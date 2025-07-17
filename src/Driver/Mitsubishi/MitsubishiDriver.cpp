@@ -20,6 +20,16 @@ void MitsubishiDriver::setup()
     // Initialization code for Mitsubishi air conditioner
 }
 
+void MitsubishiDriver::startCommunication(bool restart)
+{
+    // To Do: Implement the starting of the communication for Mitsubishi air conditioner
+}
+
+void MitsubishiDriver::requestAllData()
+{
+    // To Do: Implement the request for all data from Mitsubishi air conditioner
+}
+
 void MitsubishiDriver::loop()
 {
     // Loop code for Mitsubishi air conditioner

@@ -74,7 +74,11 @@ struct ToshibaCommand
 {
     ToshibaCommandType cmd;
     std::vector<uint8_t> payload;
-    int delay;
+    int delay = 0;
+    int retryCount = 0;
+    bool awaitAnswer = false; 
+    unsigned long timestampSent = 0; 
+    bool requestFeedback = false;
 };
 
 class ToshibaDriver : public AirConditionDriver
@@ -87,22 +91,23 @@ class ToshibaDriver : public AirConditionDriver
 
     void sendCommand(ToshibaCommandType cmd, uint8_t payload = 0);
     void enqueueCommand(const ToshibaCommand &command);
-    void startCommunication();
+    void startCommunication(bool restart);
     void processCommandQueue();
     void requestData(ToshibaCommandType cmd);
+    ToshibaCommand createRequestCommand(ToshibaCommandType cmd);
     void requestTemperatures();
-    void requestInitialData();
+    void requestAllData();
     void handleReceivedByte(uint8_t c);
     bool validateMessage();
     void parseResponse(std::vector<uint8_t> rawData);
     uint8_t checksum(std::vector<uint8_t> data, uint8_t length);
-    void sendToUart(const ToshibaCommand command);
+    void sendToUart(const ToshibaCommand& command);
 
     std::vector<uint8_t> _receivedMessage = {};
     std::vector<ToshibaCommand> _commandQueue = {};
-    uint32_t _lastTemperatureRequest = 0;
-    uint32_t _lastCommandTimestamp = 0;
-    uint32_t _lastReceivedByteTimestamp = 0;
+    unsigned long _lastTemperatureRequest = 0;
+    unsigned long _lastCommandTimestamp = 0;
+    unsigned long _lastReceivedByteTimestamp = 0;
     ToshibaSpecialMode _specialMode = ToshibaSpecialMode::ToshibaSpecialModeStandard;
     ToshibaSwingMode _swingMode = ToshibaSwingMode::ToshibaSwingModeOff;
 

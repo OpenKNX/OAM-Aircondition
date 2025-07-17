@@ -4,7 +4,10 @@
 #include "ToshibaDriver.h"
 
 static const int RECEIVE_TIMEOUT = 200;
-static const int COMMAND_DELAY = 600;
+static const int COMMAND_DELAY = 100;
+static const int COMMAND_RETRY_AFTER = 1000;
+static const int COMMAND_REQUEST_FEEDBACK_AFTER = 500;
+static const int COMMAND_MAX_RETRY_COUNT = 3;
 constexpr const char *SPECIAL_MODE_EIGHT_DEG = "8 degrees";
 
 static const uint8_t SPECIAL_MODE_EIGHT_DEG_MIN_TEMP = 5;
@@ -13,6 +16,7 @@ static const uint8_t SPECIAL_MODE_EIGHT_DEG_DEF_TEMP = 8;
 
 const uint8_t ToshibaDriver::EightDegreeSpecialModeTempOffset = 16;
 const uint8_t ToshibaDriver::StandardModeMinTemp = 17;
+
 
 const std::vector<uint8_t> ToshibaDriver::PayloadHandshake[6] = {
     {2, 255, 255, 0, 0, 0, 0, 2},
@@ -43,7 +47,7 @@ void ToshibaDriver::showInformations()
 {
 }
 
-void ToshibaDriver::startCommunication()
+void ToshibaDriver::startCommunication(bool restart)
 {
     logDebugP("Send communcation");
     enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeHandshake, .payload = PayloadHandshake[0]});
@@ -56,20 +60,34 @@ void ToshibaDriver::startCommunication()
     enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeHandshake, .payload = PayloadPostHandshake[0]});
     enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeHandshake, .payload = PayloadPostHandshake[1]});
     enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeDelay, .delay = 1000});
+
+    requestData(ToshibaCommandType::ToshibaCommandTypePowerState);
+
+    // if (this->wifi_led_disabled_) {
+    // // Disable Wifi LED
+    // this->sendCmd(ToshibaCommandType::WIFI_LED, 128);
+}
+
+ToshibaCommand ToshibaDriver::createRequestCommand(ToshibaCommandType cmd)
+{
+    ToshibaCommand command;
+    command.cmd = cmd;
+    command.payload = {2, 0, 3, 16, 0, 0, 6, 1, 48, 1, 0, 1};
+    command.payload.push_back(static_cast<uint8_t>(cmd));
+    command.payload.push_back(checksum(command.payload, command.payload.size()));
+    command.awaitAnswer = true;
+    logInfoP("Requesting for %02X, checksum: %02X", (int) command.payload[12], (int) command.payload[13]);
+    return command;
 }
 
 void ToshibaDriver::requestData(ToshibaCommandType cmd)
 {
-    std::vector<uint8_t> payload = {2, 0, 3, 16, 0, 0, 6, 1, 48, 1, 0, 1};
-    payload.push_back(static_cast<uint8_t>(cmd));
-    payload.push_back(checksum(payload, payload.size()));
-    logInfoP("Requesting data from %d, checksum: %d", payload[12], payload[13]);
-    enqueueCommand(ToshibaCommand{.cmd = cmd, .payload = std::vector<uint8_t>{payload}});
+    ToshibaCommand command = createRequestCommand(cmd);
+    enqueueCommand(command);
 }
 
-void ToshibaDriver::requestInitialData()
+void ToshibaDriver::requestAllData()
 {
-    logDebugP("Requesting initial data");
     requestData(ToshibaCommandType::ToshibaCommandTypePowerState);
     requestData(ToshibaCommandType::ToshibaCommandTypeMode);
     requestData(ToshibaCommandType::ToshibaCommandTypeTargetTemperature);
@@ -85,12 +103,8 @@ void ToshibaDriver::requestInitialData()
 void ToshibaDriver::setup()
 {
     OPENKNX_AIR_CONDITION_SERIAL.begin(9600, SERIAL_8E1, OPENKNX_AIR_CONDITION_SERIAL_RX, OPENKNX_AIR_CONDITION_SERIAL_TX);
-    startCommunication();
-    requestInitialData();
+   
 
-    // if (this->wifi_led_disabled_) {
-    // // Disable Wifi LED
-    // this->sendCmd(ToshibaCommandType::WIFI_LED, 128);
 }
 
 /**
@@ -191,6 +205,22 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
                       toHexString(rawData).c_str());
             return;
     }
+    if (!_commandQueue.empty())
+    {
+        auto& currentCommand = _commandQueue.front();
+        if (currentCommand.timestampSent != 0 && currentCommand.cmd == commandType)
+        {
+            // if we have a command in queue, and it matches the received command, remove it
+            _commandQueue.erase(_commandQueue.begin());
+            logDebugP("Response for command %d received", static_cast<int>(commandType));
+            statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
+        }
+        else
+        {
+            logDebugP("Received command %d does not match the await command %d", static_cast<int>(commandType), static_cast<int>(currentCommand.cmd));
+        }
+    }
+
     switch (commandType)
     {
         case ToshibaCommandType::ToshibaCommandTypeTargetTemperature:
@@ -332,7 +362,6 @@ void ToshibaDriver::requestTemperatures()
 
 void ToshibaDriver::handleReceivedByte(uint8_t c)
 {
-    logDebugP("Received byte: %02X", c);
     _receivedMessage.push_back(c);
     if (!validateMessage())
     {
@@ -368,8 +397,8 @@ void ToshibaDriver::sendCommand(ToshibaCommandType cmd, uint8_t value)
     payload.push_back(static_cast<uint8_t>(cmd));
     payload.push_back(value);
     payload.push_back(checksum(payload, payload.size()));
-    logDebugP("Sending ToshibaCommand: %d, value: %d, checksum: %d", cmd, value, payload[14]);
-    enqueueCommand({.cmd = cmd, .payload = std::vector<uint8_t>{payload}});
+    logDebugP("Sending command: %02X, value: %d, checksum: %02X", (int) cmd, value, (int) payload[14]);
+    enqueueCommand({.cmd = cmd, .payload = std::vector<uint8_t>{payload}, .awaitAnswer = true, .requestFeedback = true});
 }
 
 void ToshibaDriver::enqueueCommand(const ToshibaCommand &command)
@@ -383,8 +412,8 @@ void ToshibaDriver::enqueueCommand(const ToshibaCommand &command)
  */
 void ToshibaDriver::processCommandQueue()
 {
-    uint32_t now = millis();
-    uint32_t cmdDelay = now - _lastCommandTimestamp;
+    unsigned long now = max(1UL, millis()); // 0 is not a valid timestamp, it's used as a marker for uninitialized timestamp
+    unsigned long cmdDelay = now - _lastCommandTimestamp;
 
     // when we have not processed message and timeout since last received byte has expired,
     // we likely won't receive any more data and there is nothing we can do with the message as it's
@@ -398,7 +427,7 @@ void ToshibaDriver::processCommandQueue()
     // when there is no RX message and there is a command to send
     if (cmdDelay > COMMAND_DELAY && !_commandQueue.empty() && this->_receivedMessage.empty())
     {
-        auto newCommand = _commandQueue.front();
+        auto& newCommand = _commandQueue.front();
         if (newCommand.cmd == ToshibaCommandType::ToshibaCommandTypeDelay)
         {
             if (cmdDelay < newCommand.delay)
@@ -410,8 +439,41 @@ void ToshibaDriver::processCommandQueue()
             _commandQueue.erase(_commandQueue.begin());
             return;
         }
-        sendToUart(_commandQueue.front());
-        _commandQueue.erase(_commandQueue.begin());
+        if (newCommand.timestampSent != 0)
+        {
+            if (newCommand.requestFeedback)
+            {
+                if (now - newCommand.timestampSent >= COMMAND_REQUEST_FEEDBACK_AFTER)
+                {
+                    newCommand.requestFeedback = false;
+                    auto requestCommand = createRequestCommand(newCommand.cmd);
+                    sendToUart(requestCommand);
+                }
+                return;
+            }
+            if (now - newCommand.timestampSent > COMMAND_RETRY_AFTER)
+            {
+                if (newCommand.retryCount >= COMMAND_MAX_RETRY_COUNT)
+                {
+                     // Command timeout
+                    statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Command timeout");
+                    _commandQueue.erase(_commandQueue.begin());
+                    return;
+                }
+                newCommand.retryCount++;
+                logErrorP("Command %02X timed out, retrying (%d/%d)", (int) newCommand.cmd, newCommand.retryCount, COMMAND_MAX_RETRY_COUNT);
+            }
+            else
+            {
+                // still waiting for answer            
+                return;
+            }
+        }
+        _lastCommandTimestamp = now;
+        newCommand.timestampSent = now;
+        sendToUart(newCommand);
+        if (!newCommand.awaitAnswer)
+            _commandQueue.erase(_commandQueue.begin());
     }
 }
 
@@ -433,9 +495,8 @@ void ToshibaDriver::loop()
 /**
  * Send the command to UART interface.
  */
-void ToshibaDriver::sendToUart(ToshibaCommand command)
+void ToshibaDriver::sendToUart(const ToshibaCommand& command)
 {
-    _lastCommandTimestamp = millis();
     logDebugP("Sending: [%s]", toHexString(command.payload).c_str());
     OPENKNX_AIR_CONDITION_SERIAL.write(command.payload.data(), command.payload.size());
 }

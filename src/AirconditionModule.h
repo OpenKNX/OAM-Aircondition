@@ -1,10 +1,15 @@
 #pragma once
 #include "AirConditionDriver.h"
 
+
 class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedback
 {
     AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
     AirConditionDriver* airConditionDriver = nullptr;
+    AirConditionDriverState _driverState = AirConditionDriverState::AirConditionDriverStateNotStarted;
+    unsigned long _errorSince = 0;
+    std::string _errorMessage = "";
+    bool _initialDataNeeded = false;
     
     void setLocked(bool locked);
 
@@ -30,7 +35,7 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     void swingVerticalFixPositionChanged(int position) override;
     void roomTemperatureChanged(float temperaturCelius) override;
     void outsideTemperaturChanged(float temperaturCelius) override;
-    void errorStateChanged(const char* error) override;
+    void driverStateChanged(AirConditionDriverState state, std::string error = "") override;
 };
 
 extern AirconditionModule openknxAircondition;

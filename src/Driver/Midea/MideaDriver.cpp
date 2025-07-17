@@ -20,6 +20,17 @@ void MideaDriver::setup()
     // Initialization code for Midea air conditioner
 }
 
+void MideaDriver::startCommunication(bool restart)
+{
+    // To Do: Implement the starting of the communication for Midea air conditioner
+    statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
+}
+
+void MideaDriver::requestAllData()
+{
+    // To Do: Implement the request for all data from Midea air conditioner
+}
+
 void MideaDriver::loop()
 {
     // Loop code for Midea air conditioner

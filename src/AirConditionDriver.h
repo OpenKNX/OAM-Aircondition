@@ -10,11 +10,18 @@ enum AirConditionMode
     AirConditionModeFan = 4,
 };
 
+enum AirConditionDriverState
+{
+    AirConditionDriverStateNotStarted = 0,
+    AirConditionDriverStateStarting = 1,
+    AirConditionDriverStateOk = 2,
+    AirConditionDriverStateError = 3,
+};
+
 class AirConditionDriverStatusFeedback
 {
 public:
-    const char* NO_ERROR = nullptr;
-    virtual void errorStateChanged(const char* error) = 0;
+    virtual void driverStateChanged(AirConditionDriverState state, std::string error = "") = 0;
     virtual void powerChanged(bool power) = 0;
     virtual void modeChanged(AirConditionMode mode) = 0;
     virtual void targetTemperatureChanged(float temperaturCelius) = 0;
@@ -38,8 +45,12 @@ protected:
 public:
     static std::string toHexString(const std::vector<uint8_t>& data);
     static std::string toHexString(const uint8_t* data, size_t length); 
+    static const char* getDriverStateString(AirConditionDriverState state);
     // Lifecycle methods
     virtual void setup() = 0;
+    virtual void startCommunication(bool restart) = 0;
+    virtual void requestAllData() = 0;
+   
     virtual void loop() = 0;
     virtual void processInputKo(GroupObject &ko) {}
     virtual bool processCommand(const std::string cmd, bool debugKo) { return false; }

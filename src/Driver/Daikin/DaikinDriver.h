@@ -7,6 +7,8 @@ class DaikinDriver : public AirConditionDriver
         DaikinDriver(AirConditionDriverStatusFeedback& statusFeedback);
   
         virtual void setup() override;
+        virtual void startCommunication(bool restart) override;
+        virtual void requestAllData() override;
         virtual void loop() override;
 
         virtual const std::string name() const override;

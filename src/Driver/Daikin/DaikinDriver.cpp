@@ -20,6 +20,16 @@ void DaikinDriver::setup()
     // Initialization code for Daikin air conditioner
 }
 
+void DaikinDriver::startCommunication(bool restart)
+{
+    // To Do: Implement the starting of the communication for Daikin air conditioner
+}
+
+void DaikinDriver::requestAllData()
+{
+    // To Do: Implement the request for all data from Daikin air conditioner
+}
+
 void DaikinDriver::loop()
 {
     // Loop code for Daikin air conditioner
