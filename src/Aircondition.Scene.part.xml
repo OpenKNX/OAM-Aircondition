@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-model href="../../Organization/knxprod-support/knx_project_14/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<KNX xmlns:op="http://github.com/OpenKNX/OpenKNXproducer" xmlns="http://knx.org/xml/project/14" CreatedBy="KNX MT" ToolVersion="5.1.255.16695">
+	<ManufacturerData>
+		<Manufacturer>
+			<ApplicationPrograms>
+				<ApplicationProgram>
+					
+
+					<Static>
+						
+						<Parameters>
+
+                            <Union SizeInBit="40">
+                                <Memory CodeSegment="%MID%" Offset="%MO%" BitOffset="0" />
+                                <!-- Szene Number -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+0%" Offset="0"  BitOffset="0" Name="SC%SN%Number" ParameterType="%AID%_PT-AIRSceneNumber" Text="Szenennummer" Value="1" />                         
+                                <!-- Szene Function -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+1%" Offset="1"  BitOffset="4" Name="SC%SN%Function" ParameterType="%AID%_PT-AIRSceneFunction" Text="Funktion" Value="0" />
+                                
+                                <!-- Szene Function Ein / Aus -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+2%" Offset="2"  BitOffset="0" Name="SC%SN%OnOff" ParameterType="%AID%_PT-AIRSceneOnOff" Text="Schalten" Value="0" />
+                                
+                                <!-- Szene Function Operation Mode -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+3%" Offset="2"  BitOffset="0" Name="SC%SN%OperationMode" ParameterType="%AID%_PT-AIRSceneOperationMode" Text="Modus" Value="0" />
+                                
+                                <!-- Szene Function Temperature -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+4%" Offset="2"  BitOffset="0" Name="SC%SN%SceneTemperature" ParameterType="%AID%_PT-AIRSceneTemperature" Text="Temperatur" Value="23" SuffixText="°" />
+                                
+                                <!-- Szene Function Fan -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+5%" Offset="2"  BitOffset="0" Name="SC%SN%SceneFan" ParameterType="%AID%_PT-AIRSceneFan" Text="Geschwindigkeit" Value="0" />
+                                
+                                <!-- Szene Function Move -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+6%" Offset="2"  BitOffset="0" Name="SC%SN%SceneMove" ParameterType="%AID%_PT-AIRSceneMove" Text="Lamellen Bewegung" Value="0" />
+                           
+                                <!-- Szene Function Veritcal Position -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+7%" Offset="2"  BitOffset="0" Name="SC%SN%ScenePosition" ParameterType="%AID%_PT-AIRScenePosition" Text="Lamellenposition" Value="0" />
+                           
+                                <!-- 2 Byte reserve / scene type-->
+                            </Union>
+
+						</Parameters>
+						<ParameterRefs>
+                            <!-- Szene Number -->
+							<ParameterRef Id="%AID%_UP-%TT%00%PPP+0%_R-%TT%00%PPP+0%01" RefId="%AID%_UP-%TT%00%PPP+0%" />
+                            <!-- Szene Function -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+1%_R-%TT%00%PPP+1%01" RefId="%AID%_UP-%TT%00%PPP+1%" />
+                            <!-- Szene Function Ein / Aus -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+2%_R-%TT%00%PPP+2%01" RefId="%AID%_UP-%TT%00%PPP+2%" />
+                            <!-- Szene Function Operation Mode -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+3%_R-%TT%00%PPP+3%01" RefId="%AID%_UP-%TT%00%PPP+3%" />
+                            <!-- Szene Function Temperature -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+4%_R-%TT%00%PPP+4%01" RefId="%AID%_UP-%TT%00%PPP+4%" />
+                            <!-- Szene Function Fan -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+5%_R-%TT%00%PPP+5%01" RefId="%AID%_UP-%TT%00%PPP+5%" />
+                            <!-- Szene Function Move -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01" RefId="%AID%_UP-%TT%00%PPP+6%" />
+                            <!-- Szene Function Veritcal Position -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01" RefId="%AID%_UP-%TT%00%PPP+7%" />
+
+						</ParameterRefs>				
+					</Static>
+					<Dynamic>
+						<ChannelIndependentBlock>
+
+							<ParameterBlock Id="Scene">
+                                <ParameterSeparator Id="%AID%_PS-nnn" Text="Szene %SN%" UIHint="Headline" />
+                                 <!-- Szene Number -->    
+                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+0%_R-%TT%00%PPP+0%01"  IndentLevel="1" HelpContext="%DOC%" />  
+                                <!-- Szene Function -->
+                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+1%_R-%TT%00%PPP+1%01"  IndentLevel="1" HelpContext="%DOC%" />
+                                <choose ParamRefId="%AID%_UP-%TT%00%PPP+1%_R-%TT%00%PPP+1%01">
+                                    <!-- Ein- / Ausschalten-->
+                                    <when test="1">
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+2%_R-%TT%00%PPP+2%01"  IndentLevel="1" HelpContext="%DOC%" />
+                                    </when>
+                                    <!-- Betriebsmodus -->
+                                    <when test="2">
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+3%_R-%TT%00%PPP+3%01"  IndentLevel="1" HelpContext="%DOC%" />
+                                    </when>
+                                    <!-- Solltemperatur -->
+                                    <when test="3">
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+4%_R-%TT%00%PPP+4%01"  IndentLevel="1" HelpContext="%DOC%" />
+                                    </when>
+                                    <!-- Lüfter -->
+                                    <when test="4">
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+5%_R-%TT%00%PPP+5%01"  IndentLevel="1" HelpContext="%DOC%" />
+                                    </when>
+                                    <!-- Lamellen Bewegung -->
+                                    <when test="5">
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01"  IndentLevel="1" HelpContext="%DOC%" />
+                                    </when>
+                                    <!-- Vertikale Lamellenstellung -->
+                                    <when test="6">
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01"  IndentLevel="1" HelpContext="%DOC%" />
+                                    </when>
+                                    
+                                </choose>
+                        
+                                <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
+          
+							
+							</ParameterBlock>
+						</ChannelIndependentBlock>
+					</Dynamic>
+				</ApplicationProgram>
+			</ApplicationPrograms>
+		</Manufacturer>
+	</ManufacturerData>
+</KNX>

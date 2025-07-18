@@ -118,3 +118,78 @@ Zur Auswahl:
 ## Szenen
 
 In diesem Abschnitt können Szenenummer und das zugehörige Verhalten konfiguriert werden.
+
+<!-- DOC -->
+### Szenennummer
+
+Die Szenennummer die zum Auslösen verwendet wird.
+
+<!-- DOC -->
+### Funktion
+
+Funktion die ausgeführt werden soll.
+
+- Deaktiviert
+- Ein- / Ausschalten
+- Betriebsmodus
+- Solltemperatur
+- Lüfter
+- Lamellen Bewegung
+- Vertikale Lamellenstellung
+
+
+
+<!-- DOC HelpContext="Schalten" -->
+#### Szenefunktion Ein- / Ausschalten
+
+Einstellungen ob beim Aufruf der Szene das Geräte Ein- oder Ausgeschalten werden soll.
+
+<!-- DOC HelpContext="Modus" -->
+#### Szenefunktion Betriebsmodus
+
+Aktiviert einen Betriebsmodus:
+
+- Automatik
+- Kühlen
+- Heizen
+- Trocknen
+- Lüfter
+
+<!-- DOC HelpContext="Temperatur" -->
+#### Szenefunktion Solltemperatur
+
+Vorgabe der Solltemperatur
+
+<!-- DOC HelpContext="Geschwindigkeit" -->
+#### Szenefunktion Lüfter
+
+Lüftergeschwindigkeit
+
+- Automatik
+- Leise
+- Stufe 1
+- Stufe 2
+- Stufe 3
+- Stufe 4
+- Stufe 5
+
+<!-- DOC HelpContext="Lamellen Bewegung" -->
+#### Szenefunktion Lamellen Bewegungung
+
+Steuert die Bewegung der Lamellen
+
+- Aus
+- Vertikal
+- Horizontal
+- Vertikal und Horizontal
+
+<!-- DOC HelpContext="Lamellenposition" -->
+#### Szenefunktion Vertikale Lamellenstellung
+
+Steuert die Lamellenposition
+
+- Ganz Oben
+- Oben
+- Mitte
+- Unten
+- Ganz Unten

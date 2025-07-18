@@ -17,6 +17,19 @@
     <Manufacturer RefId="M-00FA">
       <ApplicationPrograms>
         <ApplicationProgram>
+         
+          <op:part href="Aircondition.Scene.part.xml" name="Scene" instances="10">
+						<!-- Parameter Offset -->
+            <op:param name="%PPP%" value="500" increment="20" />
+            <!-- Memory Offset -->
+            <op:param name="%MO%" value="20" increment="5" digits="1"/>
+            <!-- Szene number -->
+						<op:param name="%SZ%" value="1" increment="1" digits="1"/> 
+            <!-- Szene Letter -->
+            <op:param name="%SN%" value="0" increment="1" asLetter="true"/> 
+            
+					</op:part>
+
           <Static>
             <ParameterTypes>
               <!-- Base Type -->
@@ -54,6 +67,75 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <!-- *** Scene *** -->
+
+              <ParameterType Id="%AID%_PT-AIRSceneNumber" Name="SceneNumber">
+                <TypeNumber SizeInBit="7" Type="unsignedInt" minInclusive="1" maxInclusive="64" />
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneFunction" Name="AIRSceneFunction">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Deaktiviert" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Ein- / Ausschalten" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Betriebsmodus" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Solltemperatur" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Lüfter" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Lamellen Bewegung" Value="5" Id="%ENID%" />
+                  <Enumeration Text="Vertikale Lamellenstellung" Value="6" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneOnOff" Name="AIRSceneOnOff">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Ausschalten" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneOperationMode" Name="AIRSceneOperationMode">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Kühlen" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Heizen" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Trocknen" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Lüfter" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneTemperature" Name="AIRSceneTemperature">
+								<TypeNumber SizeInBit="8" Type="unsignedInt" minInclusive="17" maxInclusive="30" />
+							</ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneFan" Name="AIRSceneFan">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Leise" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Stufe 1" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Stufe 2" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Stufe 3" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Stufe 4" Value="5" Id="%ENID%" />
+                  <Enumeration Text="Stufe 5" Value="6" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneMove" Name="AIRSceneMove">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Aus" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Vertikal" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Horizontal" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Vertikal und Horizontal" Value="3" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+               <ParameterType Id="%AID%_PT-AIRScenePosition" Name="AIRScenePosition">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Ganz Oben" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Oben" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Mitte" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Unten" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Ganz Unten" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
 
                <!-- *** Mitsubishi *** -->
               <ParameterType Id="%AID%_PT-AIRMitsubishiMinimumTemperature" Name="AIRMitsubishiMinimumTemperature">
@@ -94,6 +176,7 @@
                 <Parameter Id="%AID%_UP-%TT%00200" Offset="0"  BitOffset="0" Name="Mit_MinTemp" ParameterType="%AID%_PT-AIRMitsubishiMinimumTemperature" Text="Minimale Soll-Temperatur" Value="19" />
               </Union>
 
+              <op:usePart name="Scene" xpath="//Parameters/*" />
             </Parameters>
             <ParameterRefs> 
               <!-- Base Settings -->
@@ -117,6 +200,8 @@
 
               <!-- Minimum Temperature -->
               <ParameterRef Id="%AID%_UP-%TT%00200_R-%TT%0020001" RefId="%AID%_UP-%TT%00200" />
+
+              <op:usePart name="Scene" xpath="//ParameterRefs/*" />
 
             </ParameterRefs>
             <ComObjectTable>
@@ -163,17 +248,17 @@
               <ComObject Id="%AID%_O-%TT%00019" Number="19" Name="LouverVerticalMoveState" Text="Lamelle Vertikal Bewegen Status" FunctionText="Lamelle Vertikal Bewegen Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" /> 
               <!-- Lamelle Vertikal Höher/Tiefer -->
               <ComObject Id="%AID%_O-%TT%00020" Number="20" Name="LouverVerticalUpDown" Text="Lamelle Vertikal Höher/Tiefer" FunctionText="Lamelle Vertikal Höher/Tiefer" ObjectSize="1 Bit" DatapointType="DPST-1-7" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+                  <!-- Lamelle Veritkale Position -->
+              <ComObject Id="%AID%_O-%TT%00024" Number="21" Name="LouverVerticalPosition" Text="Lamelle Vertikale Position" FunctionText="Lamelle Veritkale Position" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Lamelle Veritkale Position Status -->
+              <ComObject Id="%AID%_O-%TT%00025" Number="22" Name="LouverVerticalPositionState" Text="Lamelle Vertikale Position Status" FunctionText="Lamelle Veritkale Position Status" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />    
               <!-- Lamelle Horizontal Bewegen -->
-              <ComObject Id="%AID%_O-%TT%00021" Number="21" Name="LouverHorizontalMove" Text="Lamelle Horizontal Bewegen" FunctionText="Lamelle Horizontal Bewegen" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00021" Number="23" Name="LouverHorizontalMove" Text="Lamelle Horizontal Bewegen" FunctionText="Lamelle Horizontal Bewegen" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Horizontal Bewegen Status -->
-              <ComObject Id="%AID%_O-%TT%00022" Number="22" Name="LouverHorizontalMoveState" Text="Lamelle Horizontal Bewegen Status" FunctionText="Lamelle Horizontal Bewegen Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00022" Number="24" Name="LouverHorizontalMoveState" Text="Lamelle Horizontal Bewegen Status" FunctionText="Lamelle Horizontal Bewegen Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Horizontal Höher/Tiefer -->
-              <ComObject Id="%AID%_O-%TT%00023" Number="23" Name="LouverHorizontalUpDown" Text="Lamelle Horizontal Höher/Tiefer" FunctionText="Lamelle Horizontal Höher/Tiefer" ObjectSize="1 Bit" DatapointType="DPST-1-7" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />  
-              <!-- Lamelle Modus -->
-              <ComObject Id="%AID%_O-%TT%00024" Number="24" Name="LouverMode" Text="Lamelle Modus" FunctionText="Lamelle Modus" ObjectSize="1 Byte" DatapointType="DPST-17-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-              <!-- Lamelle Modus Status -->
-              <ComObject Id="%AID%_O-%TT%00025" Number="25" Name="LouverModeState" Text="Lamelle Modus Status" FunctionText="Lamelle Modus Status" ObjectSize="1 Byte" DatapointType="DPST-17-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-              <!-- Sperre / Freigabe -->
+              <ComObject Id="%AID%_O-%TT%00023" Number="25" Name="LouverHorizontalUpDown" Text="Lamelle Horizontal Höher/Tiefer" FunctionText="Lamelle Horizontal Höher/Tiefer" ObjectSize="1 Bit" DatapointType="DPST-1-7" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />  
+                <!-- Sperre / Freigabe -->
               <ComObject Id="%AID%_O-%TT%00026" Number="26" Name="LockRelease" Text="Sperre / Freigabe" FunctionText="Sperre / Freigabe" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Sperre / Freigabe Aktiv -->
               <ComObject Id="%AID%_O-%TT%00027" Number="27" Name="LockReleaseState" Text="Sperre / Freigabe Aktiv" FunctionText="Sperre / Freigabe Aktiv" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
@@ -280,9 +365,9 @@ Szene
               <ComObjectRef Id="%AID%_O-%TT%00022_R-%TT%0002201" RefId="%AID%_O-%TT%00022" />
               <!-- Lamelle Horizontal Höher/Tiefer -->
               <ComObjectRef Id="%AID%_O-%TT%00023_R-%TT%0002301" RefId="%AID%_O-%TT%00023" />
-              <!-- Lamelle Modus -->
+              <!-- Lamelle Vertikale Position -->
               <ComObjectRef Id="%AID%_O-%TT%00024_R-%TT%0002401" RefId="%AID%_O-%TT%00024" />
-              <!-- Lamelle Modus Status -->
+              <!-- Lamelle Vertikale Position Status -->
               <ComObjectRef Id="%AID%_O-%TT%00025_R-%TT%0002501" RefId="%AID%_O-%TT%00025" />
               <!-- Sperre / Freigabe -->
               <ComObjectRef Id="%AID%_O-%TT%00026_R-%TT%0002601" RefId="%AID%_O-%TT%00026" Text="Freigabe" FunctionText="Freigabe" DatapointType="DPST-1-3" />
@@ -309,7 +394,7 @@ Szene
           </Static>
           <Dynamic>
             <Channel Id="%AID%_CH-%PREFIX%" Number="%PREFIX%" Name="Main" Text="Klimaanlage" Icon="air-conditioner" HelpContext="AIR-Klimanalage">
-              <ParameterBlock Id="%AID%_PB-nnn" Name="Basic" Text="Allgemein" Icon="air-conditioner" HelpContext="AIR-Klimanalage">
+              <ParameterBlock Id="%AID%_PB-nnn" Name="Basic" Text="Allgemein" Icon="cog-outline" HelpContext="AIR-Klimanalage">
                 <ParameterSeparator Id="%AID%_PS-nnn" Text="Klimaanlage" UIHint="Headline" />
                 <ParameterSeparator Id="%AID%_PS-nnn" Text="Version: %ModuleVersion%" />
                 <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
@@ -409,17 +494,17 @@ Szene
                     <ComObjectRefRef RefId="%AID%_O-%TT%00019_R-%TT%0001901" />
                     <!-- Lamelle Vertikal Höher/Tiefer -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00020_R-%TT%0002001" />
+                     <!-- Lamelle Vertikale Position -->
+                    <ComObjectRefRef RefId="%AID%_O-%TT%00024_R-%TT%0002401" />
+                    <!-- Lamelle Vertikale Position Status -->
+                    <ComObjectRefRef RefId="%AID%_O-%TT%00025_R-%TT%0002501" />
                     <!-- Lamelle Horizontal Bewegen -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00021_R-%TT%0002101" />
                     <!-- Lamelle Horizontal Bewegen Status -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00022_R-%TT%0002201" />
                     <!-- Lamelle Horizontal Höher/Tiefer -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00023_R-%TT%0002301" />
-                    <!-- Lamelle Modus -->
-                    <ComObjectRefRef RefId="%AID%_O-%TT%00024_R-%TT%0002401" />
-                    <!-- Lamelle Modus Status -->
-                    <ComObjectRefRef RefId="%AID%_O-%TT%00025_R-%TT%0002501" />
-
+                   
                     <!-- Lock Release Ko -->
                     <choose ParamRefId="%AID%_UP-%TT%00002_R-%TT%0000201" >
                       <when test="1">
@@ -457,13 +542,14 @@ Szene
                 </choose>
                 
               </ParameterBlock>
-              <ParameterBlock Id="%AID%_PB-nnn" Name="Scene" Text="Szenen" Icon="air-conditioner" HelpContext="AIR-Szenen">
-                <ParameterSeparator Id="%AID%_PS-nnn" Text="Szenen" UIHint="Headline" />
-               
-                <ParameterSeparator Id="%AID%_PS-nnn" Text="To Do..." />
-           
+              <ParameterBlock Id="%AID%_PB-nnn" Name="Scene" Text="Szenen" Icon="tune" HelpContext="AIR-Szenen">
+            
                 <!-- Szene -->
                 <ComObjectRefRef RefId="%AID%_O-%TT%00034_R-%TT%0003401" />
+
+                 <!-- Szenen Configuration -->
+               	<op:usePart name="Scene" xpath="//Dynamic/ChannelIndependentBlock/ParameterBlock[@Id='Scene']/*" />
+
                 
 
               </ParameterBlock>

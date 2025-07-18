@@ -10,8 +10,8 @@
                                              
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 43
-#define MAIN_ApplicationVersion 3
-#define MAIN_ParameterSize 6004
+#define MAIN_ApplicationVersion 4
+#define MAIN_ParameterSize 6071
 #define MAIN_MaxKoNumber 399
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 20
@@ -225,6 +225,106 @@
 #define     AIR_LockBehaviorOffMask 0x18
 #define     AIR_LockBehaviorOffShift 3
 #define AIR_Mit_MinTemp                         223      // 8 Bits, Bit 7-0
+#define AIR_SCANumber                           241      // 7 Bits, Bit 7-1
+#define     AIR_SCANumberMask 0xFE
+#define     AIR_SCANumberShift 1
+#define AIR_SCAFunction                         242      // 8 Bits, Bit 3--4
+#define AIR_SCAOnOff                            243      // 8 Bits, Bit 7-0
+#define AIR_SCAOperationMode                    243      // 8 Bits, Bit 7-0
+#define AIR_SCASceneTemperature                 243      // uint8_t
+#define AIR_SCASceneFan                         243      // 8 Bits, Bit 7-0
+#define AIR_SCASceneMove                        243      // 8 Bits, Bit 7-0
+#define AIR_SCAScenePosition                    243      // 8 Bits, Bit 7-0
+#define AIR_SCBNumber                           246      // 7 Bits, Bit 7-1
+#define     AIR_SCBNumberMask 0xFE
+#define     AIR_SCBNumberShift 1
+#define AIR_SCBFunction                         247      // 8 Bits, Bit 3--4
+#define AIR_SCBOnOff                            248      // 8 Bits, Bit 7-0
+#define AIR_SCBOperationMode                    248      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneTemperature                 248      // uint8_t
+#define AIR_SCBSceneFan                         248      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneMove                        248      // 8 Bits, Bit 7-0
+#define AIR_SCBScenePosition                    248      // 8 Bits, Bit 7-0
+#define AIR_SCCNumber                           251      // 7 Bits, Bit 7-1
+#define     AIR_SCCNumberMask 0xFE
+#define     AIR_SCCNumberShift 1
+#define AIR_SCCFunction                         252      // 8 Bits, Bit 3--4
+#define AIR_SCCOnOff                            253      // 8 Bits, Bit 7-0
+#define AIR_SCCOperationMode                    253      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneTemperature                 253      // uint8_t
+#define AIR_SCCSceneFan                         253      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneMove                        253      // 8 Bits, Bit 7-0
+#define AIR_SCCScenePosition                    253      // 8 Bits, Bit 7-0
+#define AIR_SCDNumber                           256      // 7 Bits, Bit 7-1
+#define     AIR_SCDNumberMask 0xFE
+#define     AIR_SCDNumberShift 1
+#define AIR_SCDFunction                         257      // 8 Bits, Bit 3--4
+#define AIR_SCDOnOff                            258      // 8 Bits, Bit 7-0
+#define AIR_SCDOperationMode                    258      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneTemperature                 258      // uint8_t
+#define AIR_SCDSceneFan                         258      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneMove                        258      // 8 Bits, Bit 7-0
+#define AIR_SCDScenePosition                    258      // 8 Bits, Bit 7-0
+#define AIR_SCENumber                           261      // 7 Bits, Bit 7-1
+#define     AIR_SCENumberMask 0xFE
+#define     AIR_SCENumberShift 1
+#define AIR_SCEFunction                         262      // 8 Bits, Bit 3--4
+#define AIR_SCEOnOff                            263      // 8 Bits, Bit 7-0
+#define AIR_SCEOperationMode                    263      // 8 Bits, Bit 7-0
+#define AIR_SCESceneTemperature                 263      // uint8_t
+#define AIR_SCESceneFan                         263      // 8 Bits, Bit 7-0
+#define AIR_SCESceneMove                        263      // 8 Bits, Bit 7-0
+#define AIR_SCEScenePosition                    263      // 8 Bits, Bit 7-0
+#define AIR_SCFNumber                           266      // 7 Bits, Bit 7-1
+#define     AIR_SCFNumberMask 0xFE
+#define     AIR_SCFNumberShift 1
+#define AIR_SCFFunction                         267      // 8 Bits, Bit 3--4
+#define AIR_SCFOnOff                            268      // 8 Bits, Bit 7-0
+#define AIR_SCFOperationMode                    268      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneTemperature                 268      // uint8_t
+#define AIR_SCFSceneFan                         268      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneMove                        268      // 8 Bits, Bit 7-0
+#define AIR_SCFScenePosition                    268      // 8 Bits, Bit 7-0
+#define AIR_SCGNumber                           271      // 7 Bits, Bit 7-1
+#define     AIR_SCGNumberMask 0xFE
+#define     AIR_SCGNumberShift 1
+#define AIR_SCGFunction                         272      // 8 Bits, Bit 3--4
+#define AIR_SCGOnOff                            273      // 8 Bits, Bit 7-0
+#define AIR_SCGOperationMode                    273      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneTemperature                 273      // uint8_t
+#define AIR_SCGSceneFan                         273      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneMove                        273      // 8 Bits, Bit 7-0
+#define AIR_SCGScenePosition                    273      // 8 Bits, Bit 7-0
+#define AIR_SCHNumber                           276      // 7 Bits, Bit 7-1
+#define     AIR_SCHNumberMask 0xFE
+#define     AIR_SCHNumberShift 1
+#define AIR_SCHFunction                         277      // 8 Bits, Bit 3--4
+#define AIR_SCHOnOff                            278      // 8 Bits, Bit 7-0
+#define AIR_SCHOperationMode                    278      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneTemperature                 278      // uint8_t
+#define AIR_SCHSceneFan                         278      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneMove                        278      // 8 Bits, Bit 7-0
+#define AIR_SCHScenePosition                    278      // 8 Bits, Bit 7-0
+#define AIR_SCINumber                           281      // 7 Bits, Bit 7-1
+#define     AIR_SCINumberMask 0xFE
+#define     AIR_SCINumberShift 1
+#define AIR_SCIFunction                         282      // 8 Bits, Bit 3--4
+#define AIR_SCIOnOff                            283      // 8 Bits, Bit 7-0
+#define AIR_SCIOperationMode                    283      // 8 Bits, Bit 7-0
+#define AIR_SCISceneTemperature                 283      // uint8_t
+#define AIR_SCISceneFan                         283      // 8 Bits, Bit 7-0
+#define AIR_SCISceneMove                        283      // 8 Bits, Bit 7-0
+#define AIR_SCIScenePosition                    283      // 8 Bits, Bit 7-0
+#define AIR_SCJNumber                           286      // 7 Bits, Bit 7-1
+#define     AIR_SCJNumberMask 0xFE
+#define     AIR_SCJNumberShift 1
+#define AIR_SCJFunction                         287      // 8 Bits, Bit 3--4
+#define AIR_SCJOnOff                            288      // 8 Bits, Bit 7-0
+#define AIR_SCJOperationMode                    288      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneTemperature                 288      // uint8_t
+#define AIR_SCJSceneFan                         288      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneMove                        288      // 8 Bits, Bit 7-0
+#define AIR_SCJScenePosition                    288      // 8 Bits, Bit 7-0
 
 // Hersteller
 #define ParamAIR_DeviceType                          ((knx.paramByte(AIR_DeviceType) & AIR_DeviceTypeMask) >> AIR_DeviceTypeShift)
@@ -242,6 +342,166 @@
 #define ParamAIR_LockBehaviorOff                     ((knx.paramByte(AIR_LockBehaviorOff) & AIR_LockBehaviorOffMask) >> AIR_LockBehaviorOffShift)
 // Minimale Soll-Temperatur
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
+// Szenennummer
+#define ParamAIR_SCANumber                           ((knx.paramByte(AIR_SCANumber) & AIR_SCANumberMask) >> AIR_SCANumberShift)
+// Funktion
+#define ParamAIR_SCAFunction                         (knx.paramByte(AIR_SCAFunction))
+// Schalten
+#define ParamAIR_SCAOnOff                            (knx.paramByte(AIR_SCAOnOff))
+// Modus
+#define ParamAIR_SCAOperationMode                    (knx.paramByte(AIR_SCAOperationMode))
+// Temperatur
+#define ParamAIR_SCASceneTemperature                 (knx.paramByte(AIR_SCASceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCASceneFan                         (knx.paramByte(AIR_SCASceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCASceneMove                        (knx.paramByte(AIR_SCASceneMove))
+// Lamellenposition
+#define ParamAIR_SCAScenePosition                    (knx.paramByte(AIR_SCAScenePosition))
+// Szenennummer
+#define ParamAIR_SCBNumber                           ((knx.paramByte(AIR_SCBNumber) & AIR_SCBNumberMask) >> AIR_SCBNumberShift)
+// Funktion
+#define ParamAIR_SCBFunction                         (knx.paramByte(AIR_SCBFunction))
+// Schalten
+#define ParamAIR_SCBOnOff                            (knx.paramByte(AIR_SCBOnOff))
+// Modus
+#define ParamAIR_SCBOperationMode                    (knx.paramByte(AIR_SCBOperationMode))
+// Temperatur
+#define ParamAIR_SCBSceneTemperature                 (knx.paramByte(AIR_SCBSceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCBSceneFan                         (knx.paramByte(AIR_SCBSceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCBSceneMove                        (knx.paramByte(AIR_SCBSceneMove))
+// Lamellenposition
+#define ParamAIR_SCBScenePosition                    (knx.paramByte(AIR_SCBScenePosition))
+// Szenennummer
+#define ParamAIR_SCCNumber                           ((knx.paramByte(AIR_SCCNumber) & AIR_SCCNumberMask) >> AIR_SCCNumberShift)
+// Funktion
+#define ParamAIR_SCCFunction                         (knx.paramByte(AIR_SCCFunction))
+// Schalten
+#define ParamAIR_SCCOnOff                            (knx.paramByte(AIR_SCCOnOff))
+// Modus
+#define ParamAIR_SCCOperationMode                    (knx.paramByte(AIR_SCCOperationMode))
+// Temperatur
+#define ParamAIR_SCCSceneTemperature                 (knx.paramByte(AIR_SCCSceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCCSceneFan                         (knx.paramByte(AIR_SCCSceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCCSceneMove                        (knx.paramByte(AIR_SCCSceneMove))
+// Lamellenposition
+#define ParamAIR_SCCScenePosition                    (knx.paramByte(AIR_SCCScenePosition))
+// Szenennummer
+#define ParamAIR_SCDNumber                           ((knx.paramByte(AIR_SCDNumber) & AIR_SCDNumberMask) >> AIR_SCDNumberShift)
+// Funktion
+#define ParamAIR_SCDFunction                         (knx.paramByte(AIR_SCDFunction))
+// Schalten
+#define ParamAIR_SCDOnOff                            (knx.paramByte(AIR_SCDOnOff))
+// Modus
+#define ParamAIR_SCDOperationMode                    (knx.paramByte(AIR_SCDOperationMode))
+// Temperatur
+#define ParamAIR_SCDSceneTemperature                 (knx.paramByte(AIR_SCDSceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCDSceneFan                         (knx.paramByte(AIR_SCDSceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCDSceneMove                        (knx.paramByte(AIR_SCDSceneMove))
+// Lamellenposition
+#define ParamAIR_SCDScenePosition                    (knx.paramByte(AIR_SCDScenePosition))
+// Szenennummer
+#define ParamAIR_SCENumber                           ((knx.paramByte(AIR_SCENumber) & AIR_SCENumberMask) >> AIR_SCENumberShift)
+// Funktion
+#define ParamAIR_SCEFunction                         (knx.paramByte(AIR_SCEFunction))
+// Schalten
+#define ParamAIR_SCEOnOff                            (knx.paramByte(AIR_SCEOnOff))
+// Modus
+#define ParamAIR_SCEOperationMode                    (knx.paramByte(AIR_SCEOperationMode))
+// Temperatur
+#define ParamAIR_SCESceneTemperature                 (knx.paramByte(AIR_SCESceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCESceneFan                         (knx.paramByte(AIR_SCESceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCESceneMove                        (knx.paramByte(AIR_SCESceneMove))
+// Lamellenposition
+#define ParamAIR_SCEScenePosition                    (knx.paramByte(AIR_SCEScenePosition))
+// Szenennummer
+#define ParamAIR_SCFNumber                           ((knx.paramByte(AIR_SCFNumber) & AIR_SCFNumberMask) >> AIR_SCFNumberShift)
+// Funktion
+#define ParamAIR_SCFFunction                         (knx.paramByte(AIR_SCFFunction))
+// Schalten
+#define ParamAIR_SCFOnOff                            (knx.paramByte(AIR_SCFOnOff))
+// Modus
+#define ParamAIR_SCFOperationMode                    (knx.paramByte(AIR_SCFOperationMode))
+// Temperatur
+#define ParamAIR_SCFSceneTemperature                 (knx.paramByte(AIR_SCFSceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCFSceneFan                         (knx.paramByte(AIR_SCFSceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCFSceneMove                        (knx.paramByte(AIR_SCFSceneMove))
+// Lamellenposition
+#define ParamAIR_SCFScenePosition                    (knx.paramByte(AIR_SCFScenePosition))
+// Szenennummer
+#define ParamAIR_SCGNumber                           ((knx.paramByte(AIR_SCGNumber) & AIR_SCGNumberMask) >> AIR_SCGNumberShift)
+// Funktion
+#define ParamAIR_SCGFunction                         (knx.paramByte(AIR_SCGFunction))
+// Schalten
+#define ParamAIR_SCGOnOff                            (knx.paramByte(AIR_SCGOnOff))
+// Modus
+#define ParamAIR_SCGOperationMode                    (knx.paramByte(AIR_SCGOperationMode))
+// Temperatur
+#define ParamAIR_SCGSceneTemperature                 (knx.paramByte(AIR_SCGSceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCGSceneFan                         (knx.paramByte(AIR_SCGSceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCGSceneMove                        (knx.paramByte(AIR_SCGSceneMove))
+// Lamellenposition
+#define ParamAIR_SCGScenePosition                    (knx.paramByte(AIR_SCGScenePosition))
+// Szenennummer
+#define ParamAIR_SCHNumber                           ((knx.paramByte(AIR_SCHNumber) & AIR_SCHNumberMask) >> AIR_SCHNumberShift)
+// Funktion
+#define ParamAIR_SCHFunction                         (knx.paramByte(AIR_SCHFunction))
+// Schalten
+#define ParamAIR_SCHOnOff                            (knx.paramByte(AIR_SCHOnOff))
+// Modus
+#define ParamAIR_SCHOperationMode                    (knx.paramByte(AIR_SCHOperationMode))
+// Temperatur
+#define ParamAIR_SCHSceneTemperature                 (knx.paramByte(AIR_SCHSceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCHSceneFan                         (knx.paramByte(AIR_SCHSceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCHSceneMove                        (knx.paramByte(AIR_SCHSceneMove))
+// Lamellenposition
+#define ParamAIR_SCHScenePosition                    (knx.paramByte(AIR_SCHScenePosition))
+// Szenennummer
+#define ParamAIR_SCINumber                           ((knx.paramByte(AIR_SCINumber) & AIR_SCINumberMask) >> AIR_SCINumberShift)
+// Funktion
+#define ParamAIR_SCIFunction                         (knx.paramByte(AIR_SCIFunction))
+// Schalten
+#define ParamAIR_SCIOnOff                            (knx.paramByte(AIR_SCIOnOff))
+// Modus
+#define ParamAIR_SCIOperationMode                    (knx.paramByte(AIR_SCIOperationMode))
+// Temperatur
+#define ParamAIR_SCISceneTemperature                 (knx.paramByte(AIR_SCISceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCISceneFan                         (knx.paramByte(AIR_SCISceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCISceneMove                        (knx.paramByte(AIR_SCISceneMove))
+// Lamellenposition
+#define ParamAIR_SCIScenePosition                    (knx.paramByte(AIR_SCIScenePosition))
+// Szenennummer
+#define ParamAIR_SCJNumber                           ((knx.paramByte(AIR_SCJNumber) & AIR_SCJNumberMask) >> AIR_SCJNumberShift)
+// Funktion
+#define ParamAIR_SCJFunction                         (knx.paramByte(AIR_SCJFunction))
+// Schalten
+#define ParamAIR_SCJOnOff                            (knx.paramByte(AIR_SCJOnOff))
+// Modus
+#define ParamAIR_SCJOperationMode                    (knx.paramByte(AIR_SCJOperationMode))
+// Temperatur
+#define ParamAIR_SCJSceneTemperature                 (knx.paramByte(AIR_SCJSceneTemperature))
+// Geschwindigkeit
+#define ParamAIR_SCJSceneFan                         (knx.paramByte(AIR_SCJSceneFan))
+// Lamellen Bewegung
+#define ParamAIR_SCJSceneMove                        (knx.paramByte(AIR_SCJSceneMove))
+// Lamellenposition
+#define ParamAIR_SCJScenePosition                    (knx.paramByte(AIR_SCJScenePosition))
 
 #define AIR_KoPower 400
 #define AIR_KoPowerState 401
@@ -264,11 +524,11 @@
 #define AIR_KoLouverVerticalMove 418
 #define AIR_KoLouverVerticalMoveState 419
 #define AIR_KoLouverVerticalUpDown 420
-#define AIR_KoLouverHorizontalMove 421
-#define AIR_KoLouverHorizontalMoveState 422
-#define AIR_KoLouverHorizontalUpDown 423
-#define AIR_KoLouverMode 424
-#define AIR_KoLouverModeState 425
+#define AIR_KoLouverVerticalPosition 421
+#define AIR_KoLouverVerticalPositionState 422
+#define AIR_KoLouverHorizontalMove 423
+#define AIR_KoLouverHorizontalMoveState 424
+#define AIR_KoLouverHorizontalUpDown 425
 #define AIR_KoLockRelease 426
 #define AIR_KoLockReleaseState 427
 #define AIR_KoSetTemperature 428
@@ -321,16 +581,16 @@
 #define KoAIR_LouverVerticalMoveState             (knx.getGroupObject(AIR_KoLouverVerticalMoveState))
 // Lamelle Vertikal Höher/Tiefer
 #define KoAIR_LouverVerticalUpDown                (knx.getGroupObject(AIR_KoLouverVerticalUpDown))
+// Lamelle Vertikale Position
+#define KoAIR_LouverVerticalPosition              (knx.getGroupObject(AIR_KoLouverVerticalPosition))
+// Lamelle Vertikale Position Status
+#define KoAIR_LouverVerticalPositionState         (knx.getGroupObject(AIR_KoLouverVerticalPositionState))
 // Lamelle Horizontal Bewegen
 #define KoAIR_LouverHorizontalMove                (knx.getGroupObject(AIR_KoLouverHorizontalMove))
 // Lamelle Horizontal Bewegen Status
 #define KoAIR_LouverHorizontalMoveState           (knx.getGroupObject(AIR_KoLouverHorizontalMoveState))
 // Lamelle Horizontal Höher/Tiefer
 #define KoAIR_LouverHorizontalUpDown              (knx.getGroupObject(AIR_KoLouverHorizontalUpDown))
-// Lamelle Modus
-#define KoAIR_LouverMode                          (knx.getGroupObject(AIR_KoLouverMode))
-// Lamelle Modus Status
-#define KoAIR_LouverModeState                     (knx.getGroupObject(AIR_KoLouverModeState))
 // Sperre / Freigabe
 #define KoAIR_LockRelease                         (knx.getGroupObject(AIR_KoLockRelease))
 // Sperre / Freigabe Aktiv
@@ -350,254 +610,254 @@
 // Szene
 #define KoAIR_Scene                               (knx.getGroupObject(AIR_KoScene))
 
-#define LOG_BuzzerInstalled                     224      // 1 Bit, Bit 7
+#define LOG_BuzzerInstalled                     291      // 1 Bit, Bit 7
 #define     LOG_BuzzerInstalledMask 0x80
 #define     LOG_BuzzerInstalledShift 7
-#define LOG_LedInstalled                        224      // 1 Bit, Bit 6
+#define LOG_LedInstalled                        291      // 1 Bit, Bit 6
 #define     LOG_LedInstalledMask 0x40
 #define     LOG_LedInstalledShift 6
-#define LOG_VacationKo                          224      // 1 Bit, Bit 5
+#define LOG_VacationKo                          291      // 1 Bit, Bit 5
 #define     LOG_VacationKoMask 0x20
 #define     LOG_VacationKoShift 5
-#define LOG_HolidayKo                           224      // 1 Bit, Bit 4
+#define LOG_HolidayKo                           291      // 1 Bit, Bit 4
 #define     LOG_HolidayKoMask 0x10
 #define     LOG_HolidayKoShift 4
-#define LOG_VacationRead                        224      // 1 Bit, Bit 3
+#define LOG_VacationRead                        291      // 1 Bit, Bit 3
 #define     LOG_VacationReadMask 0x08
 #define     LOG_VacationReadShift 3
-#define LOG_HolidaySend                         224      // 1 Bit, Bit 2
+#define LOG_HolidaySend                         291      // 1 Bit, Bit 2
 #define     LOG_HolidaySendMask 0x04
 #define     LOG_HolidaySendShift 2
-#define LOG_Neujahr                             225      // 1 Bit, Bit 7
+#define LOG_Neujahr                             292      // 1 Bit, Bit 7
 #define     LOG_NeujahrMask 0x80
 #define     LOG_NeujahrShift 7
-#define LOG_DreiKoenige                         225      // 1 Bit, Bit 6
+#define LOG_DreiKoenige                         292      // 1 Bit, Bit 6
 #define     LOG_DreiKoenigeMask 0x40
 #define     LOG_DreiKoenigeShift 6
-#define LOG_Weiberfastnacht                     225      // 1 Bit, Bit 5
+#define LOG_Weiberfastnacht                     292      // 1 Bit, Bit 5
 #define     LOG_WeiberfastnachtMask 0x20
 #define     LOG_WeiberfastnachtShift 5
-#define LOG_Rosenmontag                         225      // 1 Bit, Bit 4
+#define LOG_Rosenmontag                         292      // 1 Bit, Bit 4
 #define     LOG_RosenmontagMask 0x10
 #define     LOG_RosenmontagShift 4
-#define LOG_Fastnachtsdienstag                  225      // 1 Bit, Bit 3
+#define LOG_Fastnachtsdienstag                  292      // 1 Bit, Bit 3
 #define     LOG_FastnachtsdienstagMask 0x08
 #define     LOG_FastnachtsdienstagShift 3
-#define LOG_Aschermittwoch                      225      // 1 Bit, Bit 2
+#define LOG_Aschermittwoch                      292      // 1 Bit, Bit 2
 #define     LOG_AschermittwochMask 0x04
 #define     LOG_AschermittwochShift 2
-#define LOG_Frauentag                           225      // 1 Bit, Bit 1
+#define LOG_Frauentag                           292      // 1 Bit, Bit 1
 #define     LOG_FrauentagMask 0x02
 #define     LOG_FrauentagShift 1
-#define LOG_Gruendonnerstag                     225      // 1 Bit, Bit 0
+#define LOG_Gruendonnerstag                     292      // 1 Bit, Bit 0
 #define     LOG_GruendonnerstagMask 0x01
 #define     LOG_GruendonnerstagShift 0
-#define LOG_Karfreitag                          226      // 1 Bit, Bit 7
+#define LOG_Karfreitag                          293      // 1 Bit, Bit 7
 #define     LOG_KarfreitagMask 0x80
 #define     LOG_KarfreitagShift 7
-#define LOG_Ostersonntag                        226      // 1 Bit, Bit 6
+#define LOG_Ostersonntag                        293      // 1 Bit, Bit 6
 #define     LOG_OstersonntagMask 0x40
 #define     LOG_OstersonntagShift 6
-#define LOG_Ostermontag                         226      // 1 Bit, Bit 5
+#define LOG_Ostermontag                         293      // 1 Bit, Bit 5
 #define     LOG_OstermontagMask 0x20
 #define     LOG_OstermontagShift 5
-#define LOG_TagDerArbeit                        226      // 1 Bit, Bit 4
+#define LOG_TagDerArbeit                        293      // 1 Bit, Bit 4
 #define     LOG_TagDerArbeitMask 0x10
 #define     LOG_TagDerArbeitShift 4
-#define LOG_Himmelfahrt                         226      // 1 Bit, Bit 3
+#define LOG_Himmelfahrt                         293      // 1 Bit, Bit 3
 #define     LOG_HimmelfahrtMask 0x08
 #define     LOG_HimmelfahrtShift 3
-#define LOG_Pfingstsonntag                      226      // 1 Bit, Bit 2
+#define LOG_Pfingstsonntag                      293      // 1 Bit, Bit 2
 #define     LOG_PfingstsonntagMask 0x04
 #define     LOG_PfingstsonntagShift 2
-#define LOG_Pfingstmontag                       226      // 1 Bit, Bit 1
+#define LOG_Pfingstmontag                       293      // 1 Bit, Bit 1
 #define     LOG_PfingstmontagMask 0x02
 #define     LOG_PfingstmontagShift 1
-#define LOG_Fronleichnam                        226      // 1 Bit, Bit 0
+#define LOG_Fronleichnam                        293      // 1 Bit, Bit 0
 #define     LOG_FronleichnamMask 0x01
 #define     LOG_FronleichnamShift 0
-#define LOG_Friedensfest                        227      // 1 Bit, Bit 7
+#define LOG_Friedensfest                        294      // 1 Bit, Bit 7
 #define     LOG_FriedensfestMask 0x80
 #define     LOG_FriedensfestShift 7
-#define LOG_MariaHimmelfahrt                    227      // 1 Bit, Bit 6
+#define LOG_MariaHimmelfahrt                    294      // 1 Bit, Bit 6
 #define     LOG_MariaHimmelfahrtMask 0x40
 #define     LOG_MariaHimmelfahrtShift 6
-#define LOG_DeutscheEinheit                     227      // 1 Bit, Bit 5
+#define LOG_DeutscheEinheit                     294      // 1 Bit, Bit 5
 #define     LOG_DeutscheEinheitMask 0x20
 #define     LOG_DeutscheEinheitShift 5
-#define LOG_Reformationstag                     227      // 1 Bit, Bit 4
+#define LOG_Reformationstag                     294      // 1 Bit, Bit 4
 #define     LOG_ReformationstagMask 0x10
 #define     LOG_ReformationstagShift 4
-#define LOG_Allerheiligen                       227      // 1 Bit, Bit 3
+#define LOG_Allerheiligen                       294      // 1 Bit, Bit 3
 #define     LOG_AllerheiligenMask 0x08
 #define     LOG_AllerheiligenShift 3
-#define LOG_BussBettag                          227      // 1 Bit, Bit 2
+#define LOG_BussBettag                          294      // 1 Bit, Bit 2
 #define     LOG_BussBettagMask 0x04
 #define     LOG_BussBettagShift 2
-#define LOG_Advent1                             227      // 1 Bit, Bit 1
+#define LOG_Advent1                             294      // 1 Bit, Bit 1
 #define     LOG_Advent1Mask 0x02
 #define     LOG_Advent1Shift 1
-#define LOG_Advent2                             227      // 1 Bit, Bit 0
+#define LOG_Advent2                             294      // 1 Bit, Bit 0
 #define     LOG_Advent2Mask 0x01
 #define     LOG_Advent2Shift 0
-#define LOG_Advent3                             228      // 1 Bit, Bit 7
+#define LOG_Advent3                             295      // 1 Bit, Bit 7
 #define     LOG_Advent3Mask 0x80
 #define     LOG_Advent3Shift 7
-#define LOG_Advent4                             228      // 1 Bit, Bit 6
+#define LOG_Advent4                             295      // 1 Bit, Bit 6
 #define     LOG_Advent4Mask 0x40
 #define     LOG_Advent4Shift 6
-#define LOG_Heiligabend                         228      // 1 Bit, Bit 5
+#define LOG_Heiligabend                         295      // 1 Bit, Bit 5
 #define     LOG_HeiligabendMask 0x20
 #define     LOG_HeiligabendShift 5
-#define LOG_Weihnachtstag1                      228      // 1 Bit, Bit 4
+#define LOG_Weihnachtstag1                      295      // 1 Bit, Bit 4
 #define     LOG_Weihnachtstag1Mask 0x10
 #define     LOG_Weihnachtstag1Shift 4
-#define LOG_Weihnachtstag2                      228      // 1 Bit, Bit 3
+#define LOG_Weihnachtstag2                      295      // 1 Bit, Bit 3
 #define     LOG_Weihnachtstag2Mask 0x08
 #define     LOG_Weihnachtstag2Shift 3
-#define LOG_Silvester                           228      // 1 Bit, Bit 2
+#define LOG_Silvester                           295      // 1 Bit, Bit 2
 #define     LOG_SilvesterMask 0x04
 #define     LOG_SilvesterShift 2
-#define LOG_Nationalfeiertag                    228      // 1 Bit, Bit 1
+#define LOG_Nationalfeiertag                    295      // 1 Bit, Bit 1
 #define     LOG_NationalfeiertagMask 0x02
 #define     LOG_NationalfeiertagShift 1
-#define LOG_MariaEmpfaengnis                    228      // 1 Bit, Bit 0
+#define LOG_MariaEmpfaengnis                    295      // 1 Bit, Bit 0
 #define     LOG_MariaEmpfaengnisMask 0x01
 #define     LOG_MariaEmpfaengnisShift 0
-#define LOG_NationalfeiertagSchweiz             229      // 1 Bit, Bit 7
+#define LOG_NationalfeiertagSchweiz             296      // 1 Bit, Bit 7
 #define     LOG_NationalfeiertagSchweizMask 0x80
 #define     LOG_NationalfeiertagSchweizShift 7
-#define LOG_Totensonntag                        229      // 1 Bit, Bit 6
+#define LOG_Totensonntag                        296      // 1 Bit, Bit 6
 #define     LOG_TotensonntagMask 0x40
 #define     LOG_TotensonntagShift 6
-#define LOG_Weltkindertag                       229      // 1 Bit, Bit 5
+#define LOG_Weltkindertag                       296      // 1 Bit, Bit 5
 #define     LOG_WeltkindertagMask 0x20
 #define     LOG_WeltkindertagShift 5
-#define LOG_BuzzerSilent                        230      // uint16_t
-#define LOG_BuzzerNormal                        232      // uint16_t
-#define LOG_BuzzerLoud                          234      // uint16_t
-#define LOG_VisibleChannels                     236      // uint8_t
-#define LOG_LedMapping                          237      // 3 Bits, Bit 7-5
+#define LOG_BuzzerSilent                        297      // uint16_t
+#define LOG_BuzzerNormal                        299      // uint16_t
+#define LOG_BuzzerLoud                          301      // uint16_t
+#define LOG_VisibleChannels                     303      // uint8_t
+#define LOG_LedMapping                          304      // 3 Bits, Bit 7-5
 #define     LOG_LedMappingMask 0xE0
 #define     LOG_LedMappingShift 5
-#define LOG_UserFormula1                        238      // char*, 99 Byte
-#define LOG_UserFormula1Active                  337      // 1 Bit, Bit 7
+#define LOG_UserFormula1                        305      // char*, 99 Byte
+#define LOG_UserFormula1Active                  404      // 1 Bit, Bit 7
 #define     LOG_UserFormula1ActiveMask 0x80
 #define     LOG_UserFormula1ActiveShift 7
-#define LOG_UserFormula2                        338      // char*, 99 Byte
-#define LOG_UserFormula2Active                  437      // 1 Bit, Bit 7
+#define LOG_UserFormula2                        405      // char*, 99 Byte
+#define LOG_UserFormula2Active                  504      // 1 Bit, Bit 7
 #define     LOG_UserFormula2ActiveMask 0x80
 #define     LOG_UserFormula2ActiveShift 7
-#define LOG_UserFormula3                        438      // char*, 99 Byte
-#define LOG_UserFormula3Active                  537      // 1 Bit, Bit 7
+#define LOG_UserFormula3                        505      // char*, 99 Byte
+#define LOG_UserFormula3Active                  604      // 1 Bit, Bit 7
 #define     LOG_UserFormula3ActiveMask 0x80
 #define     LOG_UserFormula3ActiveShift 7
-#define LOG_UserFormula4                        538      // char*, 99 Byte
-#define LOG_UserFormula4Active                  637      // 1 Bit, Bit 7
+#define LOG_UserFormula4                        605      // char*, 99 Byte
+#define LOG_UserFormula4Active                  704      // 1 Bit, Bit 7
 #define     LOG_UserFormula4ActiveMask 0x80
 #define     LOG_UserFormula4ActiveShift 7
-#define LOG_UserFormula5                        638      // char*, 99 Byte
-#define LOG_UserFormula5Active                  737      // 1 Bit, Bit 7
+#define LOG_UserFormula5                        705      // char*, 99 Byte
+#define LOG_UserFormula5Active                  804      // 1 Bit, Bit 7
 #define     LOG_UserFormula5ActiveMask 0x80
 #define     LOG_UserFormula5ActiveShift 7
-#define LOG_UserFormula6                        738      // char*, 99 Byte
-#define LOG_UserFormula6Active                  837      // 1 Bit, Bit 7
+#define LOG_UserFormula6                        805      // char*, 99 Byte
+#define LOG_UserFormula6Active                  904      // 1 Bit, Bit 7
 #define     LOG_UserFormula6ActiveMask 0x80
 #define     LOG_UserFormula6ActiveShift 7
-#define LOG_UserFormula7                        838      // char*, 99 Byte
-#define LOG_UserFormula7Active                  937      // 1 Bit, Bit 7
+#define LOG_UserFormula7                        905      // char*, 99 Byte
+#define LOG_UserFormula7Active                  1004      // 1 Bit, Bit 7
 #define     LOG_UserFormula7ActiveMask 0x80
 #define     LOG_UserFormula7ActiveShift 7
-#define LOG_UserFormula8                        938      // char*, 99 Byte
-#define LOG_UserFormula8Active                  1037      // 1 Bit, Bit 7
+#define LOG_UserFormula8                        1005      // char*, 99 Byte
+#define LOG_UserFormula8Active                  1104      // 1 Bit, Bit 7
 #define     LOG_UserFormula8ActiveMask 0x80
 #define     LOG_UserFormula8ActiveShift 7
-#define LOG_UserFormula9                        1038      // char*, 99 Byte
-#define LOG_UserFormula9Active                  1137      // 1 Bit, Bit 7
+#define LOG_UserFormula9                        1105      // char*, 99 Byte
+#define LOG_UserFormula9Active                  1204      // 1 Bit, Bit 7
 #define     LOG_UserFormula9ActiveMask 0x80
 #define     LOG_UserFormula9ActiveShift 7
-#define LOG_UserFormula10                       1138      // char*, 99 Byte
-#define LOG_UserFormula10Active                 1237      // 1 Bit, Bit 7
+#define LOG_UserFormula10                       1205      // char*, 99 Byte
+#define LOG_UserFormula10Active                 1304      // 1 Bit, Bit 7
 #define     LOG_UserFormula10ActiveMask 0x80
 #define     LOG_UserFormula10ActiveShift 7
-#define LOG_UserFormula11                       1238      // char*, 99 Byte
-#define LOG_UserFormula11Active                 1337      // 1 Bit, Bit 7
+#define LOG_UserFormula11                       1305      // char*, 99 Byte
+#define LOG_UserFormula11Active                 1404      // 1 Bit, Bit 7
 #define     LOG_UserFormula11ActiveMask 0x80
 #define     LOG_UserFormula11ActiveShift 7
-#define LOG_UserFormula12                       1338      // char*, 99 Byte
-#define LOG_UserFormula12Active                 1437      // 1 Bit, Bit 7
+#define LOG_UserFormula12                       1405      // char*, 99 Byte
+#define LOG_UserFormula12Active                 1504      // 1 Bit, Bit 7
 #define     LOG_UserFormula12ActiveMask 0x80
 #define     LOG_UserFormula12ActiveShift 7
-#define LOG_UserFormula13                       1438      // char*, 99 Byte
-#define LOG_UserFormula13Active                 1537      // 1 Bit, Bit 7
+#define LOG_UserFormula13                       1505      // char*, 99 Byte
+#define LOG_UserFormula13Active                 1604      // 1 Bit, Bit 7
 #define     LOG_UserFormula13ActiveMask 0x80
 #define     LOG_UserFormula13ActiveShift 7
-#define LOG_UserFormula14                       1538      // char*, 99 Byte
-#define LOG_UserFormula14Active                 1637      // 1 Bit, Bit 7
+#define LOG_UserFormula14                       1605      // char*, 99 Byte
+#define LOG_UserFormula14Active                 1704      // 1 Bit, Bit 7
 #define     LOG_UserFormula14ActiveMask 0x80
 #define     LOG_UserFormula14ActiveShift 7
-#define LOG_UserFormula15                       1638      // char*, 99 Byte
-#define LOG_UserFormula15Active                 1737      // 1 Bit, Bit 7
+#define LOG_UserFormula15                       1705      // char*, 99 Byte
+#define LOG_UserFormula15Active                 1804      // 1 Bit, Bit 7
 #define     LOG_UserFormula15ActiveMask 0x80
 #define     LOG_UserFormula15ActiveShift 7
-#define LOG_UserFormula16                       1738      // char*, 99 Byte
-#define LOG_UserFormula16Active                 1837      // 1 Bit, Bit 7
+#define LOG_UserFormula16                       1805      // char*, 99 Byte
+#define LOG_UserFormula16Active                 1904      // 1 Bit, Bit 7
 #define     LOG_UserFormula16ActiveMask 0x80
 #define     LOG_UserFormula16ActiveShift 7
-#define LOG_UserFormula17                       1838      // char*, 99 Byte
-#define LOG_UserFormula17Active                 1937      // 1 Bit, Bit 7
+#define LOG_UserFormula17                       1905      // char*, 99 Byte
+#define LOG_UserFormula17Active                 2004      // 1 Bit, Bit 7
 #define     LOG_UserFormula17ActiveMask 0x80
 #define     LOG_UserFormula17ActiveShift 7
-#define LOG_UserFormula18                       1938      // char*, 99 Byte
-#define LOG_UserFormula18Active                 2037      // 1 Bit, Bit 7
+#define LOG_UserFormula18                       2005      // char*, 99 Byte
+#define LOG_UserFormula18Active                 2104      // 1 Bit, Bit 7
 #define     LOG_UserFormula18ActiveMask 0x80
 #define     LOG_UserFormula18ActiveShift 7
-#define LOG_UserFormula19                       2038      // char*, 99 Byte
-#define LOG_UserFormula19Active                 2137      // 1 Bit, Bit 7
+#define LOG_UserFormula19                       2105      // char*, 99 Byte
+#define LOG_UserFormula19Active                 2204      // 1 Bit, Bit 7
 #define     LOG_UserFormula19ActiveMask 0x80
 #define     LOG_UserFormula19ActiveShift 7
-#define LOG_UserFormula20                       2138      // char*, 99 Byte
-#define LOG_UserFormula20Active                 2237      // 1 Bit, Bit 7
+#define LOG_UserFormula20                       2205      // char*, 99 Byte
+#define LOG_UserFormula20Active                 2304      // 1 Bit, Bit 7
 #define     LOG_UserFormula20ActiveMask 0x80
 #define     LOG_UserFormula20ActiveShift 7
-#define LOG_UserFormula21                       2238      // char*, 99 Byte
-#define LOG_UserFormula21Active                 2337      // 1 Bit, Bit 7
+#define LOG_UserFormula21                       2305      // char*, 99 Byte
+#define LOG_UserFormula21Active                 2404      // 1 Bit, Bit 7
 #define     LOG_UserFormula21ActiveMask 0x80
 #define     LOG_UserFormula21ActiveShift 7
-#define LOG_UserFormula22                       2338      // char*, 99 Byte
-#define LOG_UserFormula22Active                 2437      // 1 Bit, Bit 7
+#define LOG_UserFormula22                       2405      // char*, 99 Byte
+#define LOG_UserFormula22Active                 2504      // 1 Bit, Bit 7
 #define     LOG_UserFormula22ActiveMask 0x80
 #define     LOG_UserFormula22ActiveShift 7
-#define LOG_UserFormula23                       2438      // char*, 99 Byte
-#define LOG_UserFormula23Active                 2537      // 1 Bit, Bit 7
+#define LOG_UserFormula23                       2505      // char*, 99 Byte
+#define LOG_UserFormula23Active                 2604      // 1 Bit, Bit 7
 #define     LOG_UserFormula23ActiveMask 0x80
 #define     LOG_UserFormula23ActiveShift 7
-#define LOG_UserFormula24                       2538      // char*, 99 Byte
-#define LOG_UserFormula24Active                 2637      // 1 Bit, Bit 7
+#define LOG_UserFormula24                       2605      // char*, 99 Byte
+#define LOG_UserFormula24Active                 2704      // 1 Bit, Bit 7
 #define     LOG_UserFormula24ActiveMask 0x80
 #define     LOG_UserFormula24ActiveShift 7
-#define LOG_UserFormula25                       2638      // char*, 99 Byte
-#define LOG_UserFormula25Active                 2737      // 1 Bit, Bit 7
+#define LOG_UserFormula25                       2705      // char*, 99 Byte
+#define LOG_UserFormula25Active                 2804      // 1 Bit, Bit 7
 #define     LOG_UserFormula25ActiveMask 0x80
 #define     LOG_UserFormula25ActiveShift 7
-#define LOG_UserFormula26                       2738      // char*, 99 Byte
-#define LOG_UserFormula26Active                 2837      // 1 Bit, Bit 7
+#define LOG_UserFormula26                       2805      // char*, 99 Byte
+#define LOG_UserFormula26Active                 2904      // 1 Bit, Bit 7
 #define     LOG_UserFormula26ActiveMask 0x80
 #define     LOG_UserFormula26ActiveShift 7
-#define LOG_UserFormula27                       2838      // char*, 99 Byte
-#define LOG_UserFormula27Active                 2937      // 1 Bit, Bit 7
+#define LOG_UserFormula27                       2905      // char*, 99 Byte
+#define LOG_UserFormula27Active                 3004      // 1 Bit, Bit 7
 #define     LOG_UserFormula27ActiveMask 0x80
 #define     LOG_UserFormula27ActiveShift 7
-#define LOG_UserFormula28                       2938      // char*, 99 Byte
-#define LOG_UserFormula28Active                 3037      // 1 Bit, Bit 7
+#define LOG_UserFormula28                       3005      // char*, 99 Byte
+#define LOG_UserFormula28Active                 3104      // 1 Bit, Bit 7
 #define     LOG_UserFormula28ActiveMask 0x80
 #define     LOG_UserFormula28ActiveShift 7
-#define LOG_UserFormula29                       3038      // char*, 99 Byte
-#define LOG_UserFormula29Active                 3137      // 1 Bit, Bit 7
+#define LOG_UserFormula29                       3105      // char*, 99 Byte
+#define LOG_UserFormula29Active                 3204      // 1 Bit, Bit 7
 #define     LOG_UserFormula29ActiveMask 0x80
 #define     LOG_UserFormula29ActiveShift 7
-#define LOG_UserFormula30                       3138      // char*, 99 Byte
-#define LOG_UserFormula30Active                 3237      // 1 Bit, Bit 7
+#define LOG_UserFormula30                       3205      // char*, 99 Byte
+#define LOG_UserFormula30Active                 3304      // 1 Bit, Bit 7
 #define     LOG_UserFormula30ActiveMask 0x80
 #define     LOG_UserFormula30ActiveShift 7
 
@@ -834,7 +1094,7 @@
 #define LOG_ChannelCount 20
 
 // Parameter per channel
-#define LOG_ParamBlockOffset 3238
+#define LOG_ParamBlockOffset 3305
 #define LOG_ParamBlockSize 85
 #define LOG_ParamCalcIndex(index) (index + LOG_ParamBlockOffset + _channelIndex * LOG_ParamBlockSize)
 
@@ -2691,7 +2951,7 @@
 // Ausgang
 #define KoLOG_KOfO                                (knx.getGroupObject(LOG_KoCalcNumber(LOG_KoKOfO)))
 
-#define FCB_VisibleChannels                     4938      // uint8_t
+#define FCB_VisibleChannels                     5005      // uint8_t
 
 // Verfügbare Kanäle
 #define ParamFCB_VisibleChannels                     (knx.paramByte(FCB_VisibleChannels))
@@ -2699,7 +2959,7 @@
 #define FCB_ChannelCount 15
 
 // Parameter per channel
-#define FCB_ParamBlockOffset 4939
+#define FCB_ParamBlockOffset 5006
 #define FCB_ParamBlockSize 71
 #define FCB_ParamCalcIndex(index) (index + FCB_ParamBlockOffset + _channelIndex * FCB_ParamBlockSize)
 
@@ -3431,7 +3691,7 @@
 #define BASE_KommentarModuleModuleParamSize 0
 #define BASE_KommentarModuleSubmodulesParamSize 0
 #define BASE_KommentarModuleParamSize 0
-#define BASE_KommentarModuleParamOffset 6004
+#define BASE_KommentarModuleParamOffset 6071
 #define BASE_KommentarModuleCalcIndex(index, m1) (index + BASE_KommentarModuleParamOffset + _channelIndex * BASE_KommentarModuleCount * BASE_KommentarModuleParamSize + m1 * BASE_KommentarModuleParamSize)
 
 
