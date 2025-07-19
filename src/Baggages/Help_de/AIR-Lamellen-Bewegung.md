@@ -1,7 +1,8 @@
-﻿### Szenefunktion Lamellen Bewegungung
+﻿### Lamellen Bewegung
 
-Steuert die Bewegung der Lamellen
+Steuert die Bewegung der Lamellen.
 
+- Keine Änderung
 - Aus
 - Vertikal
 - Horizontal

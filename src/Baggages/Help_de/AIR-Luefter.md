@@ -1,7 +1,8 @@
-﻿### Szenefunktion Lüfter
+﻿### Lüfter
 
 Lüftergeschwindigkeit
 
+- Keine Änderung
 - Automatik
 - Leise
 - Stufe 1
