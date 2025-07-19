@@ -22,6 +22,7 @@ class AirConditionDriverStatusFeedback
 {
 public:
     virtual void driverStateChanged(AirConditionDriverState state, std::string error = "") = 0;
+    virtual AirConditionDriverState getDriverState() const = 0;
     virtual void powerChanged(bool power) = 0;
     virtual void modeChanged(AirConditionMode mode) = 0;
     virtual void targetTemperatureChanged(float temperaturCelius) = 0;

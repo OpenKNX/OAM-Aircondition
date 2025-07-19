@@ -19,7 +19,7 @@
       <ApplicationPrograms>
         <ApplicationProgram>
 
-          <op:part href="Aircondition.Scene.part.xml" name="Scene" instances="20">
+          <op:part href="Aircondition.Scene.part.xml" name="Scene" instances="10">
             <!-- Parameter Offset -->
             <op:param name="%PPP%" value="500" increment="20" />
             <!-- Memory Offset -->
@@ -126,7 +126,7 @@
                 </TypeRestriction>
               </ParameterType>
 
-              <ParameterType Id="%AID%_PT-AIRSceneMove" Name="AIRSceneMove">
+              <ParameterType Id="%AID%_PT-AIRSceneSwing" Name="AIRSceneSwing">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="Aus" Value="0" Id="%ENID%" />
@@ -253,9 +253,9 @@
               <ComObject Id="%AID%_O-%TT%00017" Number="17" Name="FanSpeedUpDown" Text="Lüfter schneller/langsamer" FunctionText="Lüfter schneller/langsamer" ObjectSize="1 Bit" DatapointType="DPST-1-7" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
 
               <!-- Lamelle Vertikal Bewegen -->
-              <ComObject Id="%AID%_O-%TT%00018" Number="18" Name="LouverVerticalMove" Text="Lamelle Vertikal Bewegen" FunctionText="Lamelle Vertikal Bewegen" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00018" Number="18" Name="LouverVerticalSwing" Text="Lamelle Vertikal Bewegen" FunctionText="Lamelle Vertikal Bewegen" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Vertikal Bewegen Status -->
-              <ComObject Id="%AID%_O-%TT%00019" Number="19" Name="LouverVerticalMoveState" Text="Lamelle Vertikal Bewegen Status" FunctionText="Lamelle Vertikal Bewegen Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00019" Number="19" Name="LouverVerticalSwingState" Text="Lamelle Vertikal Bewegen Status" FunctionText="Lamelle Vertikal Bewegen Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Vertikal Höher/Tiefer -->
               <ComObject Id="%AID%_O-%TT%00020" Number="20" Name="LouverVerticalUpDown" Text="Lamelle Vertikal Höher/Tiefer" FunctionText="Lamelle Vertikal Höher/Tiefer" ObjectSize="1 Bit" DatapointType="DPST-1-7" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Veritkale Position -->
@@ -263,11 +263,11 @@
               <!-- Lamelle Veritkale Position Status -->
               <ComObject Id="%AID%_O-%TT%00025" Number="22" Name="LouverVerticalPositionState" Text="Lamelle Vertikale Position Status" FunctionText="Lamelle Veritkale Position Status" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Horizontal Bewegen -->
-              <ComObject Id="%AID%_O-%TT%00021" Number="23" Name="LouverHorizontalMove" Text="Lamelle Horizontal Bewegen" FunctionText="Lamelle Horizontal Bewegen" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00021" Number="23" Name="LouverHorizontalSwing" Text="Lamelle Horizontal Bewegen" FunctionText="Lamelle Horizontal Bewegen" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Horizontal Bewegen Status -->
-              <ComObject Id="%AID%_O-%TT%00022" Number="24" Name="LouverHorizontalMoveState" Text="Lamelle Horizontal Bewegen Status" FunctionText="Lamelle Horizontal Bewegen Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-              <!-- Lamelle Horizontal Höher/Tiefer -->
-              <ComObject Id="%AID%_O-%TT%00023" Number="25" Name="LouverHorizontalUpDown" Text="Lamelle Horizontal Höher/Tiefer" FunctionText="Lamelle Horizontal Höher/Tiefer" ObjectSize="1 Bit" DatapointType="DPST-1-7" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00022" Number="24" Name="LouverHorizontalSwingState" Text="Lamelle Horizontal Bewegen Status" FunctionText="Lamelle Horizontal Bewegen Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Lamelle Horizontal Links/Rechts -->
+              <ComObject Id="%AID%_O-%TT%00023" Number="25" Name="LouverHorizontalUpDown" Text="Lamelle Horizontal Links/Rechts" FunctionText="Lamelle Horizontal Links/Rechts" ObjectSize="1 Bit" DatapointType="DPST-1-7" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Sperre / Freigabe -->
               <ComObject Id="%AID%_O-%TT%00026" Number="26" Name="LockRelease" Text="Sperre / Freigabe" FunctionText="Sperre / Freigabe" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Sperre / Freigabe Aktiv -->
@@ -335,7 +335,7 @@
               <ComObjectRef Id="%AID%_O-%TT%00021_R-%TT%0002101" RefId="%AID%_O-%TT%00021" />
               <!-- Lamelle Horizontal Bewegen Status -->
               <ComObjectRef Id="%AID%_O-%TT%00022_R-%TT%0002201" RefId="%AID%_O-%TT%00022" />
-              <!-- Lamelle Horizontal Höher/Tiefer -->
+              <!-- Lamelle Horizontal Links/Rechts -->
               <ComObjectRef Id="%AID%_O-%TT%00023_R-%TT%0002301" RefId="%AID%_O-%TT%00023" />
               <!-- Lamelle Vertikale Position -->
               <ComObjectRef Id="%AID%_O-%TT%00024_R-%TT%0002401" RefId="%AID%_O-%TT%00024" />
@@ -463,8 +463,16 @@
                     <ComObjectRefRef RefId="%AID%_O-%TT%00018_R-%TT%0001801" />
                     <!-- Lamelle Vertikal Bewegen Status -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00019_R-%TT%0001901" />
-                    <!-- Lamelle Vertikal Höher/Tiefer -->
-                    <ComObjectRefRef RefId="%AID%_O-%TT%00020_R-%TT%0002001" />
+                    
+                    <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                      <when test="1 2 3">
+                        <!-- Daikin, Midea, Mitsubishi -->
+
+                        <!-- Lamelle Vertikal Höher/Tieferchts -->
+                        <ComObjectRefRef RefId="%AID%_O-%TT%00020_R-%TT%0002001" />
+                      </when>
+                    </choose>
+                    
                     <!-- Lamelle Vertikale Position -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00024_R-%TT%0002401" />
                     <!-- Lamelle Vertikale Position Status -->
@@ -473,8 +481,15 @@
                     <ComObjectRefRef RefId="%AID%_O-%TT%00021_R-%TT%0002101" />
                     <!-- Lamelle Horizontal Bewegen Status -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00022_R-%TT%0002201" />
-                    <!-- Lamelle Horizontal Höher/Tiefer -->
-                    <ComObjectRefRef RefId="%AID%_O-%TT%00023_R-%TT%0002301" />
+                     <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                      <when test="1 2 3">
+                        <!-- Daikin, Midea, Mitsubishi -->
+
+                        <!-- Lamelle Horizontal Links/Rechts -->
+                        <ComObjectRefRef RefId="%AID%_O-%TT%00023_R-%TT%0002301" />
+
+                      </when>
+                    </choose>
 
                     <!-- Lock Release Ko -->
                     <choose ParamRefId="%AID%_UP-%TT%00002_R-%TT%0000201">
@@ -524,7 +539,8 @@
                     <ComObjectRefRef RefId="%AID%_O-%TT%00034_R-%TT%0003401" />
 
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="Szenen" UIHint="Headline" />
-          
+        
+
                     <!-- Szenen Configuration -->
                     <op:usePart name="Scene" xpath="//Dynamic/ChannelIndependentBlock/ParameterBlock[@Id='Scene']/*" />
 

@@ -2,6 +2,7 @@
 // https://github.com/pedobry/esphome_toshiba_suzumi
 
 #include "ToshibaDriver.h"
+#include "NetworkModule.h"
 
 static const int RECEIVE_TIMEOUT = 200;
 static const int COMMAND_DELAY = 100;
@@ -63,9 +64,8 @@ void ToshibaDriver::startCommunication(bool restart)
 
     requestData(ToshibaCommandType::ToshibaCommandTypePowerState);
 
-    // if (this->wifi_led_disabled_) {
-    // // Disable Wifi LED
-    // this->sendCmd(ToshibaCommandType::WIFI_LED, 128);
+    _lastNewtorkLedStateUpdate = 0;
+
 }
 
 ToshibaCommand ToshibaDriver::createRequestCommand(ToshibaCommandType cmd)
@@ -210,7 +210,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
         auto& currentCommand = _commandQueue.front();
         if (currentCommand.timestampSent != 0 && currentCommand.cmd == commandType)
         {
-            // if we have a command in queue, and it matches the received command, remove it
+            // if we have a command in queue, and it matches the received command, reswing it
             _commandQueue.erase(_commandQueue.begin());
             logDebugP("Response for command %d received", static_cast<int>(commandType));
             statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
@@ -266,21 +266,51 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             switch (_swingMode)
             {
                 case ToshibaSwingMode::ToshibaSwingModeOff:
+                    statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeBoth:
+                    statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(true);
                     statusFeedback.swingVerticalChanged(true);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeVertical:
+                    statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(true);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeHorizontal:
+                    statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(true);
                     statusFeedback.swingVerticalChanged(false);
                     break;
+                case ToshibaSwingMode::ToshibaSwingModeFixPosition1:
+                    statusFeedback.swingVerticalFixPositionChanged(1);
+                    statusFeedback.swingHorizontalChanged(false);
+                    statusFeedback.swingVerticalChanged(false);
+                    break;
+                case ToshibaSwingMode::ToshibaSwingModeFixPosition2:
+                    statusFeedback.swingVerticalFixPositionChanged(2);
+                    statusFeedback.swingHorizontalChanged(false);
+                    statusFeedback.swingVerticalChanged(false);
+                    break;
+                case ToshibaSwingMode::ToshibaSwingModeFixPosition3:
+                    statusFeedback.swingVerticalFixPositionChanged(3);
+                    statusFeedback.swingHorizontalChanged(false);
+                    statusFeedback.swingVerticalChanged(false);
+                    break;
+                case ToshibaSwingMode::ToshibaSwingModeFixPosition4:
+                    statusFeedback.swingVerticalFixPositionChanged(4);
+                    statusFeedback.swingHorizontalChanged(false);
+                    statusFeedback.swingVerticalChanged(false);
+                    break;
+                case ToshibaSwingMode::ToshibaSwingModeFixPosition5:
+                    statusFeedback.swingVerticalFixPositionChanged(5);
+                    statusFeedback.swingHorizontalChanged(false);
+                    statusFeedback.swingVerticalChanged(false);
+                    break;
+
                 default:
                     logErrorP("Unknown swing mode: %d", (int)_swingMode);
             }
@@ -485,10 +515,23 @@ void ToshibaDriver::loop()
         handleReceivedByte(c);
     }
     processCommandQueue();
-    if (millis() - _lastTemperatureRequest > 60000)
+    
+    if (statusFeedback.getDriverState() == AirConditionDriverState::AirConditionDriverStateOk)
     {
-        _lastTemperatureRequest = millis();
-        requestTemperatures();
+        bool wifiConnected = openknxNetwork.connected();
+        if (wifiConnected != _networkLedState && (_lastNewtorkLedStateUpdate == 0 || millis() - _lastNewtorkLedStateUpdate > 1000))
+        {
+            _networkLedState = wifiConnected;
+            _lastNewtorkLedStateUpdate = max(1UL, millis());
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeWifiLED, _networkLedState ? (uint8_t) ToshibaLedState::On : (uint8_t) ToshibaLedState::Off);
+
+        }
+        if (millis() - _lastTemperatureRequest > 60000)
+        {
+            _lastTemperatureRequest = millis();
+            requestTemperatures();
+        }
+        
     }
 }
 
@@ -709,7 +752,28 @@ void ToshibaDriver::setSwingHorizontalFixPosition(unsigned int position)
 
 void ToshibaDriver::setSwingVerticalFixPosition(unsigned int position)
 {
-    // To Do: Implementation for vertical fix position control
+   switch (position)
+   {
+        case 0:
+        case 1:
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeFixPosition1);
+            break;
+        case 2:
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeFixPosition2);
+            break;
+        case 3:
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeFixPosition3);
+            break;
+        case 4:
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeFixPosition4);
+            break;
+        case 5:
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeFixPosition5);
+            break;
+        default:
+            logErrorP("Unsupported vertical fix position: %d", position);
+            return;
+    }
     statusFeedback.swingVerticalFixPositionChanged(position);
 }
 

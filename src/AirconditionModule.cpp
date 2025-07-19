@@ -3,6 +3,7 @@
 #include "Driver/Mitsubishi/MitsubishiDriver.h"
 #include "Driver/Toshiba/ToshibaDriver.h"
 #include "OpenKNX.h"
+#include "SceneHandler.h"
 
 AirconditionModule openknxAircondition;
 
@@ -30,33 +31,34 @@ void AirconditionModule::setup()
             break;
         case 1: // Daikin
             logInfoP("Initialize MideaDriver");
-            airConditionDriver = new MideaDriver(*this);
+            _airConditionDriver = new MideaDriver(*this);
             break;
         case 2: // Midea
             logInfoP("Initialize ToshibaDriver");
-            airConditionDriver = new ToshibaDriver(*this);
+            _airConditionDriver = new ToshibaDriver(*this);
             break;
         case 3: // Mitsubishi
             logInfoP("Initialize MitsubishiDriver");
-            airConditionDriver = new MitsubishiDriver(*this);
+            _airConditionDriver = new MitsubishiDriver(*this);
             break;
         case 4: // Toshiba
             logInfoP("Initialize ToshibaDriver");
-            airConditionDriver = new ToshibaDriver(*this);
+            _airConditionDriver = new ToshibaDriver(*this);
             break;
         default:
             logErrorP("AirCondition Device Type %d not supported", ParamAIR_DeviceType);
             break;
     }
-    if (airConditionDriver != nullptr)
+    if (_airConditionDriver != nullptr)
     {
+        _sceneHandler = new SceneHandler(*_airConditionDriver);
         setLocked(false);
         logInfoP("Start driver");
-        airConditionDriver->setup();
+        _airConditionDriver->setup();
         logInfoP("Driver started");
         logInfoP("Start communication");
         driverStateChanged(AirConditionDriverState::AirConditionDriverStateStarting);
-        airConditionDriver->startCommunication(false);
+        _airConditionDriver->startCommunication(false);
         logInfoP("Communication started");
     }
     else
@@ -121,10 +123,10 @@ void AirconditionModule::setLocked(bool locked)
             case 0: // Do nothing
                 break;
             case 1: // Power on
-                airConditionDriver->setPower(true);
+                _airConditionDriver->setPower(true);
                 break;
             case 2: // Power off
-                airConditionDriver->setPower(false);
+                _airConditionDriver->setPower(false);
                 break;
         }
     }
@@ -132,14 +134,14 @@ void AirconditionModule::setLocked(bool locked)
 
 void AirconditionModule::loop()
 {
-    if (airConditionDriver != nullptr)
+    if (_airConditionDriver != nullptr)
     {
-        airConditionDriver->loop();
+        _airConditionDriver->loop();
         if (_errorSince > 0 && millis() - _errorSince > 60000) // If error is set for more than 60 seconds, try to restart
         {
             logInfoP("AirCondition Error still active since %lu seconds. Restart communication", (millis() - _errorSince) / 1000);
             driverStateChanged(AirConditionDriverState::AirConditionDriverStateStarting);
-            airConditionDriver->startCommunication(true);
+            _airConditionDriver->startCommunication(true);
             logInfoP("Communication restarted");
         }
         else if (_driverState == AirConditionDriverState::AirConditionDriverStateOk && _initialDataNeeded)
@@ -147,24 +149,24 @@ void AirconditionModule::loop()
             // If driver is ok and initial data is needed, request all data again
             logInfoP("Request all data after driver started");
              _initialDataNeeded = false; // Reset initial data needed flag
-            airConditionDriver->requestAllData();
+            _airConditionDriver->requestAllData();
         }
     }
 }
 
 void AirconditionModule::showInformations()
 {
-    if (airConditionDriver != nullptr)
+    if (_airConditionDriver != nullptr)
     {
-        logInfoP("AirCondition Driver '%s'", airConditionDriver->name().c_str());
-        logInfoP("Driver State: %s %s",AirConditionDriver::getDriverStateString(_driverState), _errorMessage.c_str());
-        logInfoP("Minimum Target Temperature: %.1f °C", airConditionDriver->getMinimumTargetTemperature());
-        logInfoP("Maximum Target Temperature: %.1f °C", airConditionDriver->getMaximumTargetTemperature());
-        logInfoP("Maximum Fan Speed: %u", airConditionDriver->getMaximumFanSpeed());
-        logInfoP("Maximum Horizontal Fix Position: %u", airConditionDriver->getMaximumHorizontalFixPosition());
-        logInfoP("Maximum Vertical Fix Position: %u", airConditionDriver->getMaximumVertiacalFixPosition());
+        logInfoP("AirCondition Driver '%s'", _airConditionDriver->name().c_str());
+        logInfoP("Driver State: %s %s", AirConditionDriver::getDriverStateString(_driverState), _errorMessage.c_str());
+        logInfoP("Minimum Target Temperature: %.1f °C", _airConditionDriver->getMinimumTargetTemperature());
+        logInfoP("Maximum Target Temperature: %.1f °C", _airConditionDriver->getMaximumTargetTemperature());
+        logInfoP("Maximum Fan Speed: %u", _airConditionDriver->getMaximumFanSpeed());
+        logInfoP("Maximum Horizontal Fix Position: %u", _airConditionDriver->getMaximumHorizontalFixPosition());
+        logInfoP("Maximum Vertical Fix Position: %u", _airConditionDriver->getMaximumVertiacalFixPosition());
         logInfoP("Current Driver State: %d", _driverState);
-        airConditionDriver->showInformations();
+        _airConditionDriver->showInformations();
     }
     else
     {
@@ -174,20 +176,20 @@ void AirconditionModule::showInformations()
 
 bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
 {
-    if (airConditionDriver == nullptr)
+    if (_airConditionDriver == nullptr)
     {
-        if (airConditionDriver->processCommand(cmd, debugKo) == true)
+        if (_airConditionDriver->processCommand(cmd, debugKo) == true)
         {
             return true;
         }
     }
     if (cmd == "rc")
     {
-        if (airConditionDriver != nullptr)
+        if (_airConditionDriver != nullptr)
         {
             logInfoP("Restart communication");
             driverStateChanged(AirConditionDriverState::AirConditionDriverStateStarting);
-            airConditionDriver->startCommunication(true);
+            _airConditionDriver->startCommunication(true);
             logInfoP("Communication started");
         }
         else
@@ -198,10 +200,10 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
     }
     if (cmd == "all")
     {
-        if (airConditionDriver != nullptr)
+        if (_airConditionDriver != nullptr)
         {
             logInfoP("Request all data");
-            airConditionDriver->requestAllData();
+            _airConditionDriver->requestAllData();
             logInfoP("Request all data");
         }
         else
@@ -245,14 +247,14 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         try
         {
             unsigned int fanSpeedPercent = std::stoi(fanStr);
-            if (airConditionDriver != nullptr && fanSpeedPercent <= 100)
+            if (_airConditionDriver != nullptr && fanSpeedPercent <= 100)
             {
                 KoAIR_FanSpeed.valueNoSend((uint8_t)fanSpeedPercent, DPT_Scaling);
                 processInputKo(KoAIR_FanSpeed);
             }
             else
             {
-                logErrorP("Invalid fan speed value: %s. Value must between 0 and %u.", fanStr.c_str(), airConditionDriver->getMaximumFanSpeed());
+                logErrorP("Invalid fan speed value: %s. Value must between 0 and %u.", fanStr.c_str(), _airConditionDriver->getMaximumFanSpeed());
             }
         }
         catch (const std::invalid_argument& e)
@@ -266,7 +268,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
 
 void AirconditionModule::processInputKo(GroupObject& ko)
 {
-    if (airConditionDriver != nullptr)
+    if (_airConditionDriver != nullptr)
     {
         // <Enumeration Text="Keines" Value="0" Id="%ENID%" />
         // <Enumeration Text="Freigabe" Value="1" Id="%ENID%" />
@@ -287,9 +289,9 @@ void AirconditionModule::processInputKo(GroupObject& ko)
             case AIR_KoPower:
             {
                 bool power = ko.value(DPT_Switch);
-                airConditionDriver->setPower(power);
+                _airConditionDriver->setPower(power);
                 if (power)
-                    airConditionDriver->setMode(_lastMode); // Reset mode to last known state
+                    _airConditionDriver->setMode(_lastMode); // Reset mode to last known state
                 break;
             }
             case AIR_KoOperationMode:
@@ -300,38 +302,38 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     case 0: // Auto
                         logInfoP("Set mode to Auto");
                         _lastMode = AirConditionMode::AirConditionModeAuto;
-                        airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
+                        _airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
                         break;
                     case 1: // Head
                         logInfoP("Set mode to Heat");
                         _lastMode = AirConditionMode::AirConditionModeHeat;
-                        airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
+                        _airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
                         break;
                     case 3: // Cool
                         logInfoP("Set mode to Cool");
                         _lastMode = AirConditionMode::AirConditionModeCool;
-                        airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
+                        _airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
                         break;
                     case 6: // Off
                         logInfoP("Set mode to Off");
-                        airConditionDriver->setPower(false);
+                        _airConditionDriver->setPower(false);
                         break;
                     case 9: // Fan
                         logInfoP("Set mode to Fan");
                         _lastMode = AirConditionMode::AirConditionModeFan;
-                        airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
+                        _airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
                         break;
                     case 14: // Dry
                         logInfoP("Set mode to Dry");
                         _lastMode = AirConditionMode::AirConditionModeDry;
-                        airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
+                        _airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
                         break;
                     default:
                         logErrorP("Unknown HVAC mode %d", hvacMode);
                 }
                 if (hvacMode != 6) // If not Off, set power to true
                 {
-                    airConditionDriver->setPower(true);
+                    _airConditionDriver->setPower(true);
                 }
             }
             break;
@@ -339,81 +341,81 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 if (ko.value(DPT_Switch))
                 {
                     logInfoP("Set mode to Auto");
-                    airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
+                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
                 }
                 else
                 {
                     logInfoP("Set power to Off");
-                    airConditionDriver->setPower(false);
+                    _airConditionDriver->setPower(false);
                 }
                 break;
             case AIR_KoOperationModeCooling:
                 if (ko.value(DPT_Switch))
                 {
                     logInfoP("Set mode to Cool");
-                    airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
+                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
                 }
                 else
                 {
                     logInfoP("Set power to Off");
-                    airConditionDriver->setPower(false);
+                    _airConditionDriver->setPower(false);
                 }
                 break;
             case AIR_KoOperationModeHeating:
                 if (ko.value(DPT_Switch))
                 {
                     logInfoP("Set mode to Heat");
-                    airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
+                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
                 }
                 else
                 {
                     logInfoP("Set power to Off");
-                    airConditionDriver->setPower(false);
+                    _airConditionDriver->setPower(false);
                 }
                 break;
             case AIR_KoOperationModeVentilation:
                 if (ko.value(DPT_Switch))
                 {
                     logInfoP("Set mode to Fan");
-                    airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
+                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
                 }
                 else
                 {
                     logInfoP("Set power to Off");
-                    airConditionDriver->setPower(false);
+                    _airConditionDriver->setPower(false);
                 }
                 break;
             case AIR_KoOperationModeDehumidification:
                 if (ko.value(DPT_Switch))
                 {
                     logInfoP("Set mode to Dry");
-                    airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
+                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
                 }
                 else
                 {
                     logInfoP("Set power to Off");
-                    airConditionDriver->setPower(false);
+                    _airConditionDriver->setPower(false);
                 }
                 break;
             case AIR_KoFanSpeed:
             {
                 uint8_t fanSpeedPercent = ko.value(DPT_Scaling);
-                unsigned int fanSpeed = airConditionDriver->getMaximumFanSpeed() * fanSpeedPercent / 100;
+                unsigned int fanSpeed = _airConditionDriver->getMaximumFanSpeed() * fanSpeedPercent / 100;
                 logInfoP("Set fan speed to %u (%u%%)", fanSpeed, fanSpeedPercent);
-                airConditionDriver->setFanSpeed(fanSpeed);
+                _airConditionDriver->setFanSpeed(fanSpeed);
             }
             break;
             case AIR_KoFanSpeedUpDown:
             {
                 uint8_t currentFanSpeedPercentage = KoAIR_FanSpeedState.value(DPT_Scaling);
-                unsigned int currentFanSpeed = airConditionDriver->getMaximumFanSpeed() * currentFanSpeedPercentage / 100;
+                unsigned int currentFanSpeed = _airConditionDriver->getMaximumFanSpeed() * currentFanSpeedPercentage / 100;
                 if (ko.value(DPT_Switch))
                 {
                     // Increase fan speed
-                    if (currentFanSpeed < airConditionDriver->getMaximumFanSpeed())
+                    if (currentFanSpeed < _airConditionDriver->getMaximumFanSpeed())
                     {
                         logInfoP("Increase fan speed from %u to %u", currentFanSpeed, currentFanSpeed + 1);
-                        airConditionDriver->setFanSpeed(currentFanSpeed + 1);
+                        _airConditionDriver->setFanSpeed(currentFanSpeed + 1);
                     }
                     else
                     {
@@ -426,7 +428,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     if (currentFanSpeed > 0)
                     {
                         logInfoP("Decrease fan speed from %u to %u", currentFanSpeed, currentFanSpeed - 1);
-                        airConditionDriver->setFanSpeed(currentFanSpeed - 1);
+                        _airConditionDriver->setFanSpeed(currentFanSpeed - 1);
                     }
                     else
                     {
@@ -435,26 +437,40 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 }
             }
             break;
-            case AIR_KoLouverVerticalMove:
+            case AIR_KoLouverVerticalSwing:
                 logInfoP("Set vertical swing to %s", ko.value(DPT_Switch) ? "on" : "off");
-                airConditionDriver->setSwingVertical(ko.value(DPT_Switch));
+                _airConditionDriver->setSwingVertical(ko.value(DPT_Switch));
                 break;
-            case AIR_KoLouverHorizontalMove:
+            case AIR_KoLouverVerticalPosition:
+            {
+                auto verticalPositionPercent = (uint8_t) ko.value(DPT_Scaling);
+                unsigned int verticalPosition = _airConditionDriver->getMaximumVertiacalFixPosition() * verticalPositionPercent / 100;
+                if (verticalPosition > _airConditionDriver->getMaximumVertiacalFixPosition())
+                {
+                    logErrorP("Vertical position %u is out of range (0 - %u)", verticalPosition, _airConditionDriver->getMaximumVertiacalFixPosition());
+                    return;
+                }
+                logInfoP("Set vertical swing position to %u", verticalPosition);
+                _airConditionDriver->setSwingVerticalFixPosition(verticalPosition);
+                break;
+            }
+            case AIR_KoLouverHorizontalSwing:
                 logInfoP("Set horizontal swing to %s", ko.value(DPT_Switch) ? "on" : "off");
-                airConditionDriver->setSwingHorizontal(ko.value(DPT_Switch));
+                _airConditionDriver->setSwingHorizontal(ko.value(DPT_Switch));
                 break;
+           
             case AIR_KoSetTemperature:
             {
                 float targetTemperature = ko.value(DPT_Value_Temp);
-                if (targetTemperature < airConditionDriver->getMinimumTargetTemperature() || targetTemperature > airConditionDriver->getMaximumTargetTemperature())
+                if (targetTemperature < _airConditionDriver->getMinimumTargetTemperature() || targetTemperature > _airConditionDriver->getMaximumTargetTemperature())
                 {
                     logErrorP("Target temperature %f is out of range (%f - %f)", targetTemperature,
-                              airConditionDriver->getMinimumTargetTemperature(),
-                              airConditionDriver->getMaximumTargetTemperature());
+                              _airConditionDriver->getMinimumTargetTemperature(),
+                              _airConditionDriver->getMaximumTargetTemperature());
                     return;
                 }
                 logInfoP("Set target temperature to %.1f °C", targetTemperature);
-                airConditionDriver->setTargetTemperature(targetTemperature);
+                _airConditionDriver->setTargetTemperature(targetTemperature);
             }
             break;
             case AIR_KoSetTemperatureUpDown:
@@ -462,26 +478,26 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 float currentTemperature = KoAIR_SetTemperatureState.value(DPT_Value_Temp);
                 if (ko.value(DPT_Switch))
                 {
-                    if (currentTemperature < airConditionDriver->getMaximumTargetTemperature())
+                    if (currentTemperature < _airConditionDriver->getMaximumTargetTemperature())
                     {
                         logInfoP("Increase target temperature from %.1f °C to %.1f °C", currentTemperature, currentTemperature + 1.f);
-                        airConditionDriver->setTargetTemperature(currentTemperature + 1.f);
+                        _airConditionDriver->setTargetTemperature(currentTemperature + 1.f);
                     }
                     else
                     {
-                        logInfoP("Target temperature is already at maximum %.1f °C", airConditionDriver->getMaximumTargetTemperature());
+                        logInfoP("Target temperature is already at maximum %.1f °C", _airConditionDriver->getMaximumTargetTemperature());
                     }
                 }
                 else
                 {
-                    if (currentTemperature > airConditionDriver->getMinimumTargetTemperature())
+                    if (currentTemperature > _airConditionDriver->getMinimumTargetTemperature())
                     {
                         logInfoP("Decrease target temperature from %.1f °C to %.1f °C", currentTemperature, currentTemperature - 1.f);
-                        airConditionDriver->setTargetTemperature(currentTemperature - 1.f);
+                        _airConditionDriver->setTargetTemperature(currentTemperature - 1.f);
                     }
                     else
                     {
-                        logInfoP("Target temperature is already at minimum %.1f °C", airConditionDriver->getMinimumTargetTemperature());
+                        logInfoP("Target temperature is already at minimum %.1f °C", _airConditionDriver->getMinimumTargetTemperature());
                     }
                 }
             }
@@ -495,11 +511,24 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     return;
                 }
                 logInfoP("Set external sensor room temperature to %.1f °C", roomTemperature);
-                airConditionDriver->setExternalSensorRoomTemperature(roomTemperature);
+                _airConditionDriver->setExternalSensorRoomTemperature(roomTemperature);
+            }
+
+            case AIR_KoScene:
+            {
+                uint8_t scene = 1 + (uint8_t) ko.value(DPT_SceneNumber);
+                if (_sceneHandler != nullptr)
+                {
+                    _sceneHandler->handleScene(scene);
+                }
+                else
+                {
+                    logErrorP("No SceneHandler initialized");
+                }
             }
             break;
         };
-        airConditionDriver->processInputKo(ko);
+        _airConditionDriver->processInputKo(ko);
     }
 }
 
@@ -532,7 +561,7 @@ void AirconditionModule::targetTemperatureChanged(float temperature)
 }
 void AirconditionModule::fanSpeedChanged(int fanSpeed)
 {
-    unsigned int fanSpeedPercent = fanSpeed * 100 / airConditionDriver->getMaximumFanSpeed();
+    unsigned int fanSpeedPercent = fanSpeed * 100 / _airConditionDriver->getMaximumFanSpeed();
     logInfoP("AirCondition report fan speed changed to %u (%u%%)", fanSpeed, fanSpeedPercent);
     KoAIR_FanSpeedState.valueCompare((uint8_t)fanSpeedPercent, DPT_Scaling);
 }
@@ -597,13 +626,13 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
 void AirconditionModule::swingHorizontalChanged(bool swing)
 {
     logInfoP("AirCondition report horizontal swing changed to %s", swing ? "on" : "off");
-    KoAIR_LouverHorizontalMoveState.valueNoSend(swing, DPT_Switch);
+    KoAIR_LouverHorizontalSwingState.valueNoSend(swing, DPT_Switch);
 }
 
 void AirconditionModule::swingVerticalChanged(bool swing)
 {
     logInfoP("AirCondition report vertical swing changed to %s", swing ? "on" : "off");
-    KoAIR_LouverVerticalMoveState.valueNoSend(swing, DPT_Switch);
+    KoAIR_LouverVerticalSwingState.valueNoSend(swing, DPT_Switch);
 }
 
 void AirconditionModule::swingHorizontalFixPositionChanged(int position)
@@ -630,7 +659,10 @@ void AirconditionModule::outsideTemperaturChanged(float temperature)
     KoAIR_OutsideTemperatureState.valueCompare(temperature, DPT_Value_Temp);
 }
 
-
+AirConditionDriverState AirconditionModule::getDriverState() const
+{
+    return _driverState;
+}
 
 void AirconditionModule::driverStateChanged(AirConditionDriverState state, std::string error)
 {
@@ -655,7 +687,7 @@ void AirconditionModule::driverStateChanged(AirConditionDriverState state, std::
                 _initialDataNeeded = true; 
                 break;
             case AirConditionDriverState::AirConditionDriverStateOk:
-                 logInfoP("AirCondition Driver state: %s",  AirConditionDriver::getDriverStateString(state));
+                 logInfoP("AirCondition Driver state: %s", AirConditionDriver::getDriverStateString(state));
                 _errorSince = 0; // Reset error timestamp
                 _errorMessage = "";
                 break;

@@ -17,6 +17,7 @@ enum class ToshibaCommandType : uint8_t
     ToshibaCommandTypeTargetTemperature = 0xB3, // 179,
     ToshibaCommandTypeRoomTemperature = 0xBB, // 187,
     ToshibaCommandTypeOutdoorTemperature = 0xBE, // 190,
+    ToshibaCommandTypeLED = 0xDE, // 222
     ToshibaCommandTypeWifiLED = 0xDF, // 223,
     ToshibaCommandTypeSpecialMode = 0xF7, // 247,
 };
@@ -67,7 +68,19 @@ enum class ToshibaSwingMode : uint8_t
     ToshibaSwingModeOff = 49,
     ToshibaSwingModeBoth = 67,
     ToshibaSwingModeVertical = 65,
-    ToshibaSwingModeHorizontal = 66
+    ToshibaSwingModeHorizontal = 66,
+    ToshibaSwingModeFixPosition1 = 80,
+    ToshibaSwingModeFixPosition2 = 81,
+    ToshibaSwingModeFixPosition3 = 82,
+    ToshibaSwingModeFixPosition4 = 83,
+    ToshibaSwingModeFixPosition5 = 84
+};
+
+
+enum class ToshibaLedState : uint8_t
+{
+    Off = 128,
+    On = 0
 };
 
 struct ToshibaCommand
@@ -84,6 +97,8 @@ struct ToshibaCommand
 class ToshibaDriver : public AirConditionDriver
 {
   private:
+    bool _networkLedState = true;
+    unsigned long _lastNewtorkLedStateUpdate = 0;
     static const std::vector<uint8_t> PayloadHandshake[6];
     static const std::vector<uint8_t> PayloadPostHandshake[2];
     static const uint8_t EightDegreeSpecialModeTempOffset;

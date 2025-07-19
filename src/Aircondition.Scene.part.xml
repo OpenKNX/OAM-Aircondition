@@ -32,8 +32,8 @@
                                 <!-- Szene Function Fan -->
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+5%" Offset="2" BitOffset="0" Name="SC%SN%SceneFan" ParameterType="%AID%_PT-AIRSceneFan" Text="Lüfter" Value="255" />
 
-                                <!-- Szene Function Move -->
-                                <Parameter Id="%AID%_UP-%TT%00%PPP+6%" Offset="2" BitOffset="0" Name="SC%SN%SceneMove" ParameterType="%AID%_PT-AIRSceneMove" Text="Lamellen Bewegung" Value="255" />
+                                <!-- Szene Function Swing -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+6%" Offset="2" BitOffset="0" Name="SC%SN%SceneSwing" ParameterType="%AID%_PT-AIRSceneSwing" Text="Lamellen Bewegung" Value="255" />
 
                                 <!-- Szene Function Veritcal Position -->
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+7%" Offset="2" BitOffset="0" Name="SC%SN%ScenePosition" ParameterType="%AID%_PT-AIRScenePosition" Text="Vertikale Lamellenstellung" Value="255" />
@@ -55,7 +55,7 @@
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+4%_R-%TT%00%PPP+4%01" RefId="%AID%_UP-%TT%00%PPP+4%" />
                             <!-- Szene Function Fan -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+5%_R-%TT%00%PPP+5%01" RefId="%AID%_UP-%TT%00%PPP+5%" />
-                            <!-- Szene Function Move -->
+                            <!-- Szene Function Swing -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01" RefId="%AID%_UP-%TT%00%PPP+6%" />
                             <!-- Szene Function Veritcal Position -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01" RefId="%AID%_UP-%TT%00%PPP+7%" />
