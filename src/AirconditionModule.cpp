@@ -290,8 +290,6 @@ void AirconditionModule::processInputKo(GroupObject& ko)
             {
                 bool power = ko.value(DPT_Switch);
                 _airConditionDriver->setPower(power);
-                if (power)
-                    _airConditionDriver->setMode(_lastMode); // Reset mode to last known state
                 break;
             }
             case AIR_KoOperationMode:
@@ -317,7 +315,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     case 6: // Off
                         logInfoP("Set mode to Off");
                         _airConditionDriver->setPower(false);
-                        break;
+                         break;
                     case 9: // Fan
                         logInfoP("Set mode to Fan");
                         _lastMode = AirConditionMode::AirConditionModeFan;
@@ -407,8 +405,8 @@ void AirconditionModule::processInputKo(GroupObject& ko)
             break;
             case AIR_KoFanSpeedUpDown:
             {
-                uint8_t currentFanSpeedPercentage = KoAIR_FanSpeedState.value(DPT_Scaling);
-                unsigned int currentFanSpeed = _airConditionDriver->getMaximumFanSpeed() * currentFanSpeedPercentage / 100;
+                float currentFanSpeedPercentage = KoAIR_FanSpeedState.value(DPT_Scaling);
+                unsigned int currentFanSpeed = round((float) _airConditionDriver->getMaximumFanSpeed() * currentFanSpeedPercentage / 100.f);
                 if (ko.value(DPT_Switch))
                 {
                     // Increase fan speed
@@ -443,8 +441,8 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 break;
             case AIR_KoLouverVerticalPosition:
             {
-                auto verticalPositionPercent = (uint8_t) ko.value(DPT_Scaling);
-                unsigned int verticalPosition = _airConditionDriver->getMaximumVertiacalFixPosition() * verticalPositionPercent / 100;
+                float verticalPositionPercent = ko.value(DPT_Scaling);
+                unsigned int verticalPosition = round((float) _airConditionDriver->getMaximumVertiacalFixPosition() * verticalPositionPercent / 100.f);
                 if (verticalPosition > _airConditionDriver->getMaximumVertiacalFixPosition())
                 {
                     logErrorP("Vertical position %u is out of range (0 - %u)", verticalPosition, _airConditionDriver->getMaximumVertiacalFixPosition());
@@ -535,19 +533,16 @@ void AirconditionModule::processInputKo(GroupObject& ko)
 void AirconditionModule::powerChanged(bool power)
 {
     logInfoP("AirCondition report power changed to %s", power ? "on" : "off");
+    _lastPower = power;
     KoAIR_PowerState.valueCompare(power, DPT_Switch);
-    if (!power)
+    if (power)
     {
-        KoAIR_OperationModeState.valueCompare((uint8_t)6, DPT_Value_1_Ucount /*DPT_HVACContrMode currently not supported*/);
-        KoAIR_OperationModeAutomaticState.valueCompare(false, DPT_Switch);
-        KoAIR_OperationModeCoolingState.valueCompare(false, DPT_Switch);
-        KoAIR_OperationModeHeatingState.valueCompare(false, DPT_Switch);
-        KoAIR_OperationModeVentilationState.valueCompare(false, DPT_Switch);
-        KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
+        modeChanged(_lastMode); // Reset mode to last known state
     }
     else
     {
-        KoAIR_OperationModeAutomaticState.valueCompare(true, DPT_Switch);
+        KoAIR_OperationModeState.valueCompare((uint8_t)6 /* OFF */, DPT_Value_1_Ucount /*DPT_HVACContrMode currently not supported*/);
+        KoAIR_OperationModeAutomaticState.valueCompare(false, DPT_Switch);
         KoAIR_OperationModeCoolingState.valueCompare(false, DPT_Switch);
         KoAIR_OperationModeHeatingState.valueCompare(false, DPT_Switch);
         KoAIR_OperationModeVentilationState.valueCompare(false, DPT_Switch);
@@ -568,6 +563,11 @@ void AirconditionModule::fanSpeedChanged(int fanSpeed)
 void AirconditionModule::modeChanged(AirConditionMode mode)
 {
     _lastMode = mode;
+    if (_lastPower == false)
+    {
+        logInfoP("AirCondition is off, not changing mode for KO's");
+        return;
+    }
     uint8_t hvacMode = 0;
     switch (mode)
     {
@@ -626,25 +626,28 @@ void AirconditionModule::modeChanged(AirConditionMode mode)
 void AirconditionModule::swingHorizontalChanged(bool swing)
 {
     logInfoP("AirCondition report horizontal swing changed to %s", swing ? "on" : "off");
-    KoAIR_LouverHorizontalSwingState.valueNoSend(swing, DPT_Switch);
+    KoAIR_LouverHorizontalSwingState.valueCompare(swing, DPT_Switch);
 }
 
 void AirconditionModule::swingVerticalChanged(bool swing)
 {
     logInfoP("AirCondition report vertical swing changed to %s", swing ? "on" : "off");
-    KoAIR_LouverVerticalSwingState.valueNoSend(swing, DPT_Switch);
+    KoAIR_LouverVerticalSwingState.valueCompare(swing, DPT_Switch);
 }
 
 void AirconditionModule::swingHorizontalFixPositionChanged(int position)
 {
-    logInfoP("AirCondition report horizontal fix position changed to %d", position);
-    // To Do: Implementation for horizontal fix position KO
+    unsigned int maxHorizontalPositionPercentage = position * 100 / _airConditionDriver->getMaximumHorizontalFixPosition();
+    logInfoP("AirCondition report horizontal fix position changed to %u (%u%%)", position, maxHorizontalPositionPercentage);
+    // To Do: Horizontal position KO
+    //KoAIR_LouverHorizontalPositionState.valueCompare((uint8_t)position, DPT_Scaling);
 }
 
 void AirconditionModule::swingVerticalFixPositionChanged(int position)
 {
-    logInfoP("AirCondition report vertical fix position changed to %d", position);
-    // To Do: Implementation for vertical fix position KO
+    unsigned int maxVertialPositionPercentage = position * 100 / _airConditionDriver->getMaximumVertiacalFixPosition();
+    logInfoP("AirCondition report vertical fix position changed to %u (%u%%)", position, maxVertialPositionPercentage);
+    KoAIR_LouverVerticalPositionState.valueCompare((uint8_t)position, DPT_Scaling);
 }
 
 void AirconditionModule::roomTemperatureChanged(float temperature)
@@ -655,6 +658,11 @@ void AirconditionModule::roomTemperatureChanged(float temperature)
 
 void AirconditionModule::outsideTemperaturChanged(float temperature)
 {
+    if (temperature >= 100.f || temperature <= -100.f)
+    {
+        logInfoP("Outside temperature %f is out of range (-100 - 100)", temperature);
+        return;
+    }
     logInfoP("AirCondition report outside temperature changed to %.1f °C", temperature);
     KoAIR_OutsideTemperatureState.valueCompare(temperature, DPT_Value_Temp);
 }

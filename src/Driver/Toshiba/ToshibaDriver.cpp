@@ -174,7 +174,15 @@ bool ToshibaDriver::validateMessage()
     }
 
     // valid message
-    logDebugP("Received: DATA=[%s]", toHexString(data, length).c_str());
+#ifdef DEVELOPMENT
+    logDebugP("Received:");
+    auto hexString = toHexString(data, length);
+    if (hexString.length() > OPENKNX_MAX_LOG_MESSAGE_LENGTH - 20)
+    {
+        hexString = hexString.substr(0, OPENKNX_MAX_LOG_MESSAGE_LENGTH - 20) + "...";
+    }
+    logDebugP(hexString.c_str());
+#endif
     parseResponse(_receivedMessage);
 
     // return false to reset rx buffer
@@ -238,22 +246,32 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             switch (value)
             {
                 case ToshibaFan::ToshibaFanAuto:
+                    logDebugP("Received fan speed: Auto");
                     statusFeedback.fanSpeedChanged(0);
                     break;
                 case ToshibaFan::ToshibaFanQuit:
+                    logDebugP("Received fan speed: Quit");
                     statusFeedback.fanSpeedChanged(1);
                     break;
                 case ToshibaFan::ToshibaFanMode2:
-                    // To Do Toshiba: Implement fan mode 2
-                    break;
-                case ToshibaFan::ToshibaFanLow:
+                    logDebugP("Received fan speed: Mode 2");
                     statusFeedback.fanSpeedChanged(2);
                     break;
-                case ToshibaFan::ToshibaFanMode4:
+                case ToshibaFan::ToshibaFanLow:
+                    logDebugP("Received fan speed: Low");
                     statusFeedback.fanSpeedChanged(3);
                     break;
-                case ToshibaFan::ToshibaFanHigh:
+                case ToshibaFan::ToshibaFanMedium:
+                    logDebugP("Received fan speed: Medium");
+                    statusFeedback.fanSpeedChanged(4);
+                    break;
+                case ToshibaFan::ToshibaFanMode4:
+                    logDebugP("Received fan speed: Mode 4");
                     statusFeedback.fanSpeedChanged(5);
+                    break;
+                case ToshibaFan::ToshibaFanHigh:
+                    logDebugP("Received fan speed: High");
+                    statusFeedback.fanSpeedChanged(6);
                     break;
                 default:
                     logDebugP("Unknown fan speed: %d", value);
@@ -266,46 +284,55 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             switch (_swingMode)
             {
                 case ToshibaSwingMode::ToshibaSwingModeOff:
+                    logDebugP("Received swing mode: Off");
                     statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeBoth:
+                    logDebugP("Received swing mode: Both");
                     statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(true);
                     statusFeedback.swingVerticalChanged(true);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeVertical:
+                    logDebugP("Received swing mode: Vertical");
                     statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(true);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeHorizontal:
+                    logDebugP("Received swing mode: Horizontal");
                     statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(true);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition1:
+                    logDebugP("Received swing mode: Fix Position 1");
                     statusFeedback.swingVerticalFixPositionChanged(1);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition2:
+                    logDebugP("Received swing mode: Fix Position 2");
                     statusFeedback.swingVerticalFixPositionChanged(2);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition3:
+                    logDebugP("Received swing mode: Fix Position 3");
                     statusFeedback.swingVerticalFixPositionChanged(3);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition4:
+                    logDebugP("Received swing mode: Fix Position 4");
                     statusFeedback.swingVerticalFixPositionChanged(4);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition5:
+                    logDebugP("Received swing mode: Fix Position 5");
                     statusFeedback.swingVerticalFixPositionChanged(5);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
@@ -555,7 +582,7 @@ float ToshibaDriver::getMaximumTargetTemperature()
 
 unsigned int ToshibaDriver::getMaximumFanSpeed()
 {
-    return 5;
+    return 6;
 }
 unsigned int ToshibaDriver::getMaximumHorizontalFixPosition()
 {
@@ -641,13 +668,16 @@ void ToshibaDriver::setFanSpeed(unsigned int speed)
         case 2: // low
             sendCommand(ToshibaCommandType::ToshibaCommandTypeFan, static_cast<uint8_t>(ToshibaFan::ToshibaFanLow));
             break;
-        case 3: // medium
+        case 3: // mode 2
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeFan, static_cast<uint8_t>(ToshibaFan::ToshibaFanMode2));
+            break;
+        case 4: // medium
             sendCommand(ToshibaCommandType::ToshibaCommandTypeFan, static_cast<uint8_t>(ToshibaFan::ToshibaFanMedium));
             break;
-        case 4: // ToDo Toshiba: MODE 4?
+        case 5: // mode 4
             sendCommand(ToshibaCommandType::ToshibaCommandTypeFan, static_cast<uint8_t>(ToshibaFan::ToshibaFanMode4));
             break;
-        case 5: // high
+        case 6: // high
             sendCommand(ToshibaCommandType::ToshibaCommandTypeFan, static_cast<uint8_t>(ToshibaFan::ToshibaFanHigh));
             break;
         default:

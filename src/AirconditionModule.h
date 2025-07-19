@@ -6,6 +6,7 @@ class SceneHandler;
 class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedback
 {
     AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
+    bool _lastPower = false;
     AirConditionDriver* _airConditionDriver = nullptr;
     SceneHandler* _sceneHandler = nullptr;
     AirConditionDriverState _driverState = AirConditionDriverState::AirConditionDriverStateNotStarted;

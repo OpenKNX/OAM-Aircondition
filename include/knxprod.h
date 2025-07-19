@@ -10,7 +10,7 @@
                                              
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 43
-#define MAIN_ApplicationVersion 6
+#define MAIN_ApplicationVersion 7
 #define MAIN_ParameterSize 6071
 #define MAIN_MaxKoNumber 399
 #define MAIN_OrderNumber "MGKnxAIR"
@@ -539,25 +539,24 @@
 #define AIR_KoOperationModeDehumidificationState 413
 #define AIR_KoFanSpeed 414
 #define AIR_KoFanSpeedState 415
-#define AIR_KoFanOnOffState 416
-#define AIR_KoFanSpeedUpDown 417
-#define AIR_KoLouverVerticalSwing 418
-#define AIR_KoLouverVerticalSwingState 419
-#define AIR_KoLouverVerticalUpDown 420
-#define AIR_KoLouverVerticalPosition 421
-#define AIR_KoLouverVerticalPositionState 422
-#define AIR_KoLouverHorizontalSwing 423
-#define AIR_KoLouverHorizontalSwingState 424
-#define AIR_KoLouverHorizontalUpDown 425
-#define AIR_KoLockRelease 426
-#define AIR_KoLockReleaseState 427
-#define AIR_KoSetTemperature 428
-#define AIR_KoSetTemperatureState 429
-#define AIR_KoSetTemperatureUpDown 430
-#define AIR_KoRoomTemperatureState 431
-#define AIR_KoOutsideTemperatureState 432
-#define AIR_KoRoomTemperatureInput 433
-#define AIR_KoScene 434
+#define AIR_KoFanSpeedUpDown 416
+#define AIR_KoLouverVerticalSwing 417
+#define AIR_KoLouverVerticalSwingState 418
+#define AIR_KoLouverVerticalUpDown 419
+#define AIR_KoLouverVerticalPosition 420
+#define AIR_KoLouverVerticalPositionState 421
+#define AIR_KoLouverHorizontalSwing 422
+#define AIR_KoLouverHorizontalSwingState 423
+#define AIR_KoLouverHorizontalUpDown 424
+#define AIR_KoLockRelease 425
+#define AIR_KoLockReleaseState 426
+#define AIR_KoSetTemperature 427
+#define AIR_KoSetTemperatureState 428
+#define AIR_KoSetTemperatureUpDown 429
+#define AIR_KoRoomTemperatureState 430
+#define AIR_KoOutsideTemperatureState 431
+#define AIR_KoRoomTemperatureInput 432
+#define AIR_KoScene 433
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -591,8 +590,6 @@
 #define KoAIR_FanSpeed                            (knx.getGroupObject(AIR_KoFanSpeed))
 // Lüftergeschwindigkeit Status
 #define KoAIR_FanSpeedState                       (knx.getGroupObject(AIR_KoFanSpeedState))
-// Lüfter ein/aus Status
-#define KoAIR_FanOnOffState                       (knx.getGroupObject(AIR_KoFanOnOffState))
 // Lüfter schneller/langsamer
 #define KoAIR_FanSpeedUpDown                      (knx.getGroupObject(AIR_KoFanSpeedUpDown))
 // Lamelle Vertikal Bewegen
