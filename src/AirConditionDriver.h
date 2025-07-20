@@ -77,4 +77,5 @@ public:
     virtual void setSwingHorizontalFixPosition(unsigned int position) = 0;
     virtual void setSwingVerticalFixPosition(unsigned int position) = 0;
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) = 0;
+    virtual void setWifiLed(bool on) = 0;
 };

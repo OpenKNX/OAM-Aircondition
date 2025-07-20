@@ -4,6 +4,7 @@
 #include "Driver/Toshiba/ToshibaDriver.h"
 #include "OpenKNX.h"
 #include "SceneHandler.h"
+#include "NetworkModule.h"
 
 AirconditionModule openknxAircondition;
 
@@ -60,6 +61,14 @@ void AirconditionModule::setup()
         driverStateChanged(AirConditionDriverState::AirConditionDriverStateStarting);
         _airConditionDriver->startCommunication(false);
         logInfoP("Communication started");
+
+        // <Enumeration Text="WLAN Status" Value="0" Id="%ENID%" />
+        // <Enumeration Text="Aus" Value="1" Id="%ENID%" />
+        // <Enumeration Text="Ein" Value="2" Id="%ENID%" />
+        // <Enumeration Text="Schaltbar über Gruppenobjekt" Value="3" Id="%ENID%" />
+        if  (ParamAIR_WifiLED == 3 && !KoAIR_WifiLED.initialized())
+            KoAIR_WifiLED.requestObjectRead();
+  
     }
     else
     {
@@ -137,6 +146,10 @@ void AirconditionModule::loop()
     if (_airConditionDriver != nullptr)
     {
         _airConditionDriver->loop();
+        if (_lastWifiLedDebounceRunning !=0 && millis() - _lastWifiLedDebounceRunning > 1000)
+        {
+            _lastWifiLedDebounceRunning = 0;
+        }
         if (_errorSince > 0 && millis() - _errorSince > 60000) // If error is set for more than 60 seconds, try to restart
         {
             logInfoP("AirCondition Error still active since %lu seconds. Restart communication", (millis() - _errorSince) / 1000);
@@ -144,12 +157,50 @@ void AirconditionModule::loop()
             _airConditionDriver->startCommunication(true);
             logInfoP("Communication restarted");
         }
-        else if (_driverState == AirConditionDriverState::AirConditionDriverStateOk && _initialDataNeeded)
+        else if (_driverState == AirConditionDriverState::AirConditionDriverStateOk)
         {
-            // If driver is ok and initial data is needed, request all data again
-            logInfoP("Request all data after driver started");
-             _initialDataNeeded = false; // Reset initial data needed flag
-            _airConditionDriver->requestAllData();
+            bool on = false;
+            bool needDebounce = false;
+
+            // <Enumeration Text="WLAN Status" Value="0" Id="%ENID%" />
+            // <Enumeration Text="Aus" Value="1" Id="%ENID%" />
+            // <Enumeration Text="Ein" Value="2" Id="%ENID%" />
+            // <Enumeration Text="Schaltbar über Gruppenobjekt" Value="3" Id="%ENID%" />
+            switch (ParamAIR_WifiLED)
+            {
+                case 0: // WLAN Status
+                    on = openknxNetwork.connected();
+                    needDebounce = true;
+                    break;
+                case 1: // Always off
+                    on = false;
+                    break;
+                case 2: // Always on
+                    on = true;
+                    break;
+                case 3: // Switchable via Group Object
+                    on = KoAIR_WifiLED.value(DPT_Switch);
+
+                    break;
+            }            
+            if (_forceWifiLedState || (on != _lastWifiLedState && _lastWifiLedDebounceRunning == 0))
+            {
+                _forceWifiLedState = false;
+                _lastWifiLedState = on;
+                if (needDebounce)
+                    _lastWifiLedDebounceRunning = max(1UL, millis());
+                logInfoP("Wifi LED state changed to %s", on ? "ON" : "OFF");
+                _airConditionDriver->setWifiLed(on);
+            }
+
+            
+            if (_initialDataNeeded)
+            {
+                // If driver is ok and initial data is needed, request all data again
+                logInfoP("Request all data after driver started");
+                _initialDataNeeded = false; // Reset initial data needed flag
+                _airConditionDriver->requestAllData();
+            }
         }
     }
 }
@@ -637,17 +688,17 @@ void AirconditionModule::swingVerticalChanged(bool swing)
 
 void AirconditionModule::swingHorizontalFixPositionChanged(int position)
 {
-    unsigned int maxHorizontalPositionPercentage = position * 100 / _airConditionDriver->getMaximumHorizontalFixPosition();
-    logInfoP("AirCondition report horizontal fix position changed to %u (%u%%)", position, maxHorizontalPositionPercentage);
+    unsigned int currentHorizontalPositionPercent = position * 100 / _airConditionDriver->getMaximumHorizontalFixPosition();
+    logInfoP("AirCondition report horizontal fix position changed to %u (%u%%)", position, currentHorizontalPositionPercent);
     // To Do: Horizontal position KO
-    //KoAIR_LouverHorizontalPositionState.valueCompare((uint8_t)position, DPT_Scaling);
+    //KoAIR_LouverHorizontalPositionState.valueCompare((uint8_t)currentHorizontalPositionPercent, DPT_Scaling);
 }
 
 void AirconditionModule::swingVerticalFixPositionChanged(int position)
 {
-    unsigned int maxVertialPositionPercentage = position * 100 / _airConditionDriver->getMaximumVertiacalFixPosition();
-    logInfoP("AirCondition report vertical fix position changed to %u (%u%%)", position, maxVertialPositionPercentage);
-    KoAIR_LouverVerticalPositionState.valueCompare((uint8_t)position, DPT_Scaling);
+    unsigned int currentVertialPositionPercent = position * 100 / _airConditionDriver->getMaximumVertiacalFixPosition();
+    logInfoP("AirCondition report vertical fix position changed to %u (%u%%)", position, currentVertialPositionPercent);
+    KoAIR_LouverVerticalPositionState.valueCompare((uint8_t)currentVertialPositionPercent, DPT_Scaling);
 }
 
 void AirconditionModule::roomTemperatureChanged(float temperature)
@@ -692,12 +743,14 @@ void AirconditionModule::driverStateChanged(AirConditionDriverState state, std::
                  logInfoP("AirCondition Driver state: %s", AirConditionDriver::getDriverStateString(state));
                 _errorSince = max(1UL, millis()); // Set error timestamp for handling restart
                 _errorMessage = "";
+                _lastWifiLedDebounceRunning  = 0;
                 _initialDataNeeded = true; 
                 break;
             case AirConditionDriverState::AirConditionDriverStateOk:
                  logInfoP("AirCondition Driver state: %s", AirConditionDriver::getDriverStateString(state));
                 _errorSince = 0; // Reset error timestamp
                 _errorMessage = "";
+                _forceWifiLedState = true;
                 break;
             case AirConditionDriverState::AirConditionDriverStateError:
                 if (error == "")

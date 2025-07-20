@@ -101,3 +101,8 @@ void MitsubishiDriver::setExternalSensorRoomTemperature(float temperaturCelius)
 {
     // To Do (Mitsubishi): Implementation for external sensor room temperature control
 }
+
+void MitsubishiDriver::setWifiLed(bool on)
+{
+    // To Do (Mitsubishi): Implementation for WiFi LED control
+}

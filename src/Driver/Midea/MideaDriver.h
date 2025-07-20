@@ -28,4 +28,5 @@ class MideaDriver : public AirConditionDriver
         virtual void setSwingHorizontalFixPosition(unsigned int position) override;
         virtual void setSwingVerticalFixPosition(unsigned int position) override;
         virtual void setExternalSensorRoomTemperature(float temperaturCelius) override;
+        virtual void setWifiLed(bool on) override;
 };

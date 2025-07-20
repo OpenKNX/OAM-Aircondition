@@ -10,7 +10,7 @@
                                              
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 43
-#define MAIN_ApplicationVersion 7
+#define MAIN_ApplicationVersion 8
 #define MAIN_ParameterSize 6071
 #define MAIN_MaxKoNumber 399
 #define MAIN_OrderNumber "MGKnxAIR"
@@ -218,13 +218,16 @@
 #define AIR_ReleaseBehaviorOff                  222      // 2 Bits, Bit 3-2
 #define     AIR_ReleaseBehaviorOffMask 0x0C
 #define     AIR_ReleaseBehaviorOffShift 2
-#define AIR_LockBehaviorOn                      222      // 2 Bits, Bit 5-4
-#define     AIR_LockBehaviorOnMask 0x30
-#define     AIR_LockBehaviorOnShift 4
-#define AIR_LockBehaviorOff                     222      // 2 Bits, Bit 4-3
-#define     AIR_LockBehaviorOffMask 0x18
-#define     AIR_LockBehaviorOffShift 3
-#define AIR_Mit_MinTemp                         223      // 8 Bits, Bit 7-0
+#define AIR_LockBehaviorOn                      222      // 2 Bits, Bit 1-0
+#define     AIR_LockBehaviorOnMask 0x03
+#define     AIR_LockBehaviorOnShift 0
+#define AIR_LockBehaviorOff                     223      // 2 Bits, Bit 7-6
+#define     AIR_LockBehaviorOffMask 0xC0
+#define     AIR_LockBehaviorOffShift 6
+#define AIR_WifiLED                             223      // 2 Bits, Bit 5-4
+#define     AIR_WifiLEDMask 0x30
+#define     AIR_WifiLEDShift 4
+#define AIR_Mit_MinTemp                         224      // 8 Bits, Bit 7-0
 #define AIR_SCAActive                           241      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
 #define     AIR_SCAActiveShift 7
@@ -357,9 +360,11 @@
 // Verhalten bei Freigabe Ende
 #define ParamAIR_ReleaseBehaviorOff                  ((knx.paramByte(AIR_ReleaseBehaviorOff) & AIR_ReleaseBehaviorOffMask) >> AIR_ReleaseBehaviorOffShift)
 // Verhalten bei Sperre
-#define ParamAIR_LockBehaviorOn                      ((knx.paramByte(AIR_LockBehaviorOn) & AIR_LockBehaviorOnMask) >> AIR_LockBehaviorOnShift)
+#define ParamAIR_LockBehaviorOn                      (knx.paramByte(AIR_LockBehaviorOn) & AIR_LockBehaviorOnMask)
 // Verhalten bei Sperre Ende
 #define ParamAIR_LockBehaviorOff                     ((knx.paramByte(AIR_LockBehaviorOff) & AIR_LockBehaviorOffMask) >> AIR_LockBehaviorOffShift)
+// Wifi LED
+#define ParamAIR_WifiLED                             ((knx.paramByte(AIR_WifiLED) & AIR_WifiLEDMask) >> AIR_WifiLEDShift)
 // Minimale Soll-Temperatur
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
 // Szene A
@@ -557,6 +562,7 @@
 #define AIR_KoOutsideTemperatureState 431
 #define AIR_KoRoomTemperatureInput 432
 #define AIR_KoScene 433
+#define AIR_KoWifiLED 434
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -626,6 +632,8 @@
 #define KoAIR_RoomTemperatureInput                (knx.getGroupObject(AIR_KoRoomTemperatureInput))
 // Szene
 #define KoAIR_Scene                               (knx.getGroupObject(AIR_KoScene))
+// Wifi LED Schalten
+#define KoAIR_WifiLED                             (knx.getGroupObject(AIR_KoWifiLED))
 
 #define LOG_BuzzerInstalled                     291      // 1 Bit, Bit 7
 #define     LOG_BuzzerInstalledMask 0x80

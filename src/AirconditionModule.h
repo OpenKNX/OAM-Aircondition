@@ -7,6 +7,10 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
 {
     AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
     bool _lastPower = false;
+    bool _lastWifiLedState = true;
+    bool _forceWifiLedState = false;
+    unsigned long _lastWifiLedDebounceRunning = 0;
+
     AirConditionDriver* _airConditionDriver = nullptr;
     SceneHandler* _sceneHandler = nullptr;
     AirConditionDriverState _driverState = AirConditionDriverState::AirConditionDriverStateNotStarted;

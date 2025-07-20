@@ -64,8 +64,6 @@ void ToshibaDriver::startCommunication(bool restart)
 
     requestData(ToshibaCommandType::ToshibaCommandTypePowerState);
 
-    _lastNewtorkLedStateUpdate = 0;
-
 }
 
 ToshibaCommand ToshibaDriver::createRequestCommand(ToshibaCommandType cmd)
@@ -545,14 +543,7 @@ void ToshibaDriver::loop()
     
     if (statusFeedback.getDriverState() == AirConditionDriverState::AirConditionDriverStateOk)
     {
-        bool wifiConnected = openknxNetwork.connected();
-        if (wifiConnected != _networkLedState && (_lastNewtorkLedStateUpdate == 0 || millis() - _lastNewtorkLedStateUpdate > 1000))
-        {
-            _networkLedState = wifiConnected;
-            _lastNewtorkLedStateUpdate = max(1UL, millis());
-            sendCommand(ToshibaCommandType::ToshibaCommandTypeWifiLED, _networkLedState ? (uint8_t) ToshibaLedState::On : (uint8_t) ToshibaLedState::Off);
-
-        }
+    
         if (millis() - _lastTemperatureRequest > 60000)
         {
             _lastTemperatureRequest = millis();
@@ -807,6 +798,12 @@ void ToshibaDriver::setSwingVerticalFixPosition(unsigned int position)
     statusFeedback.swingVerticalFixPositionChanged(position);
 }
 
+void ToshibaDriver::setWifiLed(bool on)
+{
+    sendCommand(ToshibaCommandType::ToshibaCommandTypeWifiLED, on ? (uint8_t) ToshibaLedState::On : (uint8_t) ToshibaLedState::Off);
+}
+
 void ToshibaDriver::setExternalSensorRoomTemperature(float temperaturCelius)
 {
 }
+

@@ -97,8 +97,6 @@ struct ToshibaCommand
 class ToshibaDriver : public AirConditionDriver
 {
   private:
-    bool _networkLedState = true;
-    unsigned long _lastNewtorkLedStateUpdate = 0;
     static const std::vector<uint8_t> PayloadHandshake[6];
     static const std::vector<uint8_t> PayloadPostHandshake[2];
     static const uint8_t EightDegreeSpecialModeTempOffset;
@@ -149,4 +147,5 @@ class ToshibaDriver : public AirConditionDriver
     virtual void setSwingHorizontalFixPosition(unsigned int position) override;
     virtual void setSwingVerticalFixPosition(unsigned int position) override;
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) override;
+    virtual void setWifiLed(bool on) override;
 };

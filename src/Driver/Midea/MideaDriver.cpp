@@ -111,3 +111,7 @@ void MideaDriver::setExternalSensorRoomTemperature(float temperaturCelius)
     // To Do: Implementation for external sensor room temperature control
     statusFeedback.roomTemperatureChanged(temperaturCelius);
 }
+
+void MideaDriver::setWifiLed(bool on)
+{
+}

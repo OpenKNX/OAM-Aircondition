@@ -60,6 +60,16 @@ Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Ne
   Die Einstellung werden wieder hergestellt und das Klimagerät entsprechend konfiguriert.  
 
 <!-- DOC -->
+### Wifi LED
+
+Über diese Option wird das Verhalten der Wifi LED am Klimagerät vorgegeben
+
+- WLAN Status
+- Immer Aus
+- Immer Ein
+- Schaltbar über Gruppenobjekt
+
+<!-- DOC -->
 ### Freigabe- / Sperrobjekt
 
 Über diesen Konfigurationswert kann ein Sperrobjekt bzw. Freigabeobjekt angezeigt werden.

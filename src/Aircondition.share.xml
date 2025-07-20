@@ -68,6 +68,15 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRWifiLED" Name="AIRWifiLED">
+                <TypeRestriction Base="Value" SizeInBit="2">
+                  <Enumeration Text="WLAN Status" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Immer Aus" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Immer Ein" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Schaltbar über Gruppenobjekt" Value="3" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
               <!-- *** Scene *** -->
 
               <ParameterType Id="%AID%_PT-AIRSceneNumber" Name="SceneNumber">
@@ -158,13 +167,13 @@
             </ParameterTypes>
             <Parameters>
               <!-- Base Settings -->
-              <Union SizeInBit="16">
+              <Union SizeInBit="24">
                 <Memory CodeSegment="%MID%" Offset="0" BitOffset="0" />
                 <!-- Device Type -->
                 <Parameter Id="%AID%_UP-%TT%00000" Offset="0" BitOffset="0" Name="DeviceType" ParameterType="%AID%_PT-AIRDeviceType" Text="Hersteller" Value="0" />
                 <!-- Start Behavior -->
                 <Parameter Id="%AID%_UP-%TT%00001" Offset="0" BitOffset="4" Name="StartBehavior" ParameterType="%AID%_PT-AIRStartBehavior" Text="Nach Busspannungsausfall / Neustart" Value="0" />
-                <!-- 2 Bits free -->
+                <!-- 2 bits free-->
 
                 <!-- Lock Release Ko -->
                 <Parameter Id="%AID%_UP-%TT%00002" Offset="1" BitOffset="0" Name="LockReleaseKo" ParameterType="%AID%_PT-AIRLockReleaseKo" Text="Freigabe- / Sperrobjekt" Value="0" />
@@ -173,15 +182,17 @@
                 <!-- Release Behavior Off -->
                 <Parameter Id="%AID%_UP-%TT%00004" Offset="1" BitOffset="4" Name="ReleaseBehaviorOff" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Freigabe Ende" Value="0" />
                 <!-- Lock Behavior On -->
-                <Parameter Id="%AID%_UP-%TT%00005" Offset="1" BitOffset="2" Name="LockBehaviorOn" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Sperre" Value="0" />
+                <Parameter Id="%AID%_UP-%TT%00005" Offset="1" BitOffset="6" Name="LockBehaviorOn" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Sperre" Value="0" />
                 <!-- Lock Behavior Off -->
-                <Parameter Id="%AID%_UP-%TT%00006" Offset="1" BitOffset="3" Name="LockBehaviorOff" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Sperre Ende" Value="0" />
-                <!-- 2 Bits free -->
+                <Parameter Id="%AID%_UP-%TT%00006" Offset="2" BitOffset="0" Name="LockBehaviorOff" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Sperre Ende" Value="0" />
+                <!--Wifi LED -->
+                <Parameter Id="%AID%_UP-%TT%00007" Offset="2" BitOffset="2" Name="WifiLED" ParameterType="%AID%_PT-AIRWifiLED" Text="Wifi LED" Value="0" />
+                <!-- 4 bits free-->
               </Union>
 
               <!-- *** Mitsubishi *** -->
               <Union SizeInBit="8">
-                <Memory CodeSegment="%MID%" Offset="2" BitOffset="0" />
+                <Memory CodeSegment="%MID%" Offset="3" BitOffset="0" />
                 <!-- Minimum Temperature -->
                 <Parameter Id="%AID%_UP-%TT%00200" Offset="0" BitOffset="0" Name="Mit_MinTemp" ParameterType="%AID%_PT-AIRMitsubishiMinimumTemperature" Text="Minimale Soll-Temperatur" Value="19" />
               </Union>
@@ -205,6 +216,8 @@
               <ParameterRef Id="%AID%_UP-%TT%00005_R-%TT%0000501" RefId="%AID%_UP-%TT%00005" />
               <!-- Lock Behavior Off -->
               <ParameterRef Id="%AID%_UP-%TT%00006_R-%TT%0000601" RefId="%AID%_UP-%TT%00006" />
+              <!-- Wifi LED -->
+              <ParameterRef Id="%AID%_UP-%TT%00007_R-%TT%0000701" RefId="%AID%_UP-%TT%00007" />
 
               <!-- *** Mitsubishi *** -->
 
@@ -285,7 +298,9 @@
               <ComObject Id="%AID%_O-%TT%00033" Number="32" Name="RoomTemperatureInput" Text="Eingang Raumtemperatur" FunctionText="Eingang Raumtemperatur" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Szene -->
               <ComObject Id="%AID%_O-%TT%00034" Number="33" Name="Scene" Text="Szene" FunctionText="Szene" ObjectSize="1 Byte" DatapointType="DPST-17-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-
+              <!-- Wifi LED -->
+              <ComObject Id="%AID%_O-%TT%00035" Number="34" Name="WifiLED" Text="Wifi LED Schalten" FunctionText="Wifi LED Schalten" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+      
             </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -358,6 +373,8 @@
               <ComObjectRef Id="%AID%_O-%TT%00033_R-%TT%0003301" RefId="%AID%_O-%TT%00033" />
               <!-- Szene -->
               <ComObjectRef Id="%AID%_O-%TT%00034_R-%TT%0003401" RefId="%AID%_O-%TT%00034" />
+              <!-- Wifi LED -->
+              <ComObjectRef Id="%AID%_O-%TT%00035_R-%TT%0003501" RefId="%AID%_O-%TT%00035" />
 
             </ComObjectRefs>
           </Static>
@@ -419,6 +436,10 @@
                       </when>
 
                     </choose>
+                    <!-- Wifi LED -->
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00007_R-%TT%0000701" IndentLevel="1" HelpContext="%DOC%" />
+                   
+
 
                     <!-- Power -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00000_R-%TT%0000001" />
@@ -525,6 +546,15 @@
                       </when>
                     </choose>
 
+                    <!-- Wifi LED -->
+                    <choose ParamRefId="%AID%_UP-%TT%00007_R-%TT%0000701">
+                      <when test="3">
+                        <!-- Schaltbar über Gruppenobjekt -->
+                        
+                        <!-- Wifi LED -->
+                        <ComObjectRefRef RefId="%AID%_O-%TT%00035_R-%TT%0003501" />
+                      </when>
+                    </choose>
                   </when>
                 </choose>
 

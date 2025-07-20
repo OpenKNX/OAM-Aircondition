@@ -101,3 +101,8 @@ void DaikinDriver::setExternalSensorRoomTemperature(float temperaturCelius)
 {
     // To Do (Daikin): Implementation for external sensor room temperature control
 }
+
+void DaikinDriver::setWifiLed(bool on)
+{
+    // To Do (Daikin): Implementation for WiFi LED control
+}
