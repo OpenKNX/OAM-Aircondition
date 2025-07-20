@@ -207,8 +207,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             value = rawData[15];
             break;
         default:
-            logDebugP("Received unknown message with length: %d and value %s", length,
-                      toHexString(rawData).c_str());
+            logDebugP("Received unknown message with length: %d", length);
             return;
     }
     if (!_commandQueue.empty())
@@ -679,6 +678,8 @@ void ToshibaDriver::setFanSpeed(unsigned int speed)
 void ToshibaDriver::setSwingHorizontal(bool swing)
 {
     ToshibaSwingMode newSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
+     logDebugP("Setting horizontal swing %s", swing ? "on" : "off");
+    logDebugP("Current swing mode: %d", (int)_swingMode);
     if (swing)
     {
         switch (_swingMode)
@@ -695,7 +696,10 @@ void ToshibaDriver::setSwingHorizontal(bool swing)
             case ToshibaSwingMode::ToshibaSwingModeHorizontal:
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeHorizontal;
                 break;
-                
+            default: // Fix vertical position modes
+                newSwingMode = ToshibaSwingMode::ToshibaSwingModeHorizontal;
+                break;
+
         }
         
     }
@@ -715,9 +719,13 @@ void ToshibaDriver::setSwingHorizontal(bool swing)
             case ToshibaSwingMode::ToshibaSwingModeHorizontal:
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
                 break;
+            default: // Fix vertical position modes
+                newSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
+                break;
         }
     }
     logDebugP("Setting horizontal swing to %d", (int)newSwingMode);
+    _swingMode = newSwingMode;
     sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t) newSwingMode);
     
 }
@@ -725,6 +733,8 @@ void ToshibaDriver::setSwingHorizontal(bool swing)
 void ToshibaDriver::setSwingVertical(bool swing)
 {
     ToshibaSwingMode newSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
+    logDebugP("Setting vertical swing %s", swing ? "on" : "off");
+    logDebugP("Current swing mode: %d", (int)_swingMode);
     if (swing)
     {
         switch (_swingMode)
@@ -740,6 +750,9 @@ void ToshibaDriver::setSwingVertical(bool swing)
                 break;
             case ToshibaSwingMode::ToshibaSwingModeHorizontal:
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeBoth;
+                break;
+            default: //  Fix vertical position modes
+                newSwingMode = ToshibaSwingMode::ToshibaSwingModeVertical;
                 break;
         }
     }
@@ -759,9 +772,12 @@ void ToshibaDriver::setSwingVertical(bool swing)
             case ToshibaSwingMode::ToshibaSwingModeHorizontal:
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeHorizontal;
                 break;
+            default: // Fix vertical position modes
+                return;
         }
     }
     logDebugP("Setting vertical swing to %d", (int)newSwingMode);
+    _swingMode = newSwingMode;
     sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t) newSwingMode);
 }
 

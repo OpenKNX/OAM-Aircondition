@@ -196,7 +196,8 @@ Steuert die Bewegung der Lamellen.
 <!-- DOC -->
 #### Vertikale Lamellenstellung
 
-Gibt die Position der Lamellen an.
+Diese Einstellung ist nur verfügbar, wenn bei Lamellen Bewegung "Keine Änderung" oder "Aus" gewählt wurde.
+Gibt die Position der Lamellen an. 
 
 - Keine Änderung
 - Ganz Oben

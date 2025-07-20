@@ -12,7 +12,7 @@
 
                         <Parameters>
 
-                            <Union SizeInBit="40">
+                            <Union SizeInBit="64">
                                 <Memory CodeSegment="%MID%" Offset="%MO%" BitOffset="0" />
                                 <!-- Szene Active --> 
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+0%" Offset="0" BitOffset="0" Name="SC%SN%Active" ParameterType="%AID%_PT-OnOffYesNo" Text="Szene %SN%" Value="0" />
@@ -24,21 +24,22 @@
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+2%" Offset="2" BitOffset="0" Name="SC%SN%OnOff" ParameterType="%AID%_PT-AIRSceneOnOff" Text="Schalten" Value="255" />
 
                                 <!-- Szene Function Operation Mode -->
-                                <Parameter Id="%AID%_UP-%TT%00%PPP+3%" Offset="2" BitOffset="0" Name="SC%SN%OperationMode" ParameterType="%AID%_PT-AIRSceneOperationMode" Text="Betriebsmodus" Value="255" />
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+3%" Offset="3" BitOffset="0" Name="SC%SN%OperationMode" ParameterType="%AID%_PT-AIRSceneOperationMode" Text="Betriebsmodus" Value="255" />
 
                                 <!-- Szene Function Temperature -->
-                                <Parameter Id="%AID%_UP-%TT%00%PPP+4%" Offset="2" BitOffset="0" Name="SC%SN%SceneTemperature" ParameterType="%AID%_PT-AIRSceneTemperature" Text="Solltemperatur" Value="255"  />
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+4%" Offset="4" BitOffset="0" Name="SC%SN%SceneTemperature" ParameterType="%AID%_PT-AIRSceneTemperature" Text="Solltemperatur" Value="255"  />
 
                                 <!-- Szene Function Fan -->
-                                <Parameter Id="%AID%_UP-%TT%00%PPP+5%" Offset="2" BitOffset="0" Name="SC%SN%SceneFan" ParameterType="%AID%_PT-AIRSceneFan" Text="Lüfter" Value="255" />
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+5%" Offset="5" BitOffset="0" Name="SC%SN%SceneFan" ParameterType="%AID%_PT-AIRSceneFan" Text="Lüfter" Value="255" />
 
                                 <!-- Szene Function Swing -->
-                                <Parameter Id="%AID%_UP-%TT%00%PPP+6%" Offset="2" BitOffset="0" Name="SC%SN%SceneSwing" ParameterType="%AID%_PT-AIRSceneSwing" Text="Lamellen Bewegung" Value="255" />
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+6%" Offset="6" BitOffset="0" Name="SC%SN%SceneSwing" ParameterType="%AID%_PT-AIRSceneSwing" Text="Lamellen Bewegung" Value="255" />
 
                                 <!-- Szene Function Veritcal Position -->
-                                <Parameter Id="%AID%_UP-%TT%00%PPP+7%" Offset="2" BitOffset="0" Name="SC%SN%ScenePosition" ParameterType="%AID%_PT-AIRScenePosition" Text="Vertikale Lamellenstellung" Value="255" />
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+7%" Offset="7" BitOffset="0" Name="SC%SN%ScenePosition" ParameterType="%AID%_PT-AIRScenePosition" Text="Vertikale Lamellenstellung" Value="255" />
 
-                                <!-- 2 Byte reserve / scene type-->
+                                <!-- 4 Bits free + 1 Byte free -->
+
                             </Union>
 
                         </Parameters>
@@ -88,8 +89,15 @@
                                         <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+5%_R-%TT%00%PPP+5%01" IndentLevel="2" HelpContext="%DOC%" />
                                         <!-- Lamellen Bewegung -->
                                         <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01" IndentLevel="2" HelpContext="%DOC%" />
-                                        <!-- Vertikale Lamellenstellung -->
-                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01" IndentLevel="2" HelpContext="%DOC%" />
+                                        <choose ParamRefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01">                              
+                                            <when test="255 0">
+                                                <!-- Bewegung: Keine Änderung, Aus -->
+                       
+                                                <!-- Vertikale Lamellenstellung -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01" IndentLevel="2" HelpContext="%DOC%" />
+                            
+                                            </when>            
+                                        </choose>
                                     </when>
                                 </choose>
 

@@ -23,7 +23,7 @@
             <!-- Parameter Offset -->
             <op:param name="%PPP%" value="500" increment="20" />
             <!-- Memory Offset -->
-            <op:param name="%MO%" value="20" increment="5" digits="1"/>
+            <op:param name="%MO%" value="20" increment="8" digits="1"/>
             <!-- Szene number -->
             <op:param name="%SZ%" value="1" increment="1" digits="1"/>
             <!-- Szene Letter -->

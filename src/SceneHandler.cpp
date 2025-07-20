@@ -72,6 +72,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCAOperationMode; 
             params.temperature = ParamAIR_SCASceneTemperature;
             params.fan = ParamAIR_SCASceneFan;
+            params.swing = ParamAIR_SCASceneSwing;
             params.position = ParamAIR_SCAScenePosition;
             break;
         case 1:
@@ -79,6 +80,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCBOperationMode;
             params.temperature = ParamAIR_SCBSceneTemperature;
             params.fan = ParamAIR_SCBSceneFan;
+            params.swing = ParamAIR_SCBSceneSwing;
             params.position = ParamAIR_SCBScenePosition;
             break;
         case 2:
@@ -86,6 +88,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCCOperationMode;
             params.temperature = ParamAIR_SCCSceneTemperature;
             params.fan = ParamAIR_SCCSceneFan;
+            params.swing = ParamAIR_SCCSceneSwing;
             params.position = ParamAIR_SCCScenePosition;
             break;      
         case 3:
@@ -93,6 +96,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCDOperationMode;
             params.temperature = ParamAIR_SCDSceneTemperature;
             params.fan = ParamAIR_SCDSceneFan;
+            params.swing = ParamAIR_SCDSceneSwing;
             params.position = ParamAIR_SCDScenePosition;
             break;
         case 4:
@@ -100,6 +104,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCEOperationMode;
             params.temperature = ParamAIR_SCESceneTemperature;
             params.fan = ParamAIR_SCESceneFan;
+            params.swing = ParamAIR_SCESceneSwing;
             params.position = ParamAIR_SCEScenePosition;
             break;
         case 5:
@@ -107,6 +112,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCFOperationMode;
             params.temperature = ParamAIR_SCFSceneTemperature;
             params.fan = ParamAIR_SCFSceneFan;
+            params.swing = ParamAIR_SCFSceneSwing;
             params.position = ParamAIR_SCFScenePosition;
             break;
         case 6:
@@ -114,6 +120,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCGOperationMode;
             params.temperature = ParamAIR_SCGSceneTemperature;
             params.fan = ParamAIR_SCGSceneFan;
+            params.swing = ParamAIR_SCGSceneSwing;
             params.position = ParamAIR_SCGScenePosition;
             break;
         case 7:
@@ -121,6 +128,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCHOperationMode;
             params.temperature = ParamAIR_SCHSceneTemperature;
             params.fan = ParamAIR_SCHSceneFan;  
+            params.swing = ParamAIR_SCHSceneSwing;
             params.position = ParamAIR_SCHScenePosition;
             break;
         case 8:
@@ -128,6 +136,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCIOperationMode;
             params.temperature = ParamAIR_SCISceneTemperature;
             params.fan = ParamAIR_SCISceneFan;
+            params.swing = ParamAIR_SCISceneSwing;
             params.position = ParamAIR_SCIScenePosition;
             break;
         case 9:
@@ -135,6 +144,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.operationMode = ParamAIR_SCJOperationMode;
             params.temperature = ParamAIR_SCJSceneTemperature;
             params.fan = ParamAIR_SCJSceneFan;
+            params.swing = ParamAIR_SCJSceneSwing;
             params.position = ParamAIR_SCJScenePosition;
             break;
 #ifdef ParamAIR_SCKOnOff
@@ -149,6 +159,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
 
 void SceneHandler::applyParameters(int index)
 {
+    logDebugP("Applying parameters for scene %c", index + 65);
     SceneParameters params = getSceneParameters(index);
     
     // <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
