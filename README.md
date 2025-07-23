@@ -54,8 +54,6 @@ Toshiba
 
 Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch. abweichen. Daher bitte zuvor die ausmessen, an welche Pins GND und VCC anliegt
 
-<p align="center">
-
 | Pin      | Farbe | Klimagerät      | Adum1201 (1)|
 |----------|-------|-----------------|-------------|
 |    1     | blue  | RX              | VOB         |
@@ -64,11 +62,7 @@ Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch.
 |    4     | white | TX              | VOA         |
 |    5     | pink  | nicht verwendet |             |
 
-</p>
-
 ### Adum1201 (1) / ESP32 Board
-
-<p align="center">
 
 | Adum1201 (1)| ESP32 Board    |
 |-------------|----------------|
@@ -81,11 +75,7 @@ Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch.
 
 Für RX und TX können über die Defines OPENKNX_AIR_CONDITION_SERIAL_RX bzw. OPENKNX_AIR_CONDITION_SERIAL_TX in der [platformio.custom.ini](platformio.custom.ini) auch andere Pins verwendet werden.
 
-</p>
-
 ### Verkabelung BCU (Nur bei KNX-TP)
-
-<p align="center">
 
 | BCU         | Adum1201 (2) | KNX         |
 |-------------|--------------|-------------|
@@ -104,11 +94,7 @@ ACHTUNG: GND und 3,3 V dürfen nicht mit dem ESP verbunden werden!
 | VOA          | 16 RX           |
 | VIB          | 17 TX.          |
 
-<p align="center">
-
 Für RX und TX können über die Defines KNX_UART_RX_PIN bzw. KNX_UART_TX_PIN in der [platformio.custom.ini](platformio.custom.ini) auch andere Pins verwendet werden.
-
-</p>
 
 | ESP32        |                        | 
 |--------------|------------------------|
