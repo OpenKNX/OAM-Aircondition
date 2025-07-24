@@ -49,7 +49,7 @@ Hier muss die für das Klimagerät passende minimale Solltemperatur eingestellt 
 
 In diesem Abschnitt werden allgemeine Konfiguration vorgenommen
 
-<!-- DOC -->
+<!-- 
 ### Nach Busspannungsausfall / Neustart
 
 Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Neustart geschalten werden soll.
@@ -58,7 +58,7 @@ Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Ne
   Das Klimagerät erhält keine Steuerbefehle.
 - Einstellungen wiederherstellen
   Die Einstellung werden wieder hergestellt und das Klimagerät entsprechend konfiguriert.  
-
+-->
 <!-- DOC -->
 ### Wifi LED
 

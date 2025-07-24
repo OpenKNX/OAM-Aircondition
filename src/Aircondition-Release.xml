@@ -5,7 +5,7 @@
   <op:config href="Aircondition.conf.xml" />
   <op:ETS
     OpenKnxId="0xAE"
-    ApplicationNumber="0x2C"
+    ApplicationNumber="0x36"
     ApplicationVersion="%ReleaseApplicationVersion%"
     ReplacesVersions="%ReleaseReplacesVersions%"
     ApplicationRevision="0"

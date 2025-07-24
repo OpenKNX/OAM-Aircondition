@@ -35,11 +35,11 @@
             <ParameterTypes>
               <!-- Base Type -->
               <ParameterType Id="%AID%_PT-AIRDeviceType" Name="AIRDeviceType">
-                <TypeRestriction Base="Value" SizeInBit="4">
+                <TypeRestriction Base="Value" SizeInBit="4" UIHint="DropDown">
                   <Enumeration Text="Bitte wählen..." Value="0" Id="%ENID%" />
-                  <Enumeration Text="Daikin" Value="1" Id="%ENID%" />
-                  <Enumeration Text="Midea" Value="2" Id="%ENID%" />
-                  <Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />
+                  <!--<Enumeration Text="Daikin" Value="1" Id="%ENID%" />-->
+                  <!--Enumeration Text="Midea" Value="2" Id="%ENID%" />-->
+                  <!--<Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />-->
                   <Enumeration Text="Toshiba" Value="4" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
@@ -413,7 +413,8 @@
 
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="Basiseinstellungen" UIHint="Headline" />
                     <!-- Start Behavior -->
-                    <ParameterRefRef RefId="%AID%_UP-%TT%00001_R-%TT%0000101" IndentLevel="1" HelpContext="%DOC%"/>
+                    <!--<ParameterRefRef RefId="%AID%_UP-%TT%00001_R-%TT%0000101" IndentLevel="1" HelpContext="%DOC%"/>-->
+                    
                     <!-- Lock Release Ko -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00002_R-%TT%0000201" IndentLevel="1" HelpContext="%DOC%"/>
                     <choose ParamRefId="%AID%_UP-%TT%00002_R-%TT%0000201">

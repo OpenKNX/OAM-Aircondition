@@ -317,7 +317,6 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
 
 void AirconditionModule::processInputKo(GroupObject& ko)
 {
-    logErrorP("AirconditionModule::processInputKo called with GroupObject %d", (int) ko.asap());
     if (_airConditionDriver != nullptr)
     {
         // <Enumeration Text="Keines" Value="0" Id="%ENID%" />
