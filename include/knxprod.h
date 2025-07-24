@@ -10,7 +10,7 @@
                                              
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 54
-#define MAIN_ApplicationVersion 0
+#define MAIN_ApplicationVersion 1
 #define MAIN_ParameterSize 6101
 #define MAIN_MaxKoNumber 399
 #define MAIN_OrderNumber "MGKnxAIR"
