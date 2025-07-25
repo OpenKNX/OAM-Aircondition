@@ -11,3 +11,4 @@ src/*.baggages
 compile_commands.json
 include/versions.h
 data/
+managed_components/

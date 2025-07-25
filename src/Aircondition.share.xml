@@ -98,7 +98,7 @@
                   <Enumeration Text="Kühlen" Value="1" Id="%ENID%" />
                   <Enumeration Text="Heizen" Value="2" Id="%ENID%" />
                   <Enumeration Text="Trocknen" Value="3" Id="%ENID%" />
-                  <Enumeration Text="Lüfter" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Lüften" Value="4" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
 
