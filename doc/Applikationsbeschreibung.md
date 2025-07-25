@@ -7,7 +7,7 @@
 
 ## Module
 
-Die Sonos App besteht aus folgenden Modulen:
+Die Klimaanlagen App besteht aus folgenden Modulen:
 
 - [Basiseinstellungen](https://github.com/OpenKNX/OGM-Common/blob/v1/doc/Applikationsbeschreibung-Common.md)
 - [Netzwerk](https://github.com/OpenKNX/OFM-Network/blob/v1/doc/Applikationsbeschreibung-Netzwerk.md)
