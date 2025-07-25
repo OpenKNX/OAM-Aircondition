@@ -277,38 +277,26 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
     {
         // Extract the temperature value from the command
         std::string tempStr = cmd.substr(5);
-        try
-        {
-            float temperature = std::stof(tempStr);
-            KoAIR_SetTemperature.valueNoSend(temperature, DPT_Value_Temp);
-            processInputKo(KoAIR_SetTemperature);
-        }
-        catch (const std::invalid_argument& e)
-        {
-            logErrorP("Invalid temperature value: %s", tempStr.c_str());
-        }
+        float temperature = std::stof(tempStr);
+        KoAIR_SetTemperature.valueNoSend(temperature, DPT_Value_Temp);
+        processInputKo(KoAIR_SetTemperature);
+        
         return true;
     }
     else if (cmd.starts_with("fan "))
     {
         // Extract the fan speed value from the command
         std::string fanStr = cmd.substr(4);
-        try
+    
+        unsigned int fanSpeedPercent = std::stoi(fanStr);
+        if (_airConditionDriver != nullptr && fanSpeedPercent <= 100)
         {
-            unsigned int fanSpeedPercent = std::stoi(fanStr);
-            if (_airConditionDriver != nullptr && fanSpeedPercent <= 100)
-            {
-                KoAIR_FanSpeed.valueNoSend((uint8_t)fanSpeedPercent, DPT_Scaling);
-                processInputKo(KoAIR_FanSpeed);
-            }
-            else
-            {
-                logErrorP("Invalid fan speed value: %s. Value must between 0 and %u.", fanStr.c_str(), _airConditionDriver->getMaximumFanSpeed());
-            }
+            KoAIR_FanSpeed.valueNoSend((uint8_t)fanSpeedPercent, DPT_Scaling);
+            processInputKo(KoAIR_FanSpeed);
         }
-        catch (const std::invalid_argument& e)
+        else
         {
-            logErrorP("Invalid fan speed value: %s", fanStr.c_str());
+            logErrorP("Invalid fan speed value: %s. Value must between 0 and %u.", fanStr.c_str(), _airConditionDriver->getMaximumFanSpeed());
         }
         return true;
     }

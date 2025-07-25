@@ -397,7 +397,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
         }
         break;
         default:
-            ESP_LOGW(TAG, "Unknown sensor: %d with value %d", sensor, value);
+            logInfoP("Unknown command type %d with value %d", (int) commandType, (int)value);
             break;
     }
     _receivedMessage.clear(); // message processed, clear buffer
