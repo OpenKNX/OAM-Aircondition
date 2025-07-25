@@ -250,12 +250,12 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
                     logDebugP("Received fan speed: Quit");
                     statusFeedback.fanSpeedChanged(1);
                     break;
-                case ToshibaFan::ToshibaFanMode2:
-                    logDebugP("Received fan speed: Mode 2");
-                    statusFeedback.fanSpeedChanged(2);
-                    break;
                 case ToshibaFan::ToshibaFanLow:
                     logDebugP("Received fan speed: Low");
+                    statusFeedback.fanSpeedChanged(2);
+                    break;
+                case ToshibaFan::ToshibaFanMode2:
+                    logDebugP("Received fan speed: Mode 2");
                     statusFeedback.fanSpeedChanged(3);
                     break;
                 case ToshibaFan::ToshibaFanMedium:
