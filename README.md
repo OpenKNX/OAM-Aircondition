@@ -8,7 +8,7 @@ Diese Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Hersteller
   - SHORAI EDGE (Wird bald getestet)
   - Viele andere Modelle mit WLAN Modul sollten funktionieren, bitte gerne Rückmeldung wenn ein neues Modell getestet wurde 
 
-Künftig:
+Geplant:
 - Daikin (In Entwicklung)
 - Mitsubishi (In Entwicklung)
 
