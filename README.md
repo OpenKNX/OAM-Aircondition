@@ -59,7 +59,7 @@ Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch.
 |    1     | blue  | RX              | VOB         |
 |    2     | pink  | GND             | GND2        |
 |    3     | black | 5V              | VDD2        |
-|    4     | white | TX              | VOA         |
+|    4     | white | TX              | VIA         |
 |    5     | pink  | nicht verwendet |             |
 
 ### Adum1201 (1) / ESP32 Board
@@ -70,8 +70,8 @@ Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch.
 | GND2        | GND            |
 | VDD1        | 3,3V (Ausgang) |
 | GND1        | GND            |
-| VIB         | 26 (RX)        |
-| VOA         | 27 (TX)        |
+| VOA         | 26 (RX)        |
+| VIB         | 27 (TX)        |
 
 Für RX und TX können über die Defines OPENKNX_AIR_CONDITION_SERIAL_RX bzw. OPENKNX_AIR_CONDITION_SERIAL_TX in der [platformio.custom.ini](platformio.custom.ini) auch andere Pins verwendet werden.
 
