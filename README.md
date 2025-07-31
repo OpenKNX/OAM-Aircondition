@@ -96,9 +96,16 @@ ACHTUNG: GND und 3,3 V dürfen nicht mit dem ESP verbunden werden!
 
 Für RX und TX können über die Defines KNX_UART_RX_PIN bzw. KNX_UART_TX_PIN in der [platformio.custom.ini](platformio.custom.ini) auch andere Pins verwendet werden.
 
+### Verkabelung Programmier-LED
+
+Neuere Boards haben keine OnBoard-LED. 
+Benötigt man eine Programmier-LED, muss diese auf den Pin 2 verbunden werden.
+Ältere DevKit V1 Boards haben bereits eine LED auf diesen PIN angeschlossen.
+Da die Programmier-LED aber nur einmal zum Programmieren der KNX-Adresse leuchtet, kann man auch darauf verzichten.
+
 | ESP32        |                        | 
 |--------------|------------------------|
-| 25           | Wiederstand 1. Seite   |
+| 2            | Wiederstand 1. Seite   |
 
 Über das Define PROG_LED_PIN in der [platformio.custom.ini](platformio.custom.ini) kann auch ein anderer Pin vergeben werden.
 
@@ -107,7 +114,10 @@ Für RX und TX können über die Defines KNX_UART_RX_PIN bzw. KNX_UART_TX_PIN in
 | Anode (langer Draht)   | Wiederstand 2. Seite   |
 | Kathode (kurzer Draht) | GND ESP                |
 
-Der Prog Taster ist der Boot Taster am ESP32 Board
+
+### Programmier-Taster
+
+Der Programmier-Taster ist der Boot Taster am ESP32 Board.
 
 ## Danke
 
