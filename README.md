@@ -8,7 +8,7 @@ Diese Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Hersteller
   - SHORAI EDGE (Wird bald getestet)
   - Viele andere Modelle mit WLAN Modul sollten funktionieren, bitte gerne Rückmeldung wenn ein neues Modell getestet wurde 
 
-Künftig:
+Geplant:
 - Daikin (In Entwicklung)
 - Mitsubishi (In Entwicklung)
 
@@ -59,7 +59,7 @@ Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch.
 |    1     | blue  | RX              | VOB         |
 |    2     | pink  | GND             | GND2        |
 |    3     | black | 5V              | VDD2        |
-|    4     | white | TX              | VOA         |
+|    4     | white | TX              | VIA         |
 |    5     | pink  | nicht verwendet |             |
 
 ### Adum1201 (1) / ESP32 Board
@@ -70,8 +70,8 @@ Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch.
 | GND2        | GND            |
 | VDD1        | 3,3V (Ausgang) |
 | GND1        | GND            |
-| VIB         | 26 (RX)        |
-| VOA         | 27 (TX)        |
+| VOA         | 26 (RX)        |
+| VIB         | 27 (TX)        |
 
 Für RX und TX können über die Defines OPENKNX_AIR_CONDITION_SERIAL_RX bzw. OPENKNX_AIR_CONDITION_SERIAL_TX in der [platformio.custom.ini](platformio.custom.ini) auch andere Pins verwendet werden.
 
@@ -96,9 +96,16 @@ ACHTUNG: GND und 3,3 V dürfen nicht mit dem ESP verbunden werden!
 
 Für RX und TX können über die Defines KNX_UART_RX_PIN bzw. KNX_UART_TX_PIN in der [platformio.custom.ini](platformio.custom.ini) auch andere Pins verwendet werden.
 
+### Verkabelung Programmier-LED
+
+Neuere Boards haben keine OnBoard-LED. 
+Benötigt man eine Programmier-LED, muss diese auf den Pin 2 verbunden werden.
+Ältere DevKit V1 Boards haben bereits eine LED auf diesen PIN angeschlossen.
+Da die Programmier-LED aber nur einmal zum Programmieren der KNX-Adresse leuchtet, kann man auch darauf verzichten.
+
 | ESP32        |                        | 
 |--------------|------------------------|
-| 25           | Wiederstand 1. Seite   |
+| 2            | Wiederstand 1. Seite   |
 
 Über das Define PROG_LED_PIN in der [platformio.custom.ini](platformio.custom.ini) kann auch ein anderer Pin vergeben werden.
 
@@ -107,7 +114,10 @@ Für RX und TX können über die Defines KNX_UART_RX_PIN bzw. KNX_UART_TX_PIN in
 | Anode (langer Draht)   | Wiederstand 2. Seite   |
 | Kathode (kurzer Draht) | GND ESP                |
 
-Der Prog Taster ist der Boot Taster am ESP32 Board
+
+### Programmier-Taster
+
+Der Programmier-Taster ist der Boot Taster am ESP32 Board.
 
 ## Danke
 
