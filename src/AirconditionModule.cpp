@@ -377,6 +377,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 {
                     logInfoP("Set mode to Auto");
                     _airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
+                    _airConditionDriver->setPower(true);
                 }
                 else
                 {
@@ -389,6 +390,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 {
                     logInfoP("Set mode to Cool");
                     _airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
+                    _airConditionDriver->setPower(true);
                 }
                 else
                 {
@@ -401,6 +403,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 {
                     logInfoP("Set mode to Heat");
                     _airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
+                    _airConditionDriver->setPower(true);
                 }
                 else
                 {
@@ -413,6 +416,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 {
                     logInfoP("Set mode to Fan");
                     _airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
+                    _airConditionDriver->setPower(true);
                 }
                 else
                 {
@@ -425,6 +429,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 {
                     logInfoP("Set mode to Dry");
                     _airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
+                    _airConditionDriver->setPower(true);
                 }
                 else
                 {
