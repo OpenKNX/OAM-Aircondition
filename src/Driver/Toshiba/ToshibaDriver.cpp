@@ -792,6 +792,8 @@ void ToshibaDriver::setSwingVerticalFixPosition(unsigned int position)
    switch (position)
    {
         case 0:
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeOff );
+            break;
         case 1:
             sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeFixPosition1);
             break;
