@@ -200,6 +200,7 @@ void AirconditionModule::loop()
                 _airConditionDriver->requestAllData();
             }
         }
+        handleDebouncedModeChange();
     }
 }
 
@@ -280,14 +281,14 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         float temperature = std::stof(tempStr);
         KoAIR_SetTemperature.valueNoSend(temperature, DPT_Value_Temp);
         processInputKo(KoAIR_SetTemperature);
-        
+
         return true;
     }
     else if (cmd.starts_with("fan "))
     {
         // Extract the fan speed value from the command
         std::string fanStr = cmd.substr(4);
-    
+
         unsigned int fanSpeedPercent = std::stoi(fanStr);
         if (_airConditionDriver != nullptr && fanSpeedPercent <= 100)
         {
@@ -301,6 +302,60 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         return true;
     }
     return false;
+}
+
+void AirconditionModule::handleDebouncedModeChange()
+{
+    if (_airConditionDriver == nullptr || _waitingForModeChange == 0 || millis() - _waitingForModeChange < 100)
+        return;
+    _waitingForModeChange = 0; // Reset waiting for mode change
+    if (_waitingForCooling && _waitingForHeating)
+    {
+        // Heading and Colling are both requested, set to Auto
+        _waitingForAuto = true;
+        _waitingForCooling = false;
+        _waitingForHeating = false;
+    }
+    if (_waitingForAuto)
+    {
+        logInfoP("Set mode to Auto");
+        _airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
+        _airConditionDriver->setPower(true);
+    }
+    else if (_waitingForCooling)
+    {
+        logInfoP("Set mode to Cool");
+        _airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
+        _airConditionDriver->setPower(true);
+    }
+    else if (_waitingForHeating)
+    {
+        logInfoP("Set mode to Heat");
+        _airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
+        _airConditionDriver->setPower(true);
+    }
+    else if (_waitingForFan)
+    {
+        logInfoP("Set mode to Fan");
+        _airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
+        _airConditionDriver->setPower(true);
+    }
+    else if (_waitingForDehumidification)
+    {
+        logInfoP("Set mode to Dry");
+        _airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
+        _airConditionDriver->setPower(true);
+    }
+    else
+    {
+        logInfoP("Set power to Off");
+        _airConditionDriver->setPower(false);
+    }
+    _waitingForAuto = false;
+    _waitingForCooling = false;
+    _waitingForHeating = false;
+    _waitingForFan = false;
+    _waitingForDehumidification = false;
 }
 
 void AirconditionModule::processInputKo(GroupObject& ko)
@@ -373,69 +428,24 @@ void AirconditionModule::processInputKo(GroupObject& ko)
             }
             break;
             case AIR_KoOperationModeAutomatic:
-                if (ko.value(DPT_Switch))
-                {
-                    logInfoP("Set mode to Auto");
-                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeAuto);
-                    _airConditionDriver->setPower(true);
-                }
-                else
-                {
-                    logInfoP("Set power to Off");
-                    _airConditionDriver->setPower(false);
-                }
+                _waitingForAuto = ko.value(DPT_Switch);
+                _waitingForModeChange = max(1UL, millis());
                 break;
             case AIR_KoOperationModeCooling:
-                if (ko.value(DPT_Switch))
-                {
-                    logInfoP("Set mode to Cool");
-                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeCool);
-                    _airConditionDriver->setPower(true);
-                }
-                else
-                {
-                    logInfoP("Set power to Off");
-                    _airConditionDriver->setPower(false);
-                }
+                _waitingForCooling = ko.value(DPT_Switch);
+                _waitingForModeChange = max(1UL, millis());
                 break;
             case AIR_KoOperationModeHeating:
-                if (ko.value(DPT_Switch))
-                {
-                    logInfoP("Set mode to Heat");
-                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeHeat);
-                    _airConditionDriver->setPower(true);
-                }
-                else
-                {
-                    logInfoP("Set power to Off");
-                    _airConditionDriver->setPower(false);
-                }
+                _waitingForHeating = ko.value(DPT_Switch);
+                _waitingForModeChange = max(1UL, millis());
                 break;
             case AIR_KoOperationModeVentilation:
-                if (ko.value(DPT_Switch))
-                {
-                    logInfoP("Set mode to Fan");
-                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeFan);
-                    _airConditionDriver->setPower(true);
-                }
-                else
-                {
-                    logInfoP("Set power to Off");
-                    _airConditionDriver->setPower(false);
-                }
+                _waitingForFan = ko.value(DPT_Switch);
+                _waitingForModeChange = max(1UL, millis());
                 break;
             case AIR_KoOperationModeDehumidification:
-                if (ko.value(DPT_Switch))
-                {
-                    logInfoP("Set mode to Dry");
-                    _airConditionDriver->setMode(AirConditionMode::AirConditionModeDry);
-                    _airConditionDriver->setPower(true);
-                }
-                else
-                {
-                    logInfoP("Set power to Off");
-                    _airConditionDriver->setPower(false);
-                }
+                _waitingForDehumidification = ko.value(DPT_Switch);
+                _waitingForModeChange = max(1UL, millis());
                 break;
             case AIR_KoFanSpeed:
             {

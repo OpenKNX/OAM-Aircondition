@@ -10,6 +10,12 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     bool _lastWifiLedState = true;
     bool _forceWifiLedState = false;
     unsigned long _lastWifiLedDebounceRunning = 0;
+    bool _waitingForCooling = false;
+    bool _waitingForHeating = false;
+    bool _waitingForFan = false;
+    bool _waitingForDehumidification = false;
+    bool _waitingForAuto = false;
+    unsigned long _waitingForModeChange = 0;
 
     AirConditionDriver* _airConditionDriver = nullptr;
     SceneHandler* _sceneHandler = nullptr;
@@ -19,6 +25,7 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     bool _initialDataNeeded = false;
     
     void setLocked(bool locked);
+    void handleDebouncedModeChange();
 
   public:
     const std::string name() override;
