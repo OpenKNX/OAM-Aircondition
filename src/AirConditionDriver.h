@@ -66,8 +66,10 @@ public:
     virtual unsigned int getMaximumFanSpeed() = 0; 
     virtual unsigned int getMaximumHorizontalFixPosition() = 0; 
     virtual unsigned int getMaximumVertiacalFixPosition() = 0; 
+    virtual bool supportExternalRoomTemperatureSensor() = 0;
 
     // Methods to control the air condition device
+    virtual float roundTemperatureToAirconditionResolution(float temperature) = 0;
     virtual void setPower(bool power) = 0;
     virtual void setMode(AirConditionMode mode) = 0;
     virtual void setTargetTemperature(float temperaturCelius) = 0;

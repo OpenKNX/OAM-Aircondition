@@ -106,3 +106,14 @@ void MitsubishiDriver::setWifiLed(bool on)
 {
     // To Do (Mitsubishi): Implementation for WiFi LED control
 }
+
+bool MitsubishiDriver::supportExternalRoomTemperatureSensor()
+{
+    return true; 
+}
+
+float MitsubishiDriver::roundTemperatureToAirconditionResolution(float temperature)
+{
+    // To Do (Mitsubishi): Implement rounding of temperature to the air condition resolution
+    return round(temperature);
+}

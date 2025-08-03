@@ -22,13 +22,13 @@ void MideaDriver::setup()
 
 void MideaDriver::startCommunication(bool restart)
 {
-    // To Do: Implement the starting of the communication for Midea air conditioner
+    // To Do (Midea): Implement the starting of the communication for Midea air conditioner
     statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
 }
 
 void MideaDriver::requestAllData()
 {
-    // To Do: Implement the request for all data from Midea air conditioner
+    // To Do (Midea): Implement the request for all data from Midea air conditioner
 }
 
 void MideaDriver::loop()
@@ -60,58 +60,71 @@ unsigned int MideaDriver::getMaximumVertiacalFixPosition()
 
 void MideaDriver::setPower(bool power)
 {
-   // To Do: Implementation for power control
+   // To Do (Midea): Implementation for power control
    statusFeedback.powerChanged(power);
 }
 
 void MideaDriver::setMode(AirConditionMode mode)
 {
-    // To Do: Implementation for mode control
+    // To Do (Midea): Implementation for mode control
     statusFeedback.modeChanged(mode);
 }
 
 void MideaDriver::setTargetTemperature(float temperaturCelius)
 {
-    // To Do: Implementation for target temperature control
+    // To Do (Midea): Implementation for target temperature control
     statusFeedback.targetTemperatureChanged(temperaturCelius);
 }
 
 void MideaDriver::setFanSpeed(unsigned int speed)
 {
-    // To Do: Implementation for fan speed control
+    // To Do (Midea): Implementation for fan speed control
     statusFeedback.fanSpeedChanged(speed);
 }
 
 void MideaDriver::setSwingHorizontal(bool swing)
 {
-    // To Do: Implementation for horizontal swing control
+    // To Do (Midea): Implementation for horizontal swing control
     statusFeedback.swingHorizontalChanged(swing);
 }
 
 void MideaDriver::setSwingVertical(bool swing)
 {
-    // To Do: Implementation for vertical swing control
+    // To Do (Midea): Implementation for vertical swing control
     statusFeedback.swingVerticalChanged(swing);
 }
 
 void MideaDriver::setSwingHorizontalFixPosition(unsigned int position)
 {
-    // To Do: Implementation for horizontal fix position control
+    // To Do (Midea): Implementation for horizontal fix position control
     statusFeedback.swingHorizontalFixPositionChanged(position);
 }
 
 void MideaDriver::setSwingVerticalFixPosition(unsigned int position)
 {
-    // To Do: Implementation for vertical fix position control
+    // To Do (Midea): Implementation for vertical fix position control
     statusFeedback.swingVerticalFixPositionChanged(position);
 }
 
 void MideaDriver::setExternalSensorRoomTemperature(float temperaturCelius)
 {
-    // To Do: Implementation for external sensor room temperature control
+    // To Do (Midea): Implementation for external sensor room temperature control
     statusFeedback.roomTemperatureChanged(temperaturCelius);
 }
 
 void MideaDriver::setWifiLed(bool on)
 {
+    // To Do (Midea): Implementation for WiFi LED control
+}
+
+bool MideaDriver::supportExternalRoomTemperatureSensor()
+{
+    // To Do (Midea): Check if external room temperature sensor is supported
+    return false; 
+}
+
+float MideaDriver::roundTemperatureToAirconditionResolution(float temperature)
+{
+    // To Do (Midea): Implement rounding of temperature to the air condition resolution
+    return round(temperature);
 }

@@ -137,6 +137,8 @@ class ToshibaDriver : public AirConditionDriver
     virtual unsigned int getMaximumFanSpeed() override;
     virtual unsigned int getMaximumHorizontalFixPosition() override;
     virtual unsigned int getMaximumVertiacalFixPosition() override;
+    virtual bool supportExternalRoomTemperatureSensor() override;
+    virtual float roundTemperatureToAirconditionResolution(float temperature) override;
 
     virtual void setPower(bool power) override;
     virtual void setMode(AirConditionMode mode) override;

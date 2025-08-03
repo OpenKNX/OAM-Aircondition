@@ -106,3 +106,15 @@ void DaikinDriver::setWifiLed(bool on)
 {
     // To Do (Daikin): Implementation for WiFi LED control
 }
+
+bool DaikinDriver::supportExternalRoomTemperatureSensor()
+{
+    // To Do (Daikin): Check if external room temperature sensor is supported
+    return false; 
+}
+
+float DaikinDriver::roundTemperatureToAirconditionResolution(float temperature)
+{
+    // To Do (Daikin): Implement rounding of temperature to the air condition resolution
+    return round(temperature); 
+}

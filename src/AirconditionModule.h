@@ -1,10 +1,12 @@
 #pragma once
 #include "AirConditionDriver.h"
+#include "RoomTemperaturCorrection.h"
 
 class SceneHandler;
 
 class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedback
 {
+    RoomTemperatureCorrection* _roomTemperatureCorrection = nullptr;
     AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
     bool _lastPower = false;
     bool _lastWifiLedState = true;
@@ -26,6 +28,8 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     
     void setLocked(bool locked);
     void handleDebouncedModeChange();
+
+    void setTargetTemperaturToAircondition(float temperature);
 
   public:
     const std::string name() override;
@@ -51,6 +55,8 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     void outsideTemperaturChanged(float temperaturCelius) override;
     void driverStateChanged(AirConditionDriverState state, std::string error = "") override;
     AirConditionDriverState getDriverState() const;
+
+
 };
 
 extern AirconditionModule openknxAircondition;

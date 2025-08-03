@@ -825,3 +825,13 @@ void ToshibaDriver::setExternalSensorRoomTemperature(float temperaturCelius)
 {
 }
 
+bool ToshibaDriver::supportExternalRoomTemperatureSensor()
+{
+    return false; 
+}
+
+float ToshibaDriver::roundTemperatureToAirconditionResolution(float temperature)
+{
+    return round(temperature);
+}
+
