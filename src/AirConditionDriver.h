@@ -25,7 +25,7 @@ public:
     virtual AirConditionDriverState getDriverState() const = 0;
     virtual void powerChanged(bool power) = 0;
     virtual void modeChanged(AirConditionMode mode) = 0;
-    virtual void targetTemperatureChanged(float temperaturCelius) = 0;
+    virtual void targetTemperatureChanged(float temperaturCelius, bool isFeedbackFromSettin) = 0;
     virtual void fanSpeedChanged(int speed) = 0;
     virtual void swingHorizontalChanged(bool swing) = 0;
     virtual void swingVerticalChanged(bool swing) = 0;
@@ -69,10 +69,10 @@ public:
     virtual bool supportExternalRoomTemperatureSensor() = 0;
 
     // Methods to control the air condition device
-    virtual float roundTemperatureToAirconditionResolution(float temperature) = 0;
+    virtual float accuracyInDegrees() = 0;
     virtual void setPower(bool power) = 0;
     virtual void setMode(AirConditionMode mode) = 0;
-    virtual void setTargetTemperature(float temperaturCelius) = 0;
+    virtual void setTargetTemperature(float temperaturCelsius) = 0;
     virtual void setFanSpeed(unsigned int speed) = 0;
     virtual void setSwingHorizontal(bool swing) = 0;
     virtual void setSwingVertical(bool swing) = 0;

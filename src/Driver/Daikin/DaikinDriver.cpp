@@ -113,8 +113,8 @@ bool DaikinDriver::supportExternalRoomTemperatureSensor()
     return false; 
 }
 
-float DaikinDriver::roundTemperatureToAirconditionResolution(float temperature)
+float DaikinDriver::accuracyInDegrees()
 {
     // To Do (Daikin): Implement rounding of temperature to the air condition resolution
-    return round(temperature); 
+    return 1.f; // Assuming 1 degree Celsius accuracy
 }

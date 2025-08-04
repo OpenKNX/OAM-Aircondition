@@ -1,3 +1,8 @@
+#pragma once
+#include <string>
+
+class AirConditionDriver;
+
 class RoomTemperatureCorrection {
 
     AirConditionDriver& _airConditionDriver;
@@ -5,17 +10,20 @@ private:
     float _aircondtionRoomTemperature = 0.0f; 
     float _externalRooomTemperature = 0.0f;
     float _currentOffset = 0.0f; // Current offset applied to the room temperature
+    float _targetTemperature = 0.0f; // Last target temperature set to the air condition
     float _correctedTargetTemperature = 0.0f; // Current offset applied to the target temperature
     unsigned long _lastExternalRoomTemperaturUpdate = 0; // Timestamp of the last update
-    bool _waitForExternalRoomTemperature = false;
+    unsigned long _lastExternalRoomTemperatureRead = 0; // Timestamp of the last read
     void recalculateOffset();
+
+    std::string logPrefix();
  
 public:
     RoomTemperatureCorrection(AirConditionDriver& airConditionDriver);
     void setAirconditionRoomTemperatur(float temperature);
     void setNewExternalRoomTemperature(float temperature);
     void setTargetTemperaturToAircondition(float temperature);
-    bool airconditionReportTargetTemperatureChanged(float temperature);
+    void airconditionReportTargetTemperatureChanged(float temperature);
      void loop();
   
    

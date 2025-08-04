@@ -210,12 +210,14 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             logDebugP("Received unknown message with length: %d", length);
             return;
     }
+    bool isFeedback = false;
     if (!_commandQueue.empty())
     {
         auto& currentCommand = _commandQueue.front();
         if (currentCommand.timestampSent != 0 && currentCommand.cmd == commandType)
         {
-            // if we have a command in queue, and it matches the received command, reswing it
+            isFeedback = true;
+            // if we have a command in queue, and it matches the received command, erase it
             _commandQueue.erase(_commandQueue.begin());
             logDebugP("Response for command %d received", static_cast<int>(commandType));
             statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
@@ -236,7 +238,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
                 value -= EightDegreeSpecialModeTempOffset;
                 logDebugP("Note: Special Mode \"%s\" is active, shifting target temp to %d", EightDegreeSpecialModeTempOffset, (int)value);
             }
-            statusFeedback.targetTemperatureChanged(value);
+            statusFeedback.targetTemperatureChanged(value, isFeedback);
             break;
         case ToshibaCommandType::ToshibaCommandTypeFan:
         {
@@ -830,8 +832,8 @@ bool ToshibaDriver::supportExternalRoomTemperatureSensor()
     return false; 
 }
 
-float ToshibaDriver::roundTemperatureToAirconditionResolution(float temperature)
+float ToshibaDriver::accuracyInDegrees()
 {
-    return round(temperature);
+    return 1.f; 
 }
 

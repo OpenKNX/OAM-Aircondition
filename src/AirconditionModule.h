@@ -45,7 +45,7 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     // AirConditionDriverStatusFeedback interface
     void powerChanged(bool power) override;
     void modeChanged(AirConditionMode mode) override;
-    void targetTemperatureChanged(float temperaturCelius) override;
+    void targetTemperatureChanged(float temperaturCelius, bool isFeedbackFromSettin) override;
     void fanSpeedChanged(int speed) override;
     void swingHorizontalChanged(bool swing) override;
     void swingVerticalChanged(bool swing) override;

@@ -285,12 +285,42 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
     }
     else if (cmd.starts_with("temp "))
     {
-        // Extract the temperature value from the command
-        std::string tempStr = cmd.substr(5);
+         std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
         KoAIR_SetTemperature.valueNoSend(temperature, DPT_Value_Temp);
         processInputKo(KoAIR_SetTemperature);
-
+        return true;
+    }
+    else if (cmd.starts_with("room "))
+    {
+        std::string tempStr = cmd.substr(5);
+        float temperature = std::stof(tempStr);
+        KoAIR_RoomTemperatureInput.valueNoSend(temperature, DPT_Value_Temp);
+        processInputKo(KoAIR_SetTemperature);
+        return true;
+    }
+    else if (cmd.starts_with("acroom "))
+    {
+        if (_roomTemperatureCorrection == nullptr)
+        {
+            logErrorP("Room Temperature Correction is not enabled, cannot set room temperature");
+            return false;
+        }
+        std::string tempStr = cmd.substr(7);
+        float temperature = std::stof(tempStr);
+        _roomTemperatureCorrection->setAirconditionRoomTemperatur(temperature);
+        return true;
+    }
+    else if (cmd.starts_with("actemp "))
+    {
+        if (_roomTemperatureCorrection == nullptr)
+        {
+            logErrorP("Room Temperature Correction is not enabled, cannot set target temperature");
+            return false;
+        }
+        std::string tempStr = cmd.substr(7);
+        float temperature = std::stof(tempStr);
+        _roomTemperatureCorrection->airconditionReportTargetTemperatureChanged(temperature);
         return true;
     }
     else if (cmd.starts_with("fan "))
@@ -310,6 +340,19 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         }
         return true;
     }
+    else if (cmd == "fan+")
+    {
+        KoAIR_FanSpeedUpDown.valueNoSend(true, DPT_Switch);
+        processInputKo(KoAIR_FanSpeedUpDown);
+        return true;
+    }
+    else if (cmd == "fan-")
+    {
+        KoAIR_FanSpeedUpDown.valueNoSend(false, DPT_Switch);
+        processInputKo(KoAIR_FanSpeedUpDown);
+        return true;
+    }
+
     return false;
 }
 
@@ -626,12 +669,12 @@ void AirconditionModule::powerChanged(bool power)
         KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
     }
 }
-void AirconditionModule::targetTemperatureChanged(float temperature)
+void AirconditionModule::targetTemperatureChanged(float temperature, bool isFeedbackFromSettin)
 {
-    if (_roomTemperatureCorrection != nullptr)
+    if (_roomTemperatureCorrection != nullptr && !isFeedbackFromSettin)
     {
-        if (_roomTemperatureCorrection->airconditionReportTargetTemperatureChanged(temperature))
-            return;   
+        _roomTemperatureCorrection->airconditionReportTargetTemperatureChanged(temperature);
+        return;   
     }
 
     logInfoP("AirCondition report target temperature changed to %.1f °C", temperature);
@@ -807,7 +850,13 @@ void AirconditionModule::showHelp()
 {
     openknx.console.printHelpLine("power on", "Switch the air condition on");
     openknx.console.printHelpLine("power off", "Switch the air condition off");
-    openknx.console.printHelpLine("temp <value>", "Set the target temperature in Celsius (e.g., temp 22.5)");
+    openknx.console.printHelpLine("temp <value>", "Set the target temperature in Celsius (e.g., temp 22)");
+    openknx.console.printHelpLine("fan <value>", "Set the fan speed in percent (0-100, e.g., fan 50)");
+    openknx.console.printHelpLine("fan+", "Increase the fan speed");
+    openknx.console.printHelpLine("fan-", "Decrease the fan speed");
     openknx.console.printHelpLine("rc", "Restart the air condition communication");
     openknx.console.printHelpLine("all", "Request all data from the air condition");
+    openknx.console.printHelpLine("acroom <value>", "Simulate room temperature feedback from aircondition (e.g., acroom 22)");
+    openknx.console.printHelpLine("room <value>", "Set the room temperature (e.g., room 22)");
+
 }

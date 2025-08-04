@@ -112,8 +112,8 @@ bool MitsubishiDriver::supportExternalRoomTemperatureSensor()
     return true; 
 }
 
-float MitsubishiDriver::roundTemperatureToAirconditionResolution(float temperature)
+float MitsubishiDriver::accuracyInDegrees()
 {
     // To Do (Mitsubishi): Implement rounding of temperature to the air condition resolution
-    return round(temperature);
+    return 1.f; // Assuming 1 degree Celsius accuracy
 }

@@ -73,7 +73,7 @@ void MideaDriver::setMode(AirConditionMode mode)
 void MideaDriver::setTargetTemperature(float temperaturCelius)
 {
     // To Do (Midea): Implementation for target temperature control
-    statusFeedback.targetTemperatureChanged(temperaturCelius);
+    statusFeedback.targetTemperatureChanged(temperaturCelius, true);
 }
 
 void MideaDriver::setFanSpeed(unsigned int speed)
@@ -123,8 +123,8 @@ bool MideaDriver::supportExternalRoomTemperatureSensor()
     return false; 
 }
 
-float MideaDriver::roundTemperatureToAirconditionResolution(float temperature)
+float MideaDriver::accuracyInDegrees()
 {
     // To Do (Midea): Implement rounding of temperature to the air condition resolution
-    return round(temperature);
+    return 1.f; // Assuming 1 degree Celsius accuracy
 }
