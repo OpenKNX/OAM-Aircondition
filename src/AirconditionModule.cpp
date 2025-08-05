@@ -1,4 +1,5 @@
 #include "AirconditionModule.h"
+#include "Driver/Daikin/DaikinDriver.h"
 #include "Driver/Midea/MideaDriver.h"
 #include "Driver/Mitsubishi/MitsubishiDriver.h"
 #include "Driver/Toshiba/ToshibaDriver.h"
@@ -31,12 +32,12 @@ void AirconditionModule::setup()
             logInfoP("No AirCondition Device Type selected");
             break;
         case 1: // Daikin
-            logInfoP("Initialize MideaDriver");
-            _airConditionDriver = new MideaDriver(*this);
+            logInfoP("Initialize DaikinDriver");
+            _airConditionDriver = new DaikinDriver(*this);
             break;
         case 2: // Midea
-            logInfoP("Initialize ToshibaDriver");
-            _airConditionDriver = new ToshibaDriver(*this);
+            logInfoP("Initialize MideaDriver");
+            _airConditionDriver = new MideaDriver(*this);
             break;
         case 3: // Mitsubishi
             logInfoP("Initialize MitsubishiDriver");
