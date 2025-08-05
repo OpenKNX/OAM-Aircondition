@@ -5,7 +5,7 @@ Diese Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Hersteller
 
 - Toshiba
   - HAORI (Getestet)
-  - SHORAI EDGE (Wird bald getestet)
+  - SHORAI EDGE (Getestet)
   - Viele andere Modelle mit WLAN Modul sollten funktionieren, bitte gerne Rückmeldung wenn ein neues Modell getestet wurde 
 
 Geplant:
