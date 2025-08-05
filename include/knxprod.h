@@ -10,7 +10,7 @@
                                              
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 54
-#define MAIN_ApplicationVersion 1
+#define MAIN_ApplicationVersion 2
 #define MAIN_ParameterSize 6101
 #define MAIN_MaxKoNumber 399
 #define MAIN_OrderNumber "MGKnxAIR"
@@ -227,6 +227,9 @@
 #define AIR_WifiLED                             223      // 2 Bits, Bit 5-4
 #define     AIR_WifiLEDMask 0x30
 #define     AIR_WifiLEDShift 4
+#define AIR_ExternalRoomTemperature             223      // 1 Bit, Bit 3
+#define     AIR_ExternalRoomTemperatureMask 0x08
+#define     AIR_ExternalRoomTemperatureShift 3
 #define AIR_Mit_MinTemp                         224      // 8 Bits, Bit 7-0
 #define AIR_SCAActive                           241      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
@@ -365,6 +368,8 @@
 #define ParamAIR_LockBehaviorOff                     ((knx.paramByte(AIR_LockBehaviorOff) & AIR_LockBehaviorOffMask) >> AIR_LockBehaviorOffShift)
 // Wifi LED
 #define ParamAIR_WifiLED                             ((knx.paramByte(AIR_WifiLED) & AIR_WifiLEDMask) >> AIR_WifiLEDShift)
+// Eingang für externe Raumtemperatur
+#define ParamAIR_ExternalRoomTemperature             ((bool)(knx.paramByte(AIR_ExternalRoomTemperature) & AIR_ExternalRoomTemperatureMask))
 // Minimale Soll-Temperatur
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
 // Szene A

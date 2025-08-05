@@ -30,6 +30,7 @@ void RoomTemperatureCorrection::setNewExternalRoomTemperature(float temperature)
 void RoomTemperatureCorrection::recalculateOffset()
 {
     float offset = _currentOffset;
+    logDebugP("Recalculate room temperature offset: external=%.1f °C, aircondition=%.1f °C", _externalRooomTemperature, _aircondtionRoomTemperature);
     if (_externalRooomTemperature != 0.0f && _aircondtionRoomTemperature != 0.0f)
     {
         _currentOffset = _externalRooomTemperature - _aircondtionRoomTemperature;
@@ -40,10 +41,14 @@ void RoomTemperatureCorrection::recalculateOffset()
         _currentOffset = 0.0f;
         logInfoP("Reset room temperature offset to 0.0 °C");
     }
-    if (abs(offset - _currentOffset) > 0.01f)
+    if (_targetTemperature != 0.0f && abs(offset - _currentOffset) > 0.01f)
     {
         logInfoP("Room temperature offset changed from %.1f °C to %.1f °C", offset, _currentOffset);
         setTargetTemperaturToAircondition(_targetTemperature);
+    }
+    else
+    {
+        _usedOffset = 0.0f; // Reset used offset if no target temperature is set
     }
 }
 
@@ -100,7 +105,8 @@ void RoomTemperatureCorrection::setTargetTemperaturToAircondition(float temperat
         logInfoP("Corrected target temperature %.1f °C is above maximum, setting to %.1f °C", _correctedTargetTemperature, _airConditionDriver.getMaximumTargetTemperature());
         _correctedTargetTemperature = _airConditionDriver.getMaximumTargetTemperature();
     }
-    logInfoP("Set target temperatur %.1f °C as %.1f °C to aircondition", temperature, _correctedTargetTemperature);
+    _usedOffset = temperature - _correctedTargetTemperature;
+    logInfoP("Set target temperatur %.1f °C as %.1f °C to aircondition (Used offset: %.1f °C)", temperature, _correctedTargetTemperature, _usedOffset);
     _airConditionDriver.setTargetTemperature(_correctedTargetTemperature);
 }
 
@@ -112,7 +118,7 @@ void RoomTemperatureCorrection::airconditionReportTargetTemperatureChanged(float
 
 float RoomTemperatureCorrection::correctTemperatureFeedbackFromAircondition(float temperature)
 {
-    float result = temperature + _currentOffset;
+    float result = temperature + _usedOffset;
     logInfoP("Correcting temperature feedback from aircondition %.1f °C with offset %.1f °C to %.1f °C", temperature, _currentOffset, result);
     return result;
 }

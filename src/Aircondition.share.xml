@@ -185,9 +185,11 @@
                 <Parameter Id="%AID%_UP-%TT%00005" Offset="1" BitOffset="6" Name="LockBehaviorOn" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Sperre" Value="0" />
                 <!-- Lock Behavior Off -->
                 <Parameter Id="%AID%_UP-%TT%00006" Offset="2" BitOffset="0" Name="LockBehaviorOff" ParameterType="%AID%_PT-AIRLockReleaseBehavior" Text="Verhalten bei Sperre Ende" Value="0" />
-                <!--Wifi LED -->
+                <!-- Wifi LED -->
                 <Parameter Id="%AID%_UP-%TT%00007" Offset="2" BitOffset="2" Name="WifiLED" ParameterType="%AID%_PT-AIRWifiLED" Text="Wifi LED" Value="0" />
-                <!-- 4 bits free-->
+                <!-- External room temperature input  -->
+                <Parameter Id="%AID%_UP-%TT%00008" Offset="2" BitOffset="4" Name="ExternalRoomTemperature" ParameterType="%AID%_PT-OnOffYesNo" Text="Eingang für externe Raumtemperatur" Value="0" />
+                <!-- 3 bits free -->
               </Union>
 
               <!-- *** Mitsubishi *** -->
@@ -218,6 +220,8 @@
               <ParameterRef Id="%AID%_UP-%TT%00006_R-%TT%0000601" RefId="%AID%_UP-%TT%00006" />
               <!-- Wifi LED -->
               <ParameterRef Id="%AID%_UP-%TT%00007_R-%TT%0000701" RefId="%AID%_UP-%TT%00007" />
+              <!-- External room temperature input -->
+              <ParameterRef Id="%AID%_UP-%TT%00008_R-%TT%0000801" RefId="%AID%_UP-%TT%00008" />
 
               <!-- *** Mitsubishi *** -->
 
@@ -439,8 +443,19 @@
                     </choose>
                     <!-- Wifi LED -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00007_R-%TT%0000701" IndentLevel="1" HelpContext="%DOC%" />
-                   
-
+                    <!-- External Room Temperature -->
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />
+                    <choose ParamRefId="%AID%_UP-%TT%00008_R-%TT%0000801">
+                      <when test="1">
+                        <!-- External Room Temperature enabled -->
+                        <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                          <when test="1 2 4">
+                            <!-- Daikin, Midea, Toshiba -->
+                            <ParameterSeparator Id="%AID%_PS-nnn" Text="Das Klimagerät unterstützt keinen externen Temperatursensor. Es wird daher die Funktion durch Vorgabe einer angepassten Solltemperatur für das Klimagerät umgesetzt. Sollte das Klimagerät die Solltemperatur anzeigen, ist diese Anzeige somit falsch." UIHint="Information" />
+                          </when>
+                        </choose>
+                      </when>
+                    </choose>
 
                     <!-- Power -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00000_R-%TT%0000001" />
@@ -538,11 +553,10 @@
                     <ComObjectRefRef RefId="%AID%_O-%TT%00031_R-%TT%0003101" />
                     <!-- Außentemperatur Status -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00032_R-%TT%0003201" />
-                    <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
-                      <when test="3">
-                        <!-- Mitsubishi -->
-
-                        <!-- Eingang Raumtemperatur -->
+                    <!-- External Room Temperature -->
+                    <choose ParamRefId="%AID%_UP-%TT%00008_R-%TT%0000801">
+                      <when test="1">
+                          <!-- Eingang Raumtemperatur -->
                         <ComObjectRefRef RefId="%AID%_O-%TT%00033_R-%TT%0003301" />
                       </when>
                     </choose>

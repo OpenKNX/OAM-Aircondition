@@ -53,7 +53,7 @@ void AirconditionModule::setup()
     }
     if (_airConditionDriver != nullptr)
     {
-        if (!_airConditionDriver->supportExternalRoomTemperatureSensor())
+        if (ParamAIR_ExternalRoomTemperature && !_airConditionDriver->supportExternalRoomTemperatureSensor())
         {
             logInfoP("AirCondition Driver does not support external room temperature sensor, enable RoomTemperatureCorrection");
             _roomTemperatureCorrection = new RoomTemperatureCorrection(*_airConditionDriver);
@@ -297,7 +297,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
         KoAIR_RoomTemperatureInput.valueNoSend(temperature, DPT_Value_Temp);
-        processInputKo(KoAIR_SetTemperature);
+        processInputKo(KoAIR_RoomTemperatureInput);
         return true;
     }
     else if (cmd.starts_with("acroom "))
@@ -613,7 +613,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     return;
                 }
                 logInfoP("Set external sensor room temperature to %.1f °C", roomTemperature);
-                if (_roomTemperatureCorrection == nullptr)
+                if (_roomTemperatureCorrection != nullptr)
                      _roomTemperatureCorrection->setNewExternalRoomTemperature(roomTemperature);
                 else
                     _airConditionDriver->setExternalSensorRoomTemperature(roomTemperature);

@@ -70,6 +70,33 @@ Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Ne
 - Schaltbar über Gruppenobjekt
 
 <!-- DOC -->
+### Eingang für externe Raumtemperatur
+
+Stellt ein Gruppenobjekt für einen externen Raumtemperatursensor bereit.
+Bei Klimageräten die dies nicht unterstüzten, erfolgt die Auswertung in der Steuerung durch Vorgabe einer angepassten Solltemperatur an das Klimagerät.
+
+Wenn beispielsweise das Klimageräte eine Raumtemperatur von 22°C meldet, der externe Raumsensor jedoch 23°C, wird an das Klimagerät eine Solltemperatur übergeben die um die Differenz (in diesem Beispiel 1°C) kleiner ist, als die tatsächlich vorgegeben Solltemperatur.
+
+Beispiel:
+
+- Soll-Temperatur Vorgabe: 21°C
+- Raum-Temperaturmessung des Klimagerätes 21°C
+- Exterer Temperatursensor meldet 22°C
+- -> Daraus ergibt sich eine Differenz von 1°C zwischen interne und externer Temperatur
+- -> In diesem Fall wird dem Klimageräte eine Solltemperatur um 1° weniger als die eigentliche Sollwertvorgabe von 21° übergeben, also 20°
+
+Damit wird erreicht, das Klimageräte nicht aufhöhrt zu kühlen, da die interne Vorgabe an das Gerät 20°C lautet, die Raumtemperatur des Klimagerätes aber 21°C misst.
+
+Ein weiterer Vorteil ist eine genauere Temperaturvorgabe. Die meisten Klimageräte unterstützen nur eine Vorgabe von ganzen Grad. Die Regelung ist aber in der Lage durch ständiges Anpassen der Solltemperatur auch zwischenbereiche zu erreichen.
+
+Die Anpassung der Solltemperatur geht natürlich nur innerhalb der Grenzen des Klimagerätes. D.H. wenn die errechnet Vorgabe für das Klimageräte 15°C wäre, dass Klimageräte aber als kleinste Temperatur 17°C unterstützt, kann keine Anpassung erfolgen.
+
+Wichtig: Durch die modifizierte Solltemperatur funktioniert eine eventuell am Klimagerät vorhanden Solltemperatur-Anzeige nicht richtig und kann daher nicht mehr genutzt werden kann.
+Das Gruppenobjekt 'Solltemperatur Status' liefert aber den für richtigen, für die Regelung verwendete Temperatur.
+Eine Änderung der Solltemperatur über die Infrarot Fernbedienung funktioniert weiterhin, da die Steuerung den angeforderten Werte entsprechend korrigiert.
+
+
+<!-- DOC -->
 ### Freigabe- / Sperrobjekt
 
 Über diesen Konfigurationswert kann ein Sperrobjekt bzw. Freigabeobjekt angezeigt werden.
