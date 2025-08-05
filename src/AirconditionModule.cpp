@@ -36,7 +36,7 @@ void AirconditionModule::setup()
             break;
         case 2: // Midea
             logInfoP("Initialize ToshibaDriver");
-            _airConditionDriver = new ToshibaDriver(*this);
+            _airConditionDriver = new ToshibaDriver(*this);    
             break;
         case 3: // Mitsubishi
             logInfoP("Initialize MitsubishiDriver");
@@ -669,12 +669,16 @@ void AirconditionModule::powerChanged(bool power)
         KoAIR_OperationModeDehumidificationState.valueCompare(false, DPT_Switch);
     }
 }
-void AirconditionModule::targetTemperatureChanged(float temperature, bool isFeedbackFromSettin)
+void AirconditionModule::targetTemperatureChanged(float temperature, bool isFeedbackFromSetting)
 {
-    if (_roomTemperatureCorrection != nullptr && !isFeedbackFromSettin)
+    if (_roomTemperatureCorrection != nullptr)
     {
-        _roomTemperatureCorrection->airconditionReportTargetTemperatureChanged(temperature);
-        return;   
+        if (!isFeedbackFromSetting)
+        {   
+            _roomTemperatureCorrection->airconditionReportTargetTemperatureChanged(temperature);
+            return;
+        }
+        temperature = _roomTemperatureCorrection->correctTemperatureFeedbackFromAircondition(temperature);
     }
 
     logInfoP("AirCondition report target temperature changed to %.1f °C", temperature);

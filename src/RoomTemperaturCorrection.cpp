@@ -109,3 +109,10 @@ void RoomTemperatureCorrection::airconditionReportTargetTemperatureChanged(float
     logInfoP("Aircondition reported target temperature changed to %.1f °C, try to correct it", temperature);
     setTargetTemperaturToAircondition(temperature);
 }
+
+float RoomTemperatureCorrection::correctTemperatureFeedbackFromAircondition(float temperature)
+{
+    float result = temperature + _currentOffset;
+    logInfoP("Correcting temperature feedback from aircondition %.1f °C with offset %.1f °C to %.1f °C", temperature, _currentOffset, result);
+    return result;
+}

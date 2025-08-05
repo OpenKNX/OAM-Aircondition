@@ -24,7 +24,8 @@ public:
     void setNewExternalRoomTemperature(float temperature);
     void setTargetTemperaturToAircondition(float temperature);
     void airconditionReportTargetTemperatureChanged(float temperature);
-     void loop();
+    float correctTemperatureFeedbackFromAircondition(float temperature);
+    void loop();
   
    
 
