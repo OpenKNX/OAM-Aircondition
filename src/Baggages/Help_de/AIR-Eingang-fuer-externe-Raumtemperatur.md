@@ -23,4 +23,3 @@ Wichtig: Durch die modifizierte Solltemperatur funktioniert eine eventuell am Kl
 Das Gruppenobjekt 'Solltemperatur Status' liefert aber den für richtigen, für die Regelung verwendete Temperatur.
 Eine Änderung der Solltemperatur über die Infrarot Fernbedienung funktioniert weiterhin, da die Steuerung den angeforderten Werte entsprechend korrigiert.
 
-

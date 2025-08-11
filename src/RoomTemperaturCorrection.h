@@ -8,7 +8,7 @@ class RoomTemperatureCorrection {
     AirConditionDriver& _airConditionDriver;
 private:
     float _aircondtionRoomTemperature = 0.0f; 
-    float _externalRooomTemperature = 0.0f;
+    float _externalRoomTemperature = 0.0f;
     float _currentOffset = 0.0f; // Current offset applied to the room temperature
     float _usedOffset = 0.0f; // Offset used for the last target temperature
     float _targetTemperature = 0.0f; // Last target temperature set to the air condition
@@ -21,6 +21,7 @@ private:
  
 public:
     RoomTemperatureCorrection(AirConditionDriver& airConditionDriver);
+    void setup();
     void setAirconditionRoomTemperatur(float temperature);
     void setNewExternalRoomTemperature(float temperature);
     void setTargetTemperaturToAircondition(float temperature);

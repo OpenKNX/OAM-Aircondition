@@ -77,6 +77,14 @@
                 </TypeRestriction>
               </ParameterType>
 
+                <ParameterType Id="%AID%_PT-AIRExternTemperatureWatchdogBehavior" Name="AIRExternTemperatureWatchdogBehavior">
+                <TypeRestriction Base="Value" SizeInBit="2">
+                  <Enumeration Text="Nein" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Ja, nach Zeitablauf Lesen, dann ignorieren" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Ja, nach Zeitablauf ignorieren" Value="2" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
               <!-- *** Scene *** -->
 
               <ParameterType Id="%AID%_PT-AIRSceneNumber" Name="SceneNumber">
@@ -167,7 +175,7 @@
             </ParameterTypes>
             <Parameters>
               <!-- Base Settings -->
-              <Union SizeInBit="24">
+              <Union SizeInBit="40">
                 <Memory CodeSegment="%MID%" Offset="0" BitOffset="0" />
                 <!-- Device Type -->
                 <Parameter Id="%AID%_UP-%TT%00000" Offset="0" BitOffset="0" Name="DeviceType" ParameterType="%AID%_PT-AIRDeviceType" Text="Hersteller" Value="0" />
@@ -189,7 +197,17 @@
                 <Parameter Id="%AID%_UP-%TT%00007" Offset="2" BitOffset="2" Name="WifiLED" ParameterType="%AID%_PT-AIRWifiLED" Text="Wifi LED" Value="0" />
                 <!-- External room temperature input  -->
                 <Parameter Id="%AID%_UP-%TT%00008" Offset="2" BitOffset="4" Name="ExternalRoomTemperature" ParameterType="%AID%_PT-OnOffYesNo" Text="Eingang für externe Raumtemperatur" Value="0" />
-                <!-- 3 bits free -->
+                <!-- Climate set temperatur  -->
+                <Parameter Id="%AID%_UP-%TT%00009" Offset="2" BitOffset="5" Name="ClimateSetTemperature" ParameterType="%AID%_PT-OnOffYesNo" Text="Gruppenobjekt 'Klimagerät Solltemperatur Ausgang' (für Diagnose)" Value="0" />
+                <!-- External room temperatur watchdog -->
+                <Parameter Id="%AID%_UP-%TT%00010" Offset="2" BitOffset="6" Name="ExternTempWatchdog" ParameterType="%AID%_PT-AIRExternTemperatureWatchdogBehavior" Text="Externe Raumtemperatur überwachen" Value="0" />      
+                <!-- Watdchdog DelayBase -->
+                <Parameter Id="%AID%_UP-%TT%00011" Offset="3" BitOffset="0" Name="CH%C%MonitoringWDTTimeoutDelayBase"   ParameterType="%AID%_PT-FCBDelayBaseMin" Text="Überwachung Zeitbasis" Value="1" />
+                <!-- Watdchdog DelayTime -->
+                <Parameter Id="%AID%_UP-%TT%00012" Offset="3" BitOffset="2" Name="CH%C%MonitoringWDTTimeoutDelayTime"   ParameterType="%AID%_PT-DelayTimeMin1"    Text="Überwachung Zeit" Value="60" />
+                <!-- ^^^  Need 2 Bytes ^^^ -->
+         
+
               </Union>
 
               <!-- *** Mitsubishi *** -->
@@ -222,6 +240,14 @@
               <ParameterRef Id="%AID%_UP-%TT%00007_R-%TT%0000701" RefId="%AID%_UP-%TT%00007" />
               <!-- External room temperature input -->
               <ParameterRef Id="%AID%_UP-%TT%00008_R-%TT%0000801" RefId="%AID%_UP-%TT%00008" />
+              <!-- Climate set temperature -->
+              <ParameterRef Id="%AID%_UP-%TT%00009_R-%TT%0000901" RefId="%AID%_UP-%TT%00009" />
+              <!-- External room temperature watchdog -->
+              <ParameterRef Id="%AID%_UP-%TT%00010_R-%TT%0001001" RefId="%AID%_UP-%TT%00010" />
+              <!-- Watchdog DelayBase -->
+              <ParameterRef Id="%AID%_UP-%TT%00011_R-%TT%0001101" RefId="%AID%_UP-%TT%00011" />
+              <!-- Watchdog DelayTime -->
+              <ParameterRef Id="%AID%_UP-%TT%00012_R-%TT%0001201" RefId="%AID%_UP-%TT%00012" />
 
               <!-- *** Mitsubishi *** -->
 
@@ -304,7 +330,9 @@
               <ComObject Id="%AID%_O-%TT%00034" Number="33" Name="Scene" Text="Szene" FunctionText="Szene" ObjectSize="1 Byte" DatapointType="DPST-17-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Wifi LED -->
               <ComObject Id="%AID%_O-%TT%00035" Number="34" Name="WifiLED" Text="Wifi LED Schalten" FunctionText="Wifi LED Schalten" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-      
+              <!-- Klimagerät Solltemperatur Status -->
+              <ComObject Id="%AID%_O-%TT%00036" Number="35" Name="ClimateTargetTemperatur" Text="Klimagerät Solltemperatur Ausgang" FunctionText="Klimagerät Solltemperatur Ausgang (Diagnose)" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+            
             </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -379,6 +407,8 @@
               <ComObjectRef Id="%AID%_O-%TT%00034_R-%TT%0003401" RefId="%AID%_O-%TT%00034" />
               <!-- Wifi LED -->
               <ComObjectRef Id="%AID%_O-%TT%00035_R-%TT%0003501" RefId="%AID%_O-%TT%00035" />
+              <!-- Klimagerät Solltemperatur Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00036_R-%TT%0003601" RefId="%AID%_O-%TT%00036" />
 
             </ComObjectRefs>
           </Static>
@@ -443,6 +473,8 @@
                     </choose>
                     <!-- Wifi LED -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00007_R-%TT%0000701" IndentLevel="1" HelpContext="%DOC%" />
+
+                    <ParameterSeparator Id="%AID%_PS-nnn" Text="Externe Raumtemperaturmessung" UIHint="Headline" />
                     <!-- External Room Temperature -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />
                     <choose ParamRefId="%AID%_UP-%TT%00008_R-%TT%0000801">
@@ -454,6 +486,33 @@
                             <ParameterSeparator Id="%AID%_PS-nnn" Text="Das Klimagerät unterstützt keinen externen Temperatursensor. Es wird daher die Funktion durch Vorgabe einer angepassten Solltemperatur für das Klimagerät umgesetzt. Sollte das Klimagerät die Solltemperatur anzeigen, ist diese Anzeige somit falsch." UIHint="Information" />
                           </when>
                         </choose>
+                        <!-- External room temperature watchdog -->
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00010_R-%TT%0001001" IndentLevel="1" HelpContext="%DOC%" />
+                        <choose ParamRefId="%AID%_UP-%TT%00010_R-%TT%0001001">
+                          <when test="1">
+                      
+                          <ParameterBlock Id="%AID%_PB-nnn" Name="f%C%MonitoringWatchdogTime" Inline="true" Layout="Grid" HelpContext="AIR-Ueberwachungszeit">
+                            <Rows>
+                              <Row Id="%AID%_PB-nnn_R-1" Name="Row1" />
+                            </Rows>
+                            <Columns>
+                              <Column Id="%AID%_PB-nnn_C-1" Name="Col2" Width="45%" />
+                              <Column Id="%AID%_PB-nnn_C-2" Name="Col3" Width="15%" />
+                              <Column Id="%AID%_PB-nnn_C-3" Name="Col4" Width="25%" />
+                            </Columns>
+                            <ParameterSeparator Id="%AID%_PS-nnn" Text="    Überwachungszeit" Cell="1,1" />
+                            <!-- Watdchdog DelayTime -->
+                            <ParameterRefRef  IndentLevel="2" RefId="%AID%_UP-%TT%00012_R-%TT%0001201" Cell="1,2" HelpContext="%DOC%" />
+                            <!-- Watdchdog DelayBase -->
+                            <ParameterRefRef  IndentLevel="2" RefId="%AID%_UP-%TT%00011_R-%TT%0001101" Cell="1,3" HelpContext="%DOC%" />
+                          </ParameterBlock>
+                       
+                          </when> 
+                        </choose>
+
+                        <!-- Climate set temperature -->
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00009_R-%TT%0000901" IndentLevel="1" HelpContext="%DOC%" />
+                     
                       </when>
                     </choose>
 
@@ -570,8 +629,16 @@
                         <ComObjectRefRef RefId="%AID%_O-%TT%00035_R-%TT%0003501" />
                       </when>
                     </choose>
+                     <!-- Climate set temperature -->
+                    <choose ParamRefId="%AID%_UP-%TT%00009_R-%TT%0000901">
+                      <when test="1">
+                        <!-- Klimagerät Solltemperatur Status -->
+                        <ComObjectRefRef RefId="%AID%_O-%TT%00036_R-%TT%0003601" />
+                      </when>
+                    </choose>
                   </when>
                 </choose>
+
 
               </ParameterBlock>
               <!-- Device Type -->

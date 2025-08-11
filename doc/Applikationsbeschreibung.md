@@ -95,6 +95,36 @@ Wichtig: Durch die modifizierte Solltemperatur funktioniert eine eventuell am Kl
 Das Gruppenobjekt 'Solltemperatur Status' liefert aber den für richtigen, für die Regelung verwendete Temperatur.
 Eine Änderung der Solltemperatur über die Infrarot Fernbedienung funktioniert weiterhin, da die Steuerung den angeforderten Werte entsprechend korrigiert.
 
+<!-- DOC -->
+### Gruppenobjekt 'Klimagerät Solltemperatur Ausgang' (für Diagnose)
+
+Wird die Regelung für die externe Raumtemperatur verwendet, kann über ein Gruppenobjekt die Stelltemperatur (Solltemperatur) die dem Klimagerät aktuell übergeben ist, ausgelesen werden.
+
+<!-- DOC -->
+### Externe Raumtemperatur überwachen
+
+Wird die Regelung für die externe Raumtemperatur verwendet, kann der externe Raumtemperatureingang überwacht werden.
+
+- Nein
+- Ja, nach Zeitablauf Lesen, dann ignorieren
+  Bleibt das Telegramm für die externe Raumtemperatur länger als die eingestellte Zeit aus, wird zuerst eine Lesesignal geschickt, danach wird auf den Raumtemperatursensor des Klimagerätes umgeschalten
+- Ja, nach Zeitablauf ignorieren
+  Bleibt das Telegramm für die externe Raumtemperatur länger als die eingestellte Zeit aus, wird auf den Raumtemperatursensor des Klimagerätes umgeschalten
+
+<!-- DOC  -->
+### Überwachungszeit
+
+Überwachungszeit, nach der beim Ausbleiben von Telegrammen die eingestellte Aktion ausgelöst wird.
+
+<!-- DOC  -->
+#### Überwachung Zeitbasis
+
+Die Einheit für die Überwachungszeit
+
+<!-- DOC  -->
+#### Überwachung Zeit
+
+Die Überwachungszeit
 
 <!-- DOC -->
 ### Freigabe- / Sperrobjekt

@@ -57,6 +57,7 @@ void AirconditionModule::setup()
         {
             logInfoP("AirCondition Driver does not support external room temperature sensor, enable RoomTemperatureCorrection");
             _roomTemperatureCorrection = new RoomTemperatureCorrection(*_airConditionDriver);
+            _roomTemperatureCorrection->setup();
         }
         _sceneHandler = new SceneHandler(*_airConditionDriver);
         setLocked(false);

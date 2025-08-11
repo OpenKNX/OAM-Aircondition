@@ -9,7 +9,7 @@
                                          (time & 0x3FFF) * 3600000 ) : 0 )
                                              
 #define MAIN_OpenKnxId 0xAE
-#define MAIN_ApplicationNumber 54
+#define MAIN_ApplicationNumber 53
 #define MAIN_ApplicationVersion 2
 #define MAIN_ParameterSize 6101
 #define MAIN_MaxKoNumber 399
@@ -230,6 +230,18 @@
 #define AIR_ExternalRoomTemperature             223      // 1 Bit, Bit 3
 #define     AIR_ExternalRoomTemperatureMask 0x08
 #define     AIR_ExternalRoomTemperatureShift 3
+#define AIR_ClimateSetTemperature               223      // 1 Bit, Bit 2
+#define     AIR_ClimateSetTemperatureMask 0x04
+#define     AIR_ClimateSetTemperatureShift 2
+#define AIR_ExternTempWatchdog                  223      // 2 Bits, Bit 1-0
+#define     AIR_ExternTempWatchdogMask 0x03
+#define     AIR_ExternTempWatchdogShift 0
+#define AIR_CHMonitoringWDTTimeoutDelayBase     224      // 2 Bits, Bit 7-6
+#define     AIR_CHMonitoringWDTTimeoutDelayBaseMask 0xC0
+#define     AIR_CHMonitoringWDTTimeoutDelayBaseShift 6
+#define AIR_CHMonitoringWDTTimeoutDelayTime     224      // 14 Bits, Bit 13-0
+#define     AIR_CHMonitoringWDTTimeoutDelayTimeMask 0x3FFF
+#define     AIR_CHMonitoringWDTTimeoutDelayTimeShift 0
 #define AIR_Mit_MinTemp                         224      // 8 Bits, Bit 7-0
 #define AIR_SCAActive                           241      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
@@ -370,6 +382,16 @@
 #define ParamAIR_WifiLED                             ((knx.paramByte(AIR_WifiLED) & AIR_WifiLEDMask) >> AIR_WifiLEDShift)
 // Eingang für externe Raumtemperatur
 #define ParamAIR_ExternalRoomTemperature             ((bool)(knx.paramByte(AIR_ExternalRoomTemperature) & AIR_ExternalRoomTemperatureMask))
+// Gruppenobjekt 'Klimagerät Solltemperatur Ausgang' (für Diagnose)
+#define ParamAIR_ClimateSetTemperature               ((bool)(knx.paramByte(AIR_ClimateSetTemperature) & AIR_ClimateSetTemperatureMask))
+// Externe Raumtemperatur überwachen
+#define ParamAIR_ExternTempWatchdog                  (knx.paramByte(AIR_ExternTempWatchdog) & AIR_ExternTempWatchdogMask)
+// Überwachung Zeitbasis
+#define ParamAIR_CHMonitoringWDTTimeoutDelayBase     ((knx.paramByte(AIR_CHMonitoringWDTTimeoutDelayBase) & AIR_CHMonitoringWDTTimeoutDelayBaseMask) >> AIR_CHMonitoringWDTTimeoutDelayBaseShift)
+// Überwachung Zeit
+#define ParamAIR_CHMonitoringWDTTimeoutDelayTime     (knx.paramWord(AIR_CHMonitoringWDTTimeoutDelayTime) & AIR_CHMonitoringWDTTimeoutDelayTimeMask)
+// Überwachung Zeit (in Millisekunden)
+#define ParamAIR_CHMonitoringWDTTimeoutDelayTimeMS   (paramDelay(knx.paramWord(AIR_CHMonitoringWDTTimeoutDelayTime)))
 // Minimale Soll-Temperatur
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
 // Szene A
@@ -568,6 +590,7 @@
 #define AIR_KoRoomTemperatureInput 432
 #define AIR_KoScene 433
 #define AIR_KoWifiLED 434
+#define AIR_KoClimateTargetTemperatur 435
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -639,6 +662,8 @@
 #define KoAIR_Scene                               (knx.getGroupObject(AIR_KoScene))
 // Wifi LED Schalten
 #define KoAIR_WifiLED                             (knx.getGroupObject(AIR_KoWifiLED))
+// Klimagerät Solltemperatur Ausgang
+#define KoAIR_ClimateTargetTemperatur             (knx.getGroupObject(AIR_KoClimateTargetTemperatur))
 
 #define LOG_BuzzerInstalled                     321      // 1 Bit, Bit 7
 #define     LOG_BuzzerInstalledMask 0x80

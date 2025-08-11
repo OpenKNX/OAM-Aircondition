@@ -11,6 +11,16 @@ std::string RoomTemperatureCorrection::logPrefix()
     return "RoomTemperatureCorrection";
 }
 
+void RoomTemperatureCorrection::setup()
+{
+    logInfoP("RoomTemperatureCorrection setup");
+    if (!KoAIR_RoomTemperatureInput.initialized())
+    {
+        KoAIR_RoomTemperatureInput.requestObjectRead();
+        _lastExternalRoomTemperatureRead = max(1UL, millis());
+    }
+}
+
 void RoomTemperatureCorrection::setAirconditionRoomTemperatur(float temperature)
 {
     logInfoP("Set aircondition room temperature to %.1f °C", temperature);
@@ -21,19 +31,23 @@ void RoomTemperatureCorrection::setAirconditionRoomTemperatur(float temperature)
 void RoomTemperatureCorrection::setNewExternalRoomTemperature(float temperature)
 {
     logInfoP("Set new external room temperature to %.1f °C", temperature);
-    _externalRooomTemperature = temperature;
+    _externalRoomTemperature = temperature;
     _lastExternalRoomTemperatureRead = 0;
-    _lastExternalRoomTemperaturUpdate = max(1UL, millis());
+    // <Enumeration Text="Nein" Value="0" Id="%ENID%" />
+    // <Enumeration Text="Ja, nach Zeitablauf Lesen, dann ignorieren" Value="1" Id="%ENID%" />
+    // <Enumeration Text="Ja, nach Zeitablauf ignorieren" Value="2" Id="%ENID%" />
+    if (ParamAIR_ExternTempWatchdog > 0)
+        _lastExternalRoomTemperaturUpdate = max(1UL, millis());
     recalculateOffset();
 }
 
 void RoomTemperatureCorrection::recalculateOffset()
 {
     float offset = _currentOffset;
-    logDebugP("Recalculate room temperature offset: external=%.1f °C, aircondition=%.1f °C", _externalRooomTemperature, _aircondtionRoomTemperature);
-    if (_externalRooomTemperature != 0.0f && _aircondtionRoomTemperature != 0.0f)
+    logDebugP("Recalculate room temperature offset: external=%.1f °C, aircondition=%.1f °C", _externalRoomTemperature, _aircondtionRoomTemperature);
+    if (_externalRoomTemperature != 0.0f && _aircondtionRoomTemperature != 0.0f)
     {
-        _currentOffset = _externalRooomTemperature - _aircondtionRoomTemperature;
+        _currentOffset = _externalRoomTemperature - _aircondtionRoomTemperature;
         logInfoP("Calculated room temperature offset: %.1f °C", _currentOffset);
     }
     else
@@ -55,19 +69,33 @@ void RoomTemperatureCorrection::recalculateOffset()
 void RoomTemperatureCorrection::loop()
 {
     unsigned long currentMillis = millis();
-    if (_lastExternalRoomTemperaturUpdate && (currentMillis - _lastExternalRoomTemperaturUpdate > 1000 * 60 * 10)) // 10 minutes timeout
+    if (_lastExternalRoomTemperaturUpdate && (currentMillis - _lastExternalRoomTemperaturUpdate > ParamAIR_CHMonitoringWDTTimeoutDelayTimeMS)) // 10 minutes timeout
     {
-        logInfoP("External room temperature not updated for more than 10 minutes, reading");
-        KoAIR_RoomTemperatureInput.requestObjectRead();
-        _lastExternalRoomTemperaturUpdate = 0;
-        _lastExternalRoomTemperatureRead = max(1UL, currentMillis);
+         // <Enumeration Text="Nein" Value="0" Id="%ENID%" />
+        // <Enumeration Text="Ja, nach Zeitablauf Lesen, dann ignorieren" Value="1" Id="%ENID%" />
+        // <Enumeration Text="Ja, nach Zeitablauf ignorieren" Value="2" Id="%ENID%" />
+        if (ParamAIR_ExternTempWatchdog == 1)
+        {
+            logInfoP("External room temperature not updated for more than %d minutes, reading", (int) (ParamAIR_CHMonitoringWDTTimeoutDelayTimeMS / 1000 / 60));
+
+            KoAIR_RoomTemperatureInput.requestObjectRead();
+            _lastExternalRoomTemperaturUpdate = 0;
+            _lastExternalRoomTemperatureRead = max(1UL, currentMillis);
+        }
+        else
+        {
+            logErrorP("External room temperature not updated for more than %d minutes, ignoring", (int) (ParamAIR_CHMonitoringWDTTimeoutDelayTimeMS / 1000 / 60));
+            _lastExternalRoomTemperatureRead = 0;
+            _externalRoomTemperature = 0.0f;
+            recalculateOffset();
+        }
         
     }
     else if (_lastExternalRoomTemperatureRead && (currentMillis - _lastExternalRoomTemperatureRead > 1000 * 5)) // 5 seconds timeout
     {
-        logInfoP("External room temperature not read for more than 5 seconds, resetting");
+        logErrorP("External room temperature not read for more than 5 seconds, ignoring");
         _lastExternalRoomTemperatureRead = 0;
-        _externalRooomTemperature = 0.0f;
+        _externalRoomTemperature = 0.0f;
         recalculateOffset();
     }
 }
@@ -113,6 +141,8 @@ void RoomTemperatureCorrection::setTargetTemperaturToAircondition(float temperat
 void RoomTemperatureCorrection::airconditionReportTargetTemperatureChanged(float temperature)
 {
     logInfoP("Aircondition reported target temperature changed to %.1f °C, try to correct it", temperature);
+    if (ParamAIR_ClimateSetTemperature)
+        KoAIR_ClimateTargetTemperatur.value(temperature, DPT_Value_Temp);
     setTargetTemperaturToAircondition(temperature);
 }
 
@@ -120,5 +150,7 @@ float RoomTemperatureCorrection::correctTemperatureFeedbackFromAircondition(floa
 {
     float result = temperature + _usedOffset;
     logInfoP("Correcting temperature feedback from aircondition %.1f °C with offset %.1f °C to %.1f °C", temperature, _currentOffset, result);
+     if (ParamAIR_ClimateSetTemperature)
+        KoAIR_ClimateTargetTemperatur.value(temperature, DPT_Value_Temp);
     return result;
 }
