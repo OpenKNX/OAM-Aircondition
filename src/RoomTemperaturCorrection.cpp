@@ -1,5 +1,6 @@
 #include "RoomTemperaturCorrection.h"
 #include "AirConditionDriver.h"
+#include <Preferences.h>
 
 RoomTemperatureCorrection::RoomTemperatureCorrection(AirConditionDriver& airConditionDriver)
     : _airConditionDriver(airConditionDriver)
@@ -14,6 +15,29 @@ std::string RoomTemperatureCorrection::logPrefix()
 void RoomTemperatureCorrection::setup()
 {
     logInfoP("RoomTemperatureCorrection setup");
+    if (KoAIR_SetTemperature.initialized())
+    {
+        _targetTemperature = KoAIR_SetTemperature.value(DPT_Value_Temp);
+        logInfoP("Restore target temperature from KoAIR_SetTemperature: %.1f °C", _targetTemperature);
+    }
+    else
+    {
+        Preferences preferences;
+        preferences.begin("RoomTempCorrect", true);
+        _targetTemperature = preferences.getFloat("Target", 0.0f);
+        preferences.end();
+    }
+    if (_targetTemperature != 0.0f)
+    {
+        KoAIR_SetTemperatureState.value(_targetTemperature, DPT_Value_Temp);
+        logInfoP("Restore target temperature to %.1f °C", _targetTemperature);
+    }
+    else
+    {
+        logInfoP("No target temperature set");
+    }
+
+   
     if (!KoAIR_RoomTemperatureInput.initialized())
     {
         KoAIR_RoomTemperatureInput.requestObjectRead();
@@ -68,6 +92,12 @@ void RoomTemperatureCorrection::recalculateOffset()
 
 void RoomTemperatureCorrection::loop()
 {
+    if (_correctedTargetTemperatureNeededSince != 0 &&  millis() - _correctedTargetTemperatureNeededSince > 8000)
+    {
+        _correctedTargetTemperatureNeededSince = 0;
+        logInfoP("Sent target temperature %.1f °C for correction", _tartetTemperaturNeedToSent);
+        setTargetTemperaturToAircondition(_tartetTemperaturNeedToSent);
+    }
     unsigned long currentMillis = millis();
     if (_lastExternalRoomTemperaturUpdate && (currentMillis - _lastExternalRoomTemperaturUpdate > ParamAIR_CHMonitoringWDTTimeoutDelayTimeMS)) // 10 minutes timeout
     {
@@ -104,6 +134,13 @@ void RoomTemperatureCorrection::setTargetTemperaturToAircondition(float temperat
 {
     logInfoP("Set target temperature to %.1f °C", temperature);
     _targetTemperature = temperature;
+     Preferences preferences;
+    preferences.begin("RoomTempCorrect", false);
+    if (preferences.getFloat("Target", 0.0f) != _targetTemperature)
+        preferences.putFloat("Target", _targetTemperature);
+    preferences.end();
+
+   
     auto calculatedTemperature = temperature - _currentOffset;
     float precision = 1 / _airConditionDriver.accuracyInDegrees();
     _correctedTargetTemperature = round(calculatedTemperature * precision) / precision; // Round to the air condition resolution
@@ -115,12 +152,12 @@ void RoomTemperatureCorrection::setTargetTemperaturToAircondition(float temperat
         if (_currentOffset > 0)
         {
             _correctedTargetTemperature -= _airConditionDriver.accuracyInDegrees();
-            logInfoP("Target temperature %.1f °C would be the correct value, but room is still to hot, set to %.1f °C", _targetTemperature, _correctedTargetTemperature);
+            logInfoP("Target temperature %.1f °C would be correct, but room is to hot, set %.1f °C", _targetTemperature, _correctedTargetTemperature);
         }
         else
         {
             _correctedTargetTemperature += _airConditionDriver.accuracyInDegrees();
-            logInfoP("Target temperature %.1f °C would be the correct value, but room is still to cold, set to %.1f °C", _targetTemperature, _correctedTargetTemperature);
+            logInfoP("Target temperature %.1f °C would be correct, but room is to cold, set %.1f °C", _targetTemperature, _correctedTargetTemperature);
         }
     }
     if (_correctedTargetTemperature < _airConditionDriver.getMinimumTargetTemperature())
@@ -140,16 +177,27 @@ void RoomTemperatureCorrection::setTargetTemperaturToAircondition(float temperat
 
 void RoomTemperatureCorrection::airconditionReportTargetTemperatureChanged(float temperature)
 {
+    _hasFirstTargetTemperaturFeedback = true;
     logInfoP("Aircondition reported target temperature changed to %.1f °C, try to correct it", temperature);
     if (ParamAIR_ClimateSetTemperature)
         KoAIR_ClimateTargetTemperatur.value(temperature, DPT_Value_Temp);
-    setTargetTemperaturToAircondition(temperature);
+    _correctedTargetTemperatureNeededSince = max(1UL, millis());
+    _tartetTemperaturNeedToSent = temperature;
 }
 
 float RoomTemperatureCorrection::correctTemperatureFeedbackFromAircondition(float temperature)
 {
+    if (!_hasFirstTargetTemperaturFeedback)
+    {
+        _hasFirstTargetTemperaturFeedback = true;
+        _correctedTargetTemperatureNeededSince = max(1UL, millis());
+        _tartetTemperaturNeedToSent = _targetTemperature;
+        logInfoP("First target temperature feedback from aircondition: %.1f °C will be ignored, change to %.1f °C", temperature, _targetTemperature);
+        return _targetTemperature;
+    }
+
     float result = temperature + _usedOffset;
-    logInfoP("Correcting temperature feedback from aircondition %.1f °C with offset %.1f °C to %.1f °C", temperature, _currentOffset, result);
+    logInfoP("Correcting temperature feedback from aircondition %.1f °C with offset %.1f °C to %.1f °C", temperature, _usedOffset, result);
      if (ParamAIR_ClimateSetTemperature)
         KoAIR_ClimateTargetTemperatur.value(temperature, DPT_Value_Temp);
     return result;

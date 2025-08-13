@@ -7,6 +7,9 @@ class RoomTemperatureCorrection {
 
     AirConditionDriver& _airConditionDriver;
 private:
+    bool _hasFirstTargetTemperaturFeedback = false;
+    unsigned long _correctedTargetTemperatureNeededSince = 0;
+    float _tartetTemperaturNeedToSent = 0;
     float _aircondtionRoomTemperature = 0.0f; 
     float _externalRoomTemperature = 0.0f;
     float _currentOffset = 0.0f; // Current offset applied to the room temperature

@@ -300,10 +300,10 @@
               <ComObject Id="%AID%_O-%TT%00019" Number="18" Name="LouverVerticalSwingState" Text="Lamelle Vertikal Bewegen Status" FunctionText="Lamelle Vertikal Bewegen Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Vertikal Höher/Tiefer -->
               <ComObject Id="%AID%_O-%TT%00020" Number="19" Name="LouverVerticalUpDown" Text="Lamelle Vertikal Höher/Tiefer" FunctionText="Lamelle Vertikal Höher/Tiefer" ObjectSize="1 Bit" DatapointType="DPST-1-7" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-              <!-- Lamelle Veritkale Position -->
-              <ComObject Id="%AID%_O-%TT%00024" Number="20" Name="LouverVerticalPosition" Text="Lamelle Vertikale Position" FunctionText="Lamelle Veritkale Position" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-              <!-- Lamelle Veritkale Position Status -->
-              <ComObject Id="%AID%_O-%TT%00025" Number="21" Name="LouverVerticalPositionState" Text="Lamelle Vertikale Position Status" FunctionText="Lamelle Veritkale Position Status" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Lamelle Vertikale Position -->
+              <ComObject Id="%AID%_O-%TT%00024" Number="20" Name="LouverVerticalPosition" Text="Lamelle Vertikale Position" FunctionText="Lamelle Vertikale Position" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Lamelle Vertikale Position Status -->
+              <ComObject Id="%AID%_O-%TT%00025" Number="21" Name="LouverVerticalPositionState" Text="Lamelle Vertikale Position Status" FunctionText="Lamelle Vertikale Position Status" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Horizontal Bewegen -->
               <ComObject Id="%AID%_O-%TT%00021" Number="22" Name="LouverHorizontalSwing" Text="Lamelle Horizontal Bewegen" FunctionText="Lamelle Horizontal Bewegen" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Lamelle Horizontal Bewegen Status -->
@@ -325,7 +325,7 @@
               <!-- Außentemperatur Status -->
               <ComObject Id="%AID%_O-%TT%00032" Number="31" Name="OutsideTemperatureState" Text="Außentemperatur Status" FunctionText="Außentemperatur Status" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Eingang Raumtemperatur -->
-              <ComObject Id="%AID%_O-%TT%00033" Number="32" Name="RoomTemperatureInput" Text="Eingang Raumtemperatur" FunctionText="Eingang Raumtemperatur" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00033" Number="32" Name="RoomTemperatureInput" Text="Eingang Raumtemperatur" FunctionText="Eingang Raumtemperatur" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Enabled" UpdateFlag="Enabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Szene -->
               <ComObject Id="%AID%_O-%TT%00034" Number="33" Name="Scene" Text="Szene" FunctionText="Szene" ObjectSize="1 Byte" DatapointType="DPST-17-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Wifi LED -->
@@ -444,7 +444,6 @@
                   <when test="!=0">
 
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
-
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="Basiseinstellungen" UIHint="Headline" />
                     <!-- Start Behavior -->
                     <!--<ParameterRefRef RefId="%AID%_UP-%TT%00001_R-%TT%0000101" IndentLevel="1" HelpContext="%DOC%"/>-->
@@ -474,6 +473,7 @@
                     <!-- Wifi LED -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00007_R-%TT%0000701" IndentLevel="1" HelpContext="%DOC%" />
 
+                    <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="Externe Raumtemperaturmessung" UIHint="Headline" />
                     <!-- External Room Temperature -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />

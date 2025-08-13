@@ -201,6 +201,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             break;
         case 16: // probably ACK for issued command
             logDebugP("Received message with length: %d and value %s", length, toHexString(rawData).c_str());
+            _receivedMessage.clear();
             return;
         case 17: // response to requestData with the actual value of sensor/setting
             commandType = static_cast<ToshibaCommandType>(rawData[14]);

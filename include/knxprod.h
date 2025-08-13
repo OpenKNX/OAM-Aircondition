@@ -8,11 +8,15 @@
             (time & 0xC000) == 0x8000 ? ((time & 0x3FFF) > 1000 ? 3600000 : \
                                          (time & 0x3FFF) * 3600000 ) : 0 )
                                              
+#ifndef FIRMWARE_NAME
+    #define FIRMWARE_NAME "Klimanalagen KNX Adapter (Beta)"
+#endif
 #define MAIN_OpenKnxId 0xAE
-#define MAIN_ApplicationNumber 53
+#define MAIN_ApplicationNumber 54
 #define MAIN_ApplicationVersion 2
+#define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 6101
-#define MAIN_MaxKoNumber 399
+#define MAIN_MaxKoNumber 435
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 20
 #define NET_ModuleVersion 5
