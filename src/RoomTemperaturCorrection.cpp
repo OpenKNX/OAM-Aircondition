@@ -9,7 +9,7 @@ RoomTemperatureCorrection::RoomTemperatureCorrection(AirConditionDriver& airCond
 
 std::string RoomTemperatureCorrection::logPrefix()
 {
-    return "RoomTemperatureCorrection";
+    return "RoomTempCorrect";
 }
 
 void RoomTemperatureCorrection::setup()
@@ -142,22 +142,25 @@ void RoomTemperatureCorrection::setTargetTemperaturToAircondition(float temperat
 
    
     auto calculatedTemperature = temperature - _currentOffset;
+    float roomTemperatureOffset = _externalRoomTemperature - _targetTemperature;
+
     float precision = 1 / _airConditionDriver.accuracyInDegrees();
     _correctedTargetTemperature = round(calculatedTemperature * precision) / precision; // Round to the air condition resolution
     logInfoP("Calculated target temperature %.1f °C with offset %.1f °C, rounded to %.1f °C", calculatedTemperature, _currentOffset, _correctedTargetTemperature);
-    auto roundedTemperature = round(temperature * precision) / precision;
-    if (_correctedTargetTemperature == roundedTemperature && abs(_currentOffset) > 0.2f)
+    if (_correctedTargetTemperature == _aircondtionRoomTemperature && abs(roomTemperatureOffset) > 0.2f)
     {
         // Target temperature is same as the real target temeperature, but we have still an offset, try to correct it
-        if (_currentOffset > 0)
+        if (roomTemperatureOffset > 0)
         {
+            // room is too hot
             _correctedTargetTemperature -= _airConditionDriver.accuracyInDegrees();
-            logInfoP("Target temperature %.1f °C would be correct, but room is to hot, set %.1f °C", _targetTemperature, _correctedTargetTemperature);
+            logInfoP("Target %.1f °C would match aircondition room temp, but room is %.1f too hot, set %.1f °C", _targetTemperature, roomTemperatureOffset, _correctedTargetTemperature);
         }
-        else
+        else 
         {
+            // room is too cold
             _correctedTargetTemperature += _airConditionDriver.accuracyInDegrees();
-            logInfoP("Target temperature %.1f °C would be correct, but room is to cold, set %.1f °C", _targetTemperature, _correctedTargetTemperature);
+            logInfoP("Target %.1f °C would match aircondition room temp, but room is %.1f too cold, set %.1f °C", _targetTemperature, -roomTemperatureOffset, _correctedTargetTemperature);
         }
     }
     if (_correctedTargetTemperature < _airConditionDriver.getMinimumTargetTemperature())

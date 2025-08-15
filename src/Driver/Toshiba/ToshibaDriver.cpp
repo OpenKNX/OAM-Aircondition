@@ -216,12 +216,19 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
     {
         auto& currentCommand = _commandQueue.front();
         if (currentCommand.timestampSent != 0 && currentCommand.cmd == commandType)
-        {
-            isFeedback = true;
+        {        
             // if we have a command in queue, and it matches the received command, erase it
             _commandQueue.erase(_commandQueue.begin());
             logDebugP("Response for command %d received", static_cast<int>(commandType));
             statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
+            if (currentCommand.requestFeedback)
+            {
+                logInfoP("Request feedback not yet sent, ignore value");
+                 _receivedMessage.clear();
+                return;     
+            }
+            isFeedback = true;
+ 
         }
         else
         {
