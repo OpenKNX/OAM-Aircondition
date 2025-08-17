@@ -47,17 +47,17 @@ Hier muss die für das Klimagerät passende minimale Solltemperatur eingestellt 
 <!-- DOC -->
 ## Basiseinstellungen
 
-In diesem Abschnitt werden allgemeine Konfiguration vorgenommen
+In diesem Abschnitt werden allgemeine Konfigurationen vorgenommen
 
 <!-- 
 ### Nach Busspannungsausfall / Neustart
 
 Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Neustart geschalten werden soll.
 
-- Kein Änderung
+- Keine Änderung
   Das Klimagerät erhält keine Steuerbefehle.
 - Einstellungen wiederherstellen
-  Die Einstellung werden wieder hergestellt und das Klimagerät entsprechend konfiguriert.  
+  Die Einstellungen werden wieder hergestellt und das Klimagerät entsprechend konfiguriert.  
 -->
 <!-- DOC -->
 ### Wifi LED
@@ -74,14 +74,14 @@ Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Ne
 ### Freigabe- / Sperrobjekt
 
 Über diesen Konfigurationswert kann ein Sperrobjekt bzw. Freigabeobjekt angezeigt werden.
-Über diese Objekt kann die Bedienung gesperrt werden.
+Über dieses Objekt kann die Bedienung gesperrt werden.
 
 - Keines
 - Freigabe
   1-Bit, Standardmäßig ist die Bedienung gesperrt.
   Benötigt "1" zur Freigabe
 - Sperre
-  1-Bit, Standardmäßig ist die Bedienung freigeben.
+  1-Bit, Standardmäßig ist die Bedienung freigegeben.
   Benötigt "1" zur Sperre
 
 <!-- DOC -->
@@ -107,7 +107,7 @@ Zur Auswahl:
 - Ausschalten
 
 <!-- DOC -->
-#### Verhalten-bei-Sperre
+#### Verhalten bei Sperre
 
 <!-- DOC Skip="1" -->
 Diese Einstellung wird nur angezeigt, wenn ein Sperrobjekt konfiguriert ist.
@@ -128,19 +128,19 @@ Zur Auswahl:
 
 <!-- DOCEND -->
 
-# Gerätemodus Einstellungen über Gruppenobjekte
+# Gerätemodus-Einstellungen über Gruppenobjekte
 
 ## Leistungsbeschränkung
 
 Die Leistungsbeschränkung wird in Prozent vorgegeben.
-Je nach Klimagerätetype werden aber nur fix definierte Werte unterstützt.
-Der Vorgabewert wird auf den nächstliegenden fix definierten Wert gerundet.
-Die Statusrückmeldung liefert den aktuellen auf den zulässig gerundenden Wert, des Gerätes.
+Je nach Klimagerätetyp werden aber nur fest definierte Werte unterstützt.
+Der Vorgabewert wird auf den nächstliegenden fest definierten Wert gerundet.
+Die Statusrückmeldung liefert den aktuellen, auf den zulässigen gerundeten Wert des Gerätes.
 
-## Gerätesmodus
+## Gerätemodus
 
-Über den Eingang 'Gerätemodus' kann über eine Szenennummer das Klimagerät in einem speziellen Modus geschalten werden.
-Abhängig vom Klimagerät können folgende Modus verwendet werden:
+Über den Eingang 'Gerätemodus' kann über eine Szenennummer das Klimagerät in einen speziellen Modus geschaltet werden.
+Abhängig vom Klimagerät können folgende Modi verwendet werden:
 
 | Szenennummer | Beschreibung         | Toshiba |
 |--------------|----------------------|---------|
@@ -150,12 +150,12 @@ Abhängig vom Klimagerät können folgende Modus verwendet werden:
 | 4            | Leise 1 (Außengerät) | Ja      |
 | 5            | Leise 2 (Außengerät) | Ja      |
 
-Für jeden Betriebsmodus stehen auch getrennt Gruppenobjekte für Schalten und den aktuellen Status zur Verfügung.
+Für jeden Betriebsmodus stehen auch separate Gruppenobjekte für das Schalten und den aktuellen Status zur Verfügung.
 
 <!-- DOC -->
 ## Szenen
 
-In diesem Abschnitt können Szenenummer und das zugehörige Verhalten konfiguriert werden.
+In diesem Abschnitt können Szenennummer und das zugehörige Verhalten konfiguriert werden.
 
 <!-- DOC -->
 ### Szene
@@ -165,12 +165,12 @@ Gibt an, ob die Szenen Konfiguration verwendet werden soll
 <!-- DOC -->
 ### Szenennummer
 
-Die Szenennummer die zum Auslösen verwendet wird.
+Die Szenennummer, die zum Auslösen verwendet wird.
 
 <!-- DOC -->
 ### Schalten
 
-Einstellungen ob beim Aufruf der Szene das Geräte Ein- oder Ausgeschalten werden soll.
+Einstellungen, ob beim Aufruf der Szene das Gerät ein- oder ausgeschaltet werden soll.
 
 - Keine Änderung
 - Einschalten
@@ -179,7 +179,7 @@ Einstellungen ob beim Aufruf der Szene das Geräte Ein- oder Ausgeschalten werde
 <!-- DOC  -->
 ### Betriebsmodus
 
-Ermöglich das aktivieren einen Betriebsmodus.
+Ermöglicht das Aktivieren eines Betriebsmodus.
 
 - Keine Änderung
 - Automatik
@@ -211,7 +211,7 @@ Lüftergeschwindigkeit
 - Stufe 5
 
 <!-- DOC -->
-#### Lamellen Bewegung
+#### Lamellenbewegung
 
 Steuert die Bewegung der Lamellen.
 
@@ -224,7 +224,7 @@ Steuert die Bewegung der Lamellen.
 <!-- DOC -->
 #### Vertikale Lamellenstellung
 
-Diese Einstellung ist nur verfügbar, wenn bei Lamellen Bewegung "Keine Änderung" oder "Aus" gewählt wurde.
+Diese Einstellung ist nur verfügbar, wenn bei Lamellenbewegung "Keine Änderung" oder "Aus" gewählt wurde.
 Gibt die Position der Lamellen an. 
 
 - Keine Änderung
@@ -251,7 +251,7 @@ Verfügbare Einstellungen:
 
 - Keine Änderung
 - Standard
-- Hi-Power>
+- Hi-Power
 - ECO
 - Leise 1 (Außengerät)
 - Leise 2 (Außengerät)

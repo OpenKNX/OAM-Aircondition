@@ -1,4 +1,4 @@
-﻿### Lamellen Bewegung
+﻿### Lamellenbewegung
 
 Steuert die Bewegung der Lamellen.
 

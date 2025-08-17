@@ -9,11 +9,11 @@
                                          (time & 0x3FFF) * 3600000 ) : 0 )
                                              
 #ifndef FIRMWARE_NAME
-    #define FIRMWARE_NAME "Klimaanlagen KNX Adapter (Beta)"
+    #define FIRMWARE_NAME "Klimaanlagen KNX Adapter (Dev)"
 #endif
 #define MAIN_OpenKnxId 0xAE
-#define MAIN_ApplicationNumber 54
-#define MAIN_ApplicationVersion 3
+#define MAIN_ApplicationNumber 53
+#define MAIN_ApplicationVersion 4
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 6221
 #define MAIN_MaxKoNumber 461
@@ -440,7 +440,7 @@
 #define ParamAIR_SCASceneTemperature                 (knx.paramByte(AIR_SCASceneTemperature))
 // Lüfter
 #define ParamAIR_SCASceneFan                         (knx.paramByte(AIR_SCASceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCASceneSwing                       (knx.paramByte(AIR_SCASceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCAScenePosition                    (knx.paramByte(AIR_SCAScenePosition))
@@ -462,7 +462,7 @@
 #define ParamAIR_SCBSceneTemperature                 (knx.paramByte(AIR_SCBSceneTemperature))
 // Lüfter
 #define ParamAIR_SCBSceneFan                         (knx.paramByte(AIR_SCBSceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCBSceneSwing                       (knx.paramByte(AIR_SCBSceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCBScenePosition                    (knx.paramByte(AIR_SCBScenePosition))
@@ -484,7 +484,7 @@
 #define ParamAIR_SCCSceneTemperature                 (knx.paramByte(AIR_SCCSceneTemperature))
 // Lüfter
 #define ParamAIR_SCCSceneFan                         (knx.paramByte(AIR_SCCSceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCCSceneSwing                       (knx.paramByte(AIR_SCCSceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCCScenePosition                    (knx.paramByte(AIR_SCCScenePosition))
@@ -506,7 +506,7 @@
 #define ParamAIR_SCDSceneTemperature                 (knx.paramByte(AIR_SCDSceneTemperature))
 // Lüfter
 #define ParamAIR_SCDSceneFan                         (knx.paramByte(AIR_SCDSceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCDSceneSwing                       (knx.paramByte(AIR_SCDSceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCDScenePosition                    (knx.paramByte(AIR_SCDScenePosition))
@@ -528,7 +528,7 @@
 #define ParamAIR_SCESceneTemperature                 (knx.paramByte(AIR_SCESceneTemperature))
 // Lüfter
 #define ParamAIR_SCESceneFan                         (knx.paramByte(AIR_SCESceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCESceneSwing                       (knx.paramByte(AIR_SCESceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCEScenePosition                    (knx.paramByte(AIR_SCEScenePosition))
@@ -550,7 +550,7 @@
 #define ParamAIR_SCFSceneTemperature                 (knx.paramByte(AIR_SCFSceneTemperature))
 // Lüfter
 #define ParamAIR_SCFSceneFan                         (knx.paramByte(AIR_SCFSceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCFSceneSwing                       (knx.paramByte(AIR_SCFSceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCFScenePosition                    (knx.paramByte(AIR_SCFScenePosition))
@@ -572,7 +572,7 @@
 #define ParamAIR_SCGSceneTemperature                 (knx.paramByte(AIR_SCGSceneTemperature))
 // Lüfter
 #define ParamAIR_SCGSceneFan                         (knx.paramByte(AIR_SCGSceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCGSceneSwing                       (knx.paramByte(AIR_SCGSceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCGScenePosition                    (knx.paramByte(AIR_SCGScenePosition))
@@ -594,7 +594,7 @@
 #define ParamAIR_SCHSceneTemperature                 (knx.paramByte(AIR_SCHSceneTemperature))
 // Lüfter
 #define ParamAIR_SCHSceneFan                         (knx.paramByte(AIR_SCHSceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCHSceneSwing                       (knx.paramByte(AIR_SCHSceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCHScenePosition                    (knx.paramByte(AIR_SCHScenePosition))
@@ -616,7 +616,7 @@
 #define ParamAIR_SCISceneTemperature                 (knx.paramByte(AIR_SCISceneTemperature))
 // Lüfter
 #define ParamAIR_SCISceneFan                         (knx.paramByte(AIR_SCISceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCISceneSwing                       (knx.paramByte(AIR_SCISceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCIScenePosition                    (knx.paramByte(AIR_SCIScenePosition))
@@ -638,7 +638,7 @@
 #define ParamAIR_SCJSceneTemperature                 (knx.paramByte(AIR_SCJSceneTemperature))
 // Lüfter
 #define ParamAIR_SCJSceneFan                         (knx.paramByte(AIR_SCJSceneFan))
-// Lamellen Bewegung
+// Lamellenbewegung
 #define ParamAIR_SCJSceneSwing                       (knx.paramByte(AIR_SCJSceneSwing))
 // Vertikale Lamellenstellung
 #define ParamAIR_SCJScenePosition                    (knx.paramByte(AIR_SCJScenePosition))

@@ -595,14 +595,14 @@
                       <when test="0">
                         <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                           <when test="3">
-                            <!-- Mitshubishi -->
+                            <!-- Mitsubishi -->
                             <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />  
                             <ParameterSeparator Id="%AID%_PS-nnn" Text="Externe Raumtemperaturmessung" UIHint="Headline" />
                             <!-- External Room Temperature -->
                             <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />
                           </when>
                           <when test="!=3">
-                            <!-- Not Mitshubishi-->
+                            <!-- Not Mitsubishi-->
                              <Assign TargetParamRefRef="%AID%_UP-%TT%00008_R-%TT%0000801" Value="0" />
                           </when>
                         </choose>
@@ -698,7 +698,7 @@
                         <when test="1 2 3">
                           <!-- Daikin, Midea, Mitsubishi -->
 
-                          <!-- Lamelle Vertikal Höher/Tieferchts -->
+                          <!-- Lamelle Vertikal Höher/Tiefer -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00020_R-%TT%0002001" />
                         </when>
                       </choose>
