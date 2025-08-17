@@ -128,3 +128,21 @@ float MideaDriver::accuracyInDegrees()
     // To Do (Midea): Implement rounding of temperature to the air condition resolution
     return 1.f; // Assuming 1 degree Celsius accuracy
 }
+
+void MideaDriver::setDeviceMode(AirConditionDeviceMode mode)
+{
+    // To Do (Midea): Implementation for device mode control
+    statusFeedback.deviceModeChanged(mode);
+}
+
+void MideaDriver::setMaxPowerLevel(uint8_t percentage)
+{
+    // To Do (Midea): Implementation for max power level control
+    statusFeedback.maxPowerLevelChanged(percentage);
+}
+
+void MideaDriver::setAirPurification(bool on)
+{
+    // To Do (Midea): Implementation for air purification control
+    statusFeedback.airPurificationChanged(on);
+}

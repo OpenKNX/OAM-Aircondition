@@ -8,3 +8,5 @@ Gibt die Position der Lamellen an.
 - Oben
 - Mitte
 - Unten
+- Ganz Unten
+

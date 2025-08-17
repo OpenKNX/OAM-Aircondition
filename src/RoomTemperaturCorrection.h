@@ -18,6 +18,7 @@ private:
     float _correctedTargetTemperature = 0.0f; // Current offset applied to the target temperature
     unsigned long _lastExternalRoomTemperaturUpdate = 0; // Timestamp of the last update
     unsigned long _lastExternalRoomTemperatureRead = 0; // Timestamp of the last read
+    bool _externalRoomTemperatureValid = false;
     void recalculateOffset();
 
     std::string logPrefix();
@@ -31,8 +32,8 @@ public:
     void airconditionReportTargetTemperatureChanged(float temperature);
     float correctTemperatureFeedbackFromAircondition(float temperature);
     void loop();
+    void logState();
   
    
-
 
 };

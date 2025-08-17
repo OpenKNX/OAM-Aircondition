@@ -54,6 +54,9 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     void roomTemperatureChanged(float temperaturCelius) override;
     void outsideTemperaturChanged(float temperaturCelius) override;
     void driverStateChanged(AirConditionDriverState state, std::string error = "") override;
+    void maxPowerLevelChanged(uint8_t maxPower) override;
+    void deviceModeChanged(AirConditionDeviceMode mode) override;
+    void airPurificationChanged(bool on) override;
     AirConditionDriverState getDriverState() const;
 
 

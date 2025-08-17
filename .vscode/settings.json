@@ -72,6 +72,8 @@
         "shared_mutex": "cpp",
         "source_location": "cpp",
         "text_encoding": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "coroutine": "cpp",
+        "future": "cpp"
     }
 }

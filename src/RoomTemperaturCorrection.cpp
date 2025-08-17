@@ -62,6 +62,7 @@ void RoomTemperatureCorrection::setNewExternalRoomTemperature(float temperature)
     // <Enumeration Text="Ja, nach Zeitablauf ignorieren" Value="2" Id="%ENID%" />
     if (ParamAIR_ExternTempWatchdog > 0)
         _lastExternalRoomTemperaturUpdate = max(1UL, millis());
+    _externalRoomTemperatureValid = true;
     recalculateOffset();
 }
 
@@ -117,6 +118,7 @@ void RoomTemperatureCorrection::loop()
             logErrorP("External room temperature not updated for more than %d minutes, ignoring", (int) (ParamAIR_CHMonitoringWDTTimeoutDelayTimeMS / 1000 / 60));
             _lastExternalRoomTemperatureRead = 0;
             _externalRoomTemperature = 0.0f;
+            _externalRoomTemperatureValid = false;
             recalculateOffset();
         }
         
@@ -126,8 +128,22 @@ void RoomTemperatureCorrection::loop()
         logErrorP("External room temperature not read for more than 5 seconds, ignoring");
         _lastExternalRoomTemperatureRead = 0;
         _externalRoomTemperature = 0.0f;
+        _externalRoomTemperatureValid = false;
         recalculateOffset();
     }
+}
+
+void RoomTemperatureCorrection::logState()
+{
+    logInfoP("  Aircondition Room Temperature: %.1f °C", _aircondtionRoomTemperature);
+    logInfoP("  External Room Temperature Valid: %s", _externalRoomTemperatureValid ? "yes" : "no");
+    logInfoP("  External Room Temperature: %.1f °C", _externalRoomTemperature);
+    logInfoP("  Current Offset: %.1f °C", _currentOffset);
+    logInfoP("  Used Offset: %.1f °C", _usedOffset);
+    logInfoP("  Target Temperature: %.1f °C", _targetTemperature);
+    logInfoP("  Corrected Target Temperature: %.1f °C", _correctedTargetTemperature);
+    logInfoP("  Has first target temperature feedback: %s", _hasFirstTargetTemperaturFeedback ? "yes" : "no");
+  
 }
 
 void RoomTemperatureCorrection::setTargetTemperaturToAircondition(float temperature)

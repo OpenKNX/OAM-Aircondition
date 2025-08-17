@@ -18,6 +18,22 @@ enum AirConditionDriverState
     AirConditionDriverStateError = 3,
 };
 
+enum AirConditionDeviceMode
+{
+    AirConditionDeviceModeStandard = 1,
+    AirConditionDeviceModeHiPower = 2,
+    AirConditionDeviceModeEco = 3,
+    AirConditionDeviceModeSilent1 = 4,
+    AirConditionDeviceModeSilent2 = 5,
+
+    // AirConditionDeviceModeFireplace1 = 5,
+    // AirConditionDeviceModeFireplace2 = 6,
+    // AirConditionDeviceModeEightDegree = 7,
+    // AirConditionDeviceModeComfort,
+    // AirConditionDeviceModeSleep,
+    // AirConditionDeviceModeFloor,
+};
+
 class AirConditionDriverStatusFeedback
 {
 public:
@@ -33,6 +49,9 @@ public:
     virtual void swingVerticalFixPositionChanged(int position) = 0;
     virtual void roomTemperatureChanged(float temperaturCelius) = 0;
     virtual void outsideTemperaturChanged(float temperaturCelius) = 0;
+    virtual void deviceModeChanged(AirConditionDeviceMode mode) = 0;
+    virtual void maxPowerLevelChanged(uint8_t percentage) = 0;
+    virtual void airPurificationChanged(bool on) = 0;
 };
 
 class AirConditionDriver 
@@ -80,4 +99,7 @@ public:
     virtual void setSwingVerticalFixPosition(unsigned int position) = 0;
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) = 0;
     virtual void setWifiLed(bool on) = 0;
+    virtual void setDeviceMode(AirConditionDeviceMode mode) = 0;
+    virtual void setMaxPowerLevel(uint8_t percentage) = 0;
+    virtual void setAirPurification(bool on) = 0;
 };

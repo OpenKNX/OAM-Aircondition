@@ -118,3 +118,18 @@ float DaikinDriver::accuracyInDegrees()
     // To Do (Daikin): Implement rounding of temperature to the air condition resolution
     return 1.f; // Assuming 1 degree Celsius accuracy
 }
+
+void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
+{
+    // To Do (Daikin): Implementation for device mode control
+}
+
+void DaikinDriver::setMaxPowerLevel(uint8_t percentage)
+{
+    // To Do (Daikin): Implementation for max power level control
+}
+
+void DaikinDriver::setAirPurification(bool on)
+{
+    // To Do (Daikin): Implementation for air purification control
+}

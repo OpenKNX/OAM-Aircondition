@@ -244,6 +244,18 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
             return true;
         }
     }
+    if (cmd == "rtc")
+    {
+        if (_roomTemperatureCorrection != nullptr)
+        {
+            _roomTemperatureCorrection->logState();
+        }
+        else
+        {
+            logErrorP("Room Temperature Correction is not enabled");
+        }
+        return true;
+    }
     if (cmd == "rc")
     {
         if (_airConditionDriver != nullptr)
@@ -633,7 +645,56 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     logErrorP("No SceneHandler initialized");
                 }
             }
+            case AIR_KoPowerLimit:
+            {
+                uint8_t powerLimit = (uint8_t)ko.value(DPT_Scaling);
+                logInfoP("Set power limit to %u", powerLimit);
+                _airConditionDriver->setMaxPowerLevel(powerLimit);
+            }
             break;
+            case AIR_KoDeviceMode:
+            {
+                uint8_t deviceMode = (uint8_t)ko.value(DPT_SceneNumber) + 1;
+                logInfoP("Set device mode to %u", deviceMode);
+                _airConditionDriver->setDeviceMode((AirConditionDeviceMode) deviceMode);
+            }
+            break;
+            case AIR_KoDeviceModeStandard:
+            {
+                logInfoP("Set device mode to Standard");
+                _airConditionDriver->setDeviceMode(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+            }
+            break;
+            case AIR_KoDeviceModeHiPower:
+            {
+                logInfoP("Set device mode to HiPower");
+                _airConditionDriver->setDeviceMode(AirConditionDeviceMode::AirConditionDeviceModeHiPower);
+            }
+            break;
+            case AIR_KoDeviceModeEco:
+            {
+                logInfoP("Set device mode to Eco");
+                _airConditionDriver->setDeviceMode(AirConditionDeviceMode::AirConditionDeviceModeEco);
+            }
+            break;
+            case AIR_KoDeviceModeSilent1:
+            {
+                logInfoP("Set device mode to Silent1");
+                _airConditionDriver->setDeviceMode(AirConditionDeviceMode::AirConditionDeviceModeSilent1);
+            }
+            break;
+            case AIR_KoDeviceModeSilent2:
+            {
+                logInfoP("Set device mode to Silent2");
+                _airConditionDriver->setDeviceMode(AirConditionDeviceMode::AirConditionDeviceModeSilent2);
+            }
+            break;
+            case AIR_KoAirPurification:
+            {
+                bool airPurification = ko.value(DPT_Switch);
+                logInfoP("Set air purification to %d", airPurification);
+                _airConditionDriver->setAirPurification(airPurification);
+            }
         };
         _airConditionDriver->processInputKo(ko);
     }
@@ -850,6 +911,29 @@ void AirconditionModule::driverStateChanged(AirConditionDriverState state, std::
                 break;
         }
     }
+}
+
+void AirconditionModule::maxPowerLevelChanged(uint8_t maxPower)
+{
+    logInfoP("AirCondition report max power level changed to %d", maxPower);
+    KoAIR_PowerLimitState.valueCompare(maxPower, DPT_Scaling);
+}
+
+void AirconditionModule::deviceModeChanged(AirConditionDeviceMode mode)
+{
+    logInfoP("AirCondition report device mode changed to %d", (int)mode);
+    KoAIR_DeviceModeState.valueCompare((uint8_t) (((uint8_t) mode) - 1), DPT_SceneNumber);
+    KoAIR_DeviceModeStandardState.valueCompare(mode == AirConditionDeviceMode::AirConditionDeviceModeStandard, DPT_Switch);
+    KoAIR_DeviceModeHiPowerState.valueCompare(mode == AirConditionDeviceMode::AirConditionDeviceModeHiPower, DPT_Switch);
+    KoAIR_DeviceModeEcoState.valueCompare(mode == AirConditionDeviceMode::AirConditionDeviceModeEco, DPT_Switch);
+    KoAIR_DeviceModeSilent1State.valueCompare(mode == AirConditionDeviceMode::AirConditionDeviceModeSilent1, DPT_Switch);
+    KoAIR_DeviceModeSilent2State.valueCompare(mode == AirConditionDeviceMode::AirConditionDeviceModeSilent2, DPT_Switch);
+}
+
+void AirconditionModule::airPurificationChanged(bool on)
+{
+    logInfoP("AirCondition report air purification changed to %d", on);
+    KoAIR_AirPurificationState.valueCompare(on, DPT_Switch);
 }
 
 void AirconditionModule::showHelp()

@@ -1,4 +1,2 @@
 ﻿### Überwachung Zeit
 
-Die Überwachungszeit
-

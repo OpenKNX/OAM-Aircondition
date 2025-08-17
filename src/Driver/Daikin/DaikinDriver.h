@@ -31,4 +31,7 @@ class DaikinDriver : public AirConditionDriver
         virtual void setSwingVerticalFixPosition(unsigned int position) override;
         virtual void setExternalSensorRoomTemperature(float temperaturCelius) override;
         virtual void setWifiLed(bool on) override;
+        virtual void setDeviceMode(AirConditionDeviceMode mode) override;
+        virtual void setMaxPowerLevel(uint8_t percentage) override;
+        virtual void setAirPurification(bool on) override;
 };
