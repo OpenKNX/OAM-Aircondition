@@ -20,12 +20,19 @@ enum class ToshibaCommandType : uint8_t
     ToshibaCommandTypeLED = 0xDE, // 222
     ToshibaCommandTypeWifiLED = 0xDF, // 223,
     ToshibaCommandTypeSpecialMode = 0xF7, // 247,
+    ToshibaCommandTypePure = 0xC7, // 199,
 };
 
 enum class ToshibaState : uint8_t
 {
     ToshibaStateOn = 0x30, // 48
     ToshibaStateOff = 0x31, // 49
+};
+
+enum class ToshibaPureState : uint8_t
+{
+    ToshibaPureStateOn = 0x18, // 24
+    ToshibaPureStateOff = 0x10, // 16
 };
 
 enum ToshibaSpecialMode : uint8_t
@@ -76,6 +83,14 @@ enum class ToshibaSwingMode : uint8_t
     ToshibaSwingModeFixPosition5 = 84
 };
 
+enum class ToshibaPowerLevel : uint8_t 
+{ 
+    ToshibaPowerLevel50 = 50, 
+    ToshibaPowerLevel75 = 75, 
+    ToshibaPowerLevel100 = 100 
+};
+
+
 
 enum class ToshibaLedState : uint8_t
 {
@@ -100,7 +115,10 @@ class ToshibaDriver : public AirConditionDriver
     static const std::vector<uint8_t> PayloadHandshake[6];
     static const std::vector<uint8_t> PayloadPostHandshake[2];
     static const uint8_t EightDegreeSpecialModeTempOffset;
+    static const uint8_t EightDegreeSpecialModeMinTemp;
+    static const uint8_t EightDegreeSpecialModeMaxTemp;
     static const uint8_t StandardModeMinTemp;
+    static const uint8_t StandardModeMaxTemp;
 
     void sendCommand(ToshibaCommandType cmd, uint8_t payload = 0);
     void enqueueCommand(const ToshibaCommand &command);
@@ -121,8 +139,12 @@ class ToshibaDriver : public AirConditionDriver
     unsigned long _lastTemperatureRequest = 0;
     unsigned long _lastCommandTimestamp = 0;
     unsigned long _lastReceivedByteTimestamp = 0;
+    ToshibaSwingMode _lastNoneMovingSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
     ToshibaSpecialMode _specialMode = ToshibaSpecialMode::ToshibaSpecialModeStandard;
     ToshibaSwingMode _swingMode = ToshibaSwingMode::ToshibaSwingModeOff;
+    ToshibaDriverMode _mode = ToshibaDriverMode::ToshibaDriverModeAuto;
+    bool _power = false;
+
 
   public:
     ToshibaDriver(AirConditionDriverStatusFeedback &statusFeedback);
@@ -137,6 +159,8 @@ class ToshibaDriver : public AirConditionDriver
     virtual unsigned int getMaximumFanSpeed() override;
     virtual unsigned int getMaximumHorizontalFixPosition() override;
     virtual unsigned int getMaximumVertiacalFixPosition() override;
+    virtual bool supportExternalRoomTemperatureSensor() override;
+    virtual float accuracyInDegrees() override;
 
     virtual void setPower(bool power) override;
     virtual void setMode(AirConditionMode mode) override;
@@ -148,4 +172,8 @@ class ToshibaDriver : public AirConditionDriver
     virtual void setSwingVerticalFixPosition(unsigned int position) override;
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) override;
     virtual void setWifiLed(bool on) override;
+    virtual void setDeviceMode(AirConditionDeviceMode mode) override;
+    virtual void setMaxPowerLevel(uint8_t percentage) override;
+    virtual void setAirPurification(bool on) override;
+
 };

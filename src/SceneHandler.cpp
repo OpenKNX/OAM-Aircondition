@@ -74,6 +74,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCASceneFan;
             params.swing = ParamAIR_SCASceneSwing;
             params.position = ParamAIR_SCAScenePosition;
+            params.powerLimit = ParamAIR_SCAScenePowerLimit;
+            params.deviceMode = ParamAIR_SCASceneDeviceMode;
             break;
         case 1:
             params.onOff = ParamAIR_SCBOnOff;
@@ -82,6 +84,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCBSceneFan;
             params.swing = ParamAIR_SCBSceneSwing;
             params.position = ParamAIR_SCBScenePosition;
+            params.powerLimit = ParamAIR_SCBScenePowerLimit;
+            params.deviceMode = ParamAIR_SCBSceneDeviceMode;
             break;
         case 2:
             params.onOff = ParamAIR_SCCOnOff;
@@ -90,7 +94,9 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCCSceneFan;
             params.swing = ParamAIR_SCCSceneSwing;
             params.position = ParamAIR_SCCScenePosition;
-            break;      
+            params.powerLimit = ParamAIR_SCCScenePowerLimit;
+            params.deviceMode = ParamAIR_SCCSceneDeviceMode;
+            break;
         case 3:
             params.onOff = ParamAIR_SCDOnOff;
             params.operationMode = ParamAIR_SCDOperationMode;
@@ -98,6 +104,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCDSceneFan;
             params.swing = ParamAIR_SCDSceneSwing;
             params.position = ParamAIR_SCDScenePosition;
+            params.powerLimit = ParamAIR_SCDScenePowerLimit;
+            params.deviceMode = ParamAIR_SCDSceneDeviceMode;
             break;
         case 4:
             params.onOff = ParamAIR_SCEOnOff;
@@ -106,6 +114,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCESceneFan;
             params.swing = ParamAIR_SCESceneSwing;
             params.position = ParamAIR_SCEScenePosition;
+            params.powerLimit = ParamAIR_SCEScenePowerLimit;
+            params.deviceMode = ParamAIR_SCESceneDeviceMode;
             break;
         case 5:
             params.onOff = ParamAIR_SCFOnOff;
@@ -114,6 +124,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCFSceneFan;
             params.swing = ParamAIR_SCFSceneSwing;
             params.position = ParamAIR_SCFScenePosition;
+            params.powerLimit = ParamAIR_SCFScenePowerLimit;
+            params.deviceMode = ParamAIR_SCFSceneDeviceMode;
             break;
         case 6:
             params.onOff = ParamAIR_SCGOnOff;
@@ -122,6 +134,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCGSceneFan;
             params.swing = ParamAIR_SCGSceneSwing;
             params.position = ParamAIR_SCGScenePosition;
+            params.powerLimit = ParamAIR_SCGScenePowerLimit;
+            params.deviceMode = ParamAIR_SCGSceneDeviceMode;
             break;
         case 7:
             params.onOff = ParamAIR_SCHOnOff;
@@ -130,6 +144,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCHSceneFan;  
             params.swing = ParamAIR_SCHSceneSwing;
             params.position = ParamAIR_SCHScenePosition;
+            params.powerLimit = ParamAIR_SCHScenePowerLimit;
+            params.deviceMode = ParamAIR_SCHSceneDeviceMode;
             break;
         case 8:
             params.onOff = ParamAIR_SCIOnOff;
@@ -138,6 +154,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCISceneFan;
             params.swing = ParamAIR_SCISceneSwing;
             params.position = ParamAIR_SCIScenePosition;
+            params.powerLimit = ParamAIR_SCIScenePowerLimit;
+            params.deviceMode = ParamAIR_SCISceneDeviceMode;
             break;
         case 9:
             params.onOff = ParamAIR_SCJOnOff;
@@ -146,6 +164,8 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.fan = ParamAIR_SCJSceneFan;
             params.swing = ParamAIR_SCJSceneSwing;
             params.position = ParamAIR_SCJScenePosition;
+            params.powerLimit = ParamAIR_SCJScenePowerLimit;
+            params.deviceMode = ParamAIR_SCJSceneDeviceMode;
             break;
 #ifdef ParamAIR_SCKOnOff
 #error "ParamAIR_SCKOnOff is not handled."
@@ -319,6 +339,24 @@ void SceneHandler::applyParameters(int index)
                 logDebugP("Setting position to %d", params.position);
                 _airConditionDriver.setSwingVerticalFixPosition(params.position);
             }
+            break;
+    }
+    switch (params.powerLimit)
+    {
+        case 255:
+            break; // No change
+        default:
+            logDebugP("Setting power limit to %d", params.powerLimit);
+            _airConditionDriver.setMaxPowerLevel(params.powerLimit);
+            break;
+    }
+    switch (params.deviceMode)
+    {
+        case 255:
+            break; // No change
+        default:
+            logDebugP("Setting device mode to %d", params.deviceMode);
+            _airConditionDriver.setDeviceMode((AirConditionDeviceMode) params.deviceMode);
             break;
     }
 }

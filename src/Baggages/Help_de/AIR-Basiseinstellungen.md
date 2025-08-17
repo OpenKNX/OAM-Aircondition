@@ -1,4 +1,4 @@
 ﻿### Basiseinstellungen
 
-In diesem Abschnitt werden allgemeine Konfiguration vorgenommen
+In diesem Abschnitt werden allgemeine Konfigurationen vorgenommen
 

@@ -1,6 +1,6 @@
 ﻿### Betriebsmodus
 
-Ermöglich das aktivieren einen Betriebsmodus.
+Ermöglicht das Aktivieren eines Betriebsmodus.
 
 - Keine Änderung
 - Automatik

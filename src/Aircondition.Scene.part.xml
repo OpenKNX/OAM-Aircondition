@@ -12,7 +12,7 @@
 
                         <Parameters>
 
-                            <Union SizeInBit="64">
+                            <Union SizeInBit="160">
                                 <Memory CodeSegment="%MID%" Offset="%MO%" BitOffset="0" />
                                 <!-- Szene Active --> 
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+0%" Offset="0" BitOffset="0" Name="SC%SN%Active" ParameterType="%AID%_PT-OnOffYesNo" Text="Szene %SN%" Value="0" />
@@ -33,13 +33,22 @@
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+5%" Offset="5" BitOffset="0" Name="SC%SN%SceneFan" ParameterType="%AID%_PT-AIRSceneFan" Text="Lüfter" Value="255" />
 
                                 <!-- Szene Function Swing -->
-                                <Parameter Id="%AID%_UP-%TT%00%PPP+6%" Offset="6" BitOffset="0" Name="SC%SN%SceneSwing" ParameterType="%AID%_PT-AIRSceneSwing" Text="Lamellen Bewegung" Value="255" />
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+6%" Offset="6" BitOffset="0" Name="SC%SN%SceneSwing" ParameterType="%AID%_PT-AIRSceneSwing" Text="Lamellenbewegung" Value="255" />
 
                                 <!-- Szene Function Veritcal Position -->
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+7%" Offset="7" BitOffset="0" Name="SC%SN%ScenePosition" ParameterType="%AID%_PT-AIRScenePosition" Text="Vertikale Lamellenstellung" Value="255" />
+                                <!-- 4 Bits free  -->    
 
-                                <!-- 4 Bits free + 1 Byte free -->
+                                <!-- Szene Leistungsbegrenzung -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+8%" Offset="8" BitOffset="0" Name="SC%SN%ScenePowerLimit" ParameterType="%AID%_PT-AIRScenePowerLimit" Text="Leistungsbegrenzung" Value="255" />
+                               
+                                <!-- Szene Gerätemodus -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+9%" Offset="9" BitOffset="0" Name="SC%SN%SceneDeviceMode" ParameterType="%AID%_PT-AIRSceneDeviceMode" Text="Gerätemodus" Value="255" />
 
+                                <!-- Szene Luftreinigung -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+10%" Offset="10" BitOffset="0" Name="SC%SN%SceneAirPurification" ParameterType="%AID%_PT-AIRSceneAirPurification" Text="Luftreinigung" Value="255" />
+                            
+                                <!-- 9 Bytes free  -->  
                             </Union>
 
                         </Parameters>
@@ -60,7 +69,12 @@
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01" RefId="%AID%_UP-%TT%00%PPP+6%" />
                             <!-- Szene Function Veritcal Position -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01" RefId="%AID%_UP-%TT%00%PPP+7%" />
-
+                            <!-- Szene Leistungsbegrenzung -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+8%_R-%TT%00%PPP+8%01" RefId="%AID%_UP-%TT%00%PPP+8%" />
+                            <!-- Szene Gerätemodus -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+9%_R-%TT%00%PPP+9%01" RefId="%AID%_UP-%TT%00%PPP+9%" />
+                            <!-- Szene Luftreinigung -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+10%_R-%TT%00%PPP+10%01" RefId="%AID%_UP-%TT%00%PPP+10%" />
                         </ParameterRefs>
                     </Static>
                     <Dynamic>
@@ -98,6 +112,12 @@
                             
                                             </when>            
                                         </choose>
+                                        <!-- Leistungsbegrenzung -->
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+8%_R-%TT%00%PPP+8%01" IndentLevel="2" HelpContext="%DOC%" />
+                                        <!-- Gerätemodus -->
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+9%_R-%TT%00%PPP+9%01" IndentLevel="2" HelpContext="%DOC%" />
+                                        <!-- Luftreinigung -->
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+10%_R-%TT%00%PPP+10%01" IndentLevel="2" HelpContext="%DOC%" />
                                     </when>
                                 </choose>
 

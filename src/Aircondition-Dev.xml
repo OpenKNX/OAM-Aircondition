@@ -2,13 +2,14 @@
 <?xml-model href="../../Organization/knxprod-support/knx_project_20/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <KNX xmlns="http://knx.org/xml/project/20" xmlns:op="http://github.com/OpenKNX/OpenKNXproducer">
   <op:config href="Aircondition.conf.xml" />
+  <op:config name="%AIR_ShowExternalRoomTempInput%" value="1" />
   <op:ETS
     OpenKnxId="0xAE"
     ApplicationNumber="0x35"
-    ApplicationVersion="0.1"
-    ReplacesVersions="0.0"
+    ApplicationVersion="0.4"
+    ReplacesVersions="0.3 0.2 0.1 0.0"
     ApplicationRevision="0"
-    ProductName="Klimanalagen KNX Adapter"
+    ProductName="Klimaanlagen KNX Adapter"
     BusCurrent="30"
     BuildSuffix="-Dev"
     BuildSuffixText=" (Dev)"
