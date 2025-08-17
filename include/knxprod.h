@@ -9,11 +9,11 @@
                                          (time & 0x3FFF) * 3600000 ) : 0 )
                                              
 #ifndef FIRMWARE_NAME
-    #define FIRMWARE_NAME "Klimaanlagen KNX Adapter (Dev)"
+    #define FIRMWARE_NAME "Klimaanlagen KNX Adapter (Beta)"
 #endif
 #define MAIN_OpenKnxId 0xAE
-#define MAIN_ApplicationNumber 53
-#define MAIN_ApplicationVersion 4
+#define MAIN_ApplicationNumber 54
+#define MAIN_ApplicationVersion 3
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 6221
 #define MAIN_MaxKoNumber 461
