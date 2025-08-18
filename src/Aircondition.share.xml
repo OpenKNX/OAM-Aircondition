@@ -374,7 +374,7 @@
               <!-- Luftreinigung -->
               <ComObject Id="%AID%_O-%TT%00038" Number="38" Name="AirPurification" Text="Luftreinigung" FunctionText="Luftreinigung" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Luftreinigung Status -->
-              <ComObject Id="%AID%_O-%TT%00039" Number="39" Name="AirPurificationState" Text="Luftreinigung Status" FunctionText="Luftreinigung Status" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00039" Number="39" Name="AirPurificationState" Text="Luftreinigung Status" FunctionText="Luftreinigung Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
           
               <!-- 40-47 Reserved for specific -->
               
