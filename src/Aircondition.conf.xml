@@ -17,4 +17,5 @@
   <op:config name="%NET_ServiceNTP%" value="1" />
   <op:config name="%NET_WifiTool%" value="1" />
 
+
 </KNX>

@@ -21,6 +21,7 @@
 #define BASE_ModuleVersion 20
 #define NET_ModuleVersion 5
 #define UCT_ModuleVersion 4
+#define AIR_ModuleVersion 3
 #define LOG_ModuleVersion 55
 #define FCB_ModuleVersion 5
 // Parameter with single occurrence
@@ -800,11 +801,11 @@
 #define KoAIR_DeviceModeEcoState                  (knx.getGroupObject(AIR_KoDeviceModeEcoState))
 // Gerätemodus Leise 1 (Außengerät)
 #define KoAIR_DeviceModeSilent1                   (knx.getGroupObject(AIR_KoDeviceModeSilent1))
-// Gerätemodus Leise 1 (Außengerät) Status 
+// Gerätemodus Leise 1 (Außengerät) Status
 #define KoAIR_DeviceModeSilent1State              (knx.getGroupObject(AIR_KoDeviceModeSilent1State))
 // Gerätemodus Leise 2 (Außengerät)
 #define KoAIR_DeviceModeSilent2                   (knx.getGroupObject(AIR_KoDeviceModeSilent2))
-// Gerätemodus Leise 2 Status (Außengerät)
+// Gerätemodus Leise 2 (Außengerät) Status
 #define KoAIR_DeviceModeSilent2State              (knx.getGroupObject(AIR_KoDeviceModeSilent2State))
 
 #define LOG_BuzzerInstalled                     441      // 1 Bit, Bit 7
