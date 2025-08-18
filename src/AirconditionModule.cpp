@@ -434,10 +434,20 @@ void AirconditionModule::processInputKo(GroupObject& ko)
         switch (ParamAIR_LockReleaseKo)
         {
             case 1: // Release
+                if (ko.asap() == AIR_KoLockRelease)
+                {
+                    setLocked(!ko.value(DPT_Switch));
+                    return;
+                }
                 if (!KoAIR_LockReleaseState.value(DPT_Switch))
                     return;
                 break;
             case 2: // Lock
+                if (ko.asap() == AIR_KoLockRelease)
+                {
+                    setLocked(ko.value(DPT_Switch));
+                    return;
+                }
                 if (KoAIR_LockReleaseState.value(DPT_Switch))
                     return;
                 break;
