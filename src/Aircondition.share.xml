@@ -378,10 +378,10 @@
           
               <!-- 40-47 Reserved for specific -->
               
-              <!-- Leistungsbergrenzung -->
-              <ComObject Id="%AID%_O-%TT%00048" Number="48" Name="PowerLimit" Text="Leistungsbergrenzung" FunctionText="Leistungsbergrenzung" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-              <!-- Leistungsbergrenzung Status -->
-              <ComObject Id="%AID%_O-%TT%00049" Number="49" Name="PowerLimitState" Text="Leistungsbergrenzung Status" FunctionText="Leistungsbergrenzung Status" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Liestungsbegrenzung -->
+              <ComObject Id="%AID%_O-%TT%00048" Number="48" Name="PowerLimit" Text="Liestungsbegrenzung" FunctionText="Liestungsbegrenzung" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Liestungsbegrenzung Status -->
+              <ComObject Id="%AID%_O-%TT%00049" Number="49" Name="PowerLimitState" Text="Liestungsbegrenzung Status" FunctionText="Liestungsbegrenzung Status" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus -->
               <ComObject Id="%AID%_O-%TT%00050" Number="50" Name="DeviceMode" Text="Gerätemodus" FunctionText="Gerätemodus" ObjectSize="1 Byte" DatapointType="DPST-17-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Status -->
@@ -401,11 +401,11 @@
               <!-- Gerätemodus Silent 1 -->
               <ComObject Id="%AID%_O-%TT%00058" Number="58" Name="DeviceModeSilent1" Text="Gerätemodus Leise 1 (Außengerät)" FunctionText="Gerätemodus Leise 1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Silent 1 Status -->
-              <ComObject Id="%AID%_O-%TT%00059" Number="59" Name="DeviceModeSilent1State" Text="Gerätemodus Leise 1 (Außengerät) Status " FunctionText="Gerätemodus Leise 1 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00059" Number="59" Name="DeviceModeSilent1State" Text="Gerätemodus Leise 1 (Außengerät) Status" FunctionText="Gerätemodus Leise 1 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Silent 2 -->
               <ComObject Id="%AID%_O-%TT%00060" Number="60" Name="DeviceModeSilent2" Text="Gerätemodus Leise 2 (Außengerät)" FunctionText="Gerätemodus Leise 2" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Silent 2 Status -->
-              <ComObject Id="%AID%_O-%TT%00061" Number="61" Name="DeviceModeSilent2State" Text="Gerätemodus Leise 2 Status (Außengerät)" FunctionText="Gerätemodus Leise 2 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00061" Number="61" Name="DeviceModeSilent2State" Text="Gerätemodus Leise 2 (Außengerät) Status" FunctionText="Gerätemodus Leise 2 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
 
             </ComObjectTable>
             <ComObjectRefs>
@@ -488,9 +488,9 @@
               <!-- Lufreinigung Status -->
               <ComObjectRef Id="%AID%_O-%TT%00039_R-%TT%0003901" RefId="%AID%_O-%TT%00039" />
 
-              <!-- Leistungsbergrenzung -->
+              <!-- Liestungsbegrenzung -->
               <ComObjectRef Id="%AID%_O-%TT%00048_R-%TT%0004801" RefId="%AID%_O-%TT%00048" />
-              <!-- Leistungsbergrenzung Status -->
+              <!-- Liestungsbegrenzung Status -->
               <ComObjectRef Id="%AID%_O-%TT%00049_R-%TT%0004901" RefId="%AID%_O-%TT%00049" />
               <!-- Gerätemodus -->
               <ComObjectRef Id="%AID%_O-%TT%00050_R-%TT%0005001" RefId="%AID%_O-%TT%00050" />
@@ -787,9 +787,9 @@
                       <!-- Luftreinigung Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00039_R-%TT%0003901" />
 
-                      <!-- Leistungsbergrenzung -->
+                      <!-- Liestungsbegrenzung -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00048_R-%TT%0004801" />
-                      <!-- Leistungsbergrenzung Status -->
+                      <!-- Liestungsbegrenzung Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00049_R-%TT%0004901" />
                       <!-- Gerätemodus -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00050_R-%TT%0005001" />

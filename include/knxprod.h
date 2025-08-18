@@ -778,9 +778,9 @@
 #define KoAIR_AirPurification                     (knx.getGroupObject(AIR_KoAirPurification))
 // Luftreinigung Status
 #define KoAIR_AirPurificationState                (knx.getGroupObject(AIR_KoAirPurificationState))
-// Leistungsbergrenzung
+// Liestungsbegrenzung
 #define KoAIR_PowerLimit                          (knx.getGroupObject(AIR_KoPowerLimit))
-// Leistungsbergrenzung Status
+// Liestungsbegrenzung Status
 #define KoAIR_PowerLimitState                     (knx.getGroupObject(AIR_KoPowerLimitState))
 // Gerätemodus
 #define KoAIR_DeviceMode                          (knx.getGroupObject(AIR_KoDeviceMode))
