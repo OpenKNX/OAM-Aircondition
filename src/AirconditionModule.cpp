@@ -128,7 +128,7 @@ void AirconditionModule::setLocked(bool locked)
             }
         }
     }
-    if (!initialized)
+    if (initialized)
     {
         // <Enumeration Text="Keine Änderung" Value="0" Id="%ENID%" />
         // <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
