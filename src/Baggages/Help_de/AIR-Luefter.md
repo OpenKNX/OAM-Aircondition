@@ -4,7 +4,7 @@ Lüftergeschwindigkeit
 
 - Keine Änderung
 - Automatik
-- Leise
+- Geräuscharm
 - Stufe 1
 - Stufe 2
 - Stufe 3

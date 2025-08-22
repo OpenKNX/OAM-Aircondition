@@ -119,6 +119,10 @@ Da die Programmier-LED aber nur einmal zum Programmieren der KNX-Adresse leuchte
 
 Der Programmier-Taster ist der Boot Taster am ESP32 Board.
 
+### Haftungsausschluss
+
+Die Software wird von Privatpersonen als Open-Source zur Verfügung gestellt. Die Nutzung erfolgt auf eigenem Risiko. Die Entwickler übernehmen keine Haftung oder Gewährleistung! Insbesondere können wir nicht für Schäden die am Klimageräte oder durch herab gesetzte Herstellergarantie entstehen, die Haftung übernehmen.
+
 ## Danke
 
 Dieses Projekt konnte nur durch die Vorarbeit von vielen Personen und Projekten realisiert werden.

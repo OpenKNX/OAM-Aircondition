@@ -6,6 +6,6 @@ Verfügbare Einstellungen:
 - Standard
 - Hi-Power
 - ECO
-- Leise 1 (Außengerät)
-- Leise 2 (Außengerät)
+- Geräuscharm 1 (Außengerät)
+- Geräuscharm 2 (Außengerät)
 

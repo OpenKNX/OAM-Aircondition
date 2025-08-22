@@ -264,7 +264,7 @@ void SceneHandler::applyParameters(int index)
     }   
     // <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
     // <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
-    // <Enumeration Text="Leise" Value="1" Id="%ENID%" />
+    // <Enumeration Text="Geräuscharm" Value="1" Id="%ENID%" />
     // <Enumeration Text="Stufe 1" Value="2" Id="%ENID%" />
     // <Enumeration Text="Stufe 2" Value="3" Id="%ENID%" />
     // <Enumeration Text="Stufe 3" Value="4" Id="%ENID%" />

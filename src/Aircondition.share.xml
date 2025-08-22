@@ -135,7 +135,7 @@
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
-                  <Enumeration Text="Leise" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm" Value="1" Id="%ENID%" />
                   <Enumeration Text="Stufe 1" Value="2" Id="%ENID%" />
                   <Enumeration Text="Stufe 2" Value="3" Id="%ENID%" />
                   <Enumeration Text="Stufe 3" Value="4" Id="%ENID%" />
@@ -180,8 +180,8 @@
                   <Enumeration Text="Standard" Value="1" Id="%ENID%" />
                   <Enumeration Text="Hi-Power" Value="2" Id="%ENID%" />
                   <Enumeration Text="ECO" Value="3" Id="%ENID%" />
-                  <Enumeration Text="Leise 1 (Außengerät)" Value="4" Id="%ENID%" />
-                  <Enumeration Text="Leise 2 (Außengerät)" Value="5" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm 1 (Außengerät)" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm 2 (Außengerät)" Value="5" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
 
@@ -399,13 +399,13 @@
               <!-- Gerätemodus ECO Status -->
               <ComObject Id="%AID%_O-%TT%00057" Number="57" Name="DeviceModeEcoState" Text="Gerätemodus ECO Status" FunctionText="Gerätemodus ECO Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Silent 1 -->
-              <ComObject Id="%AID%_O-%TT%00058" Number="58" Name="DeviceModeSilent1" Text="Gerätemodus Leise 1 (Außengerät)" FunctionText="Gerätemodus Leise 1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00058" Number="58" Name="DeviceModeSilent1" Text="Gerätemodus Geräuscharm 1 (Außengerät)" FunctionText="Gerätemodus Geräuscharm 1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Silent 1 Status -->
-              <ComObject Id="%AID%_O-%TT%00059" Number="59" Name="DeviceModeSilent1State" Text="Gerätemodus Leise 1 (Außengerät) Status" FunctionText="Gerätemodus Leise 1 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00059" Number="59" Name="DeviceModeSilent1State" Text="Gerätemodus Geräuscharm 1 (Außengerät) Status" FunctionText="Gerätemodus Geräuscharm 1 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Silent 2 -->
-              <ComObject Id="%AID%_O-%TT%00060" Number="60" Name="DeviceModeSilent2" Text="Gerätemodus Leise 2 (Außengerät)" FunctionText="Gerätemodus Leise 2" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00060" Number="60" Name="DeviceModeSilent2" Text="Gerätemodus Geräuscharm 2 (Außengerät)" FunctionText="Gerätemodus Geräuscharm 2" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Silent 2 Status -->
-              <ComObject Id="%AID%_O-%TT%00061" Number="61" Name="DeviceModeSilent2State" Text="Gerätemodus Leise 2 (Außengerät) Status" FunctionText="Gerätemodus Leise 2 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00061" Number="61" Name="DeviceModeSilent2State" Text="Gerätemodus Geräuscharm 2 (Außengerät) Status" FunctionText="Gerätemodus Geräuscharm 2 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
 
             </ComObjectTable>
             <ComObjectRefs>
