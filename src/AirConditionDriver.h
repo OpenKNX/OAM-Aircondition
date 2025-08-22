@@ -18,6 +18,22 @@ enum AirConditionDriverState
     AirConditionDriverStateError = 3,
 };
 
+enum AirConditionDeviceMode
+{
+    AirConditionDeviceModeStandard = 1,
+    AirConditionDeviceModeHiPower = 2,
+    AirConditionDeviceModeEco = 3,
+    AirConditionDeviceModeSilent1 = 4,
+    AirConditionDeviceModeSilent2 = 5,
+
+    // AirConditionDeviceModeFireplace1 = 5,
+    // AirConditionDeviceModeFireplace2 = 6,
+    // AirConditionDeviceModeEightDegree = 7,
+    // AirConditionDeviceModeComfort,
+    // AirConditionDeviceModeSleep,
+    // AirConditionDeviceModeFloor,
+};
+
 class AirConditionDriverStatusFeedback
 {
 public:
@@ -25,7 +41,7 @@ public:
     virtual AirConditionDriverState getDriverState() const = 0;
     virtual void powerChanged(bool power) = 0;
     virtual void modeChanged(AirConditionMode mode) = 0;
-    virtual void targetTemperatureChanged(float temperaturCelius) = 0;
+    virtual void targetTemperatureChanged(float temperaturCelius, bool isFeedbackFromSettin) = 0;
     virtual void fanSpeedChanged(int speed) = 0;
     virtual void swingHorizontalChanged(bool swing) = 0;
     virtual void swingVerticalChanged(bool swing) = 0;
@@ -33,6 +49,9 @@ public:
     virtual void swingVerticalFixPositionChanged(int position) = 0;
     virtual void roomTemperatureChanged(float temperaturCelius) = 0;
     virtual void outsideTemperaturChanged(float temperaturCelius) = 0;
+    virtual void deviceModeChanged(AirConditionDeviceMode mode) = 0;
+    virtual void maxPowerLevelChanged(uint8_t percentage) = 0;
+    virtual void airPurificationChanged(bool on) = 0;
 };
 
 class AirConditionDriver 
@@ -66,11 +85,13 @@ public:
     virtual unsigned int getMaximumFanSpeed() = 0; 
     virtual unsigned int getMaximumHorizontalFixPosition() = 0; 
     virtual unsigned int getMaximumVertiacalFixPosition() = 0; 
+    virtual bool supportExternalRoomTemperatureSensor() = 0;
 
     // Methods to control the air condition device
+    virtual float accuracyInDegrees() = 0;
     virtual void setPower(bool power) = 0;
     virtual void setMode(AirConditionMode mode) = 0;
-    virtual void setTargetTemperature(float temperaturCelius) = 0;
+    virtual void setTargetTemperature(float temperaturCelsius) = 0;
     virtual void setFanSpeed(unsigned int speed) = 0;
     virtual void setSwingHorizontal(bool swing) = 0;
     virtual void setSwingVertical(bool swing) = 0;
@@ -78,4 +99,7 @@ public:
     virtual void setSwingVerticalFixPosition(unsigned int position) = 0;
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) = 0;
     virtual void setWifiLed(bool on) = 0;
+    virtual void setDeviceMode(AirConditionDeviceMode mode) = 0;
+    virtual void setMaxPowerLevel(uint8_t percentage) = 0;
+    virtual void setAirPurification(bool on) = 0;
 };

@@ -1,4 +1,4 @@
 ﻿### Szenennummer
 
-Die Szenennummer die zum Auslösen verwendet wird.
+Die Szenennummer, die zum Auslösen verwendet wird.
 

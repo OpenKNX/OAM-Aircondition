@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-model href="../../Organization/knxprod-support/knx_project_20/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <KNX xmlns="http://knx.org/xml/project/20" xmlns:op="http://github.com/OpenKNX/OpenKNXproducer">
-  
+  <op:config name="%AIR_ShowExternalRoomTempInput%" value="0" />
   <op:config href="Aircondition.conf.xml" />
   <op:ETS
     OpenKnxId="0xAE"
@@ -9,7 +9,7 @@
     ApplicationVersion="%ReleaseApplicationVersion%"
     ReplacesVersions="%ReleaseReplacesVersions%"
     ApplicationRevision="0"
-    ProductName="Klimanalagen KNX Adapter"
+    ProductName="Klimaanlagen KNX Adapter"
     BusCurrent="30"
     BuildSuffix=""
     BuildSuffixText=""
@@ -31,10 +31,10 @@
     <op:verify File="../lib/OFM-ConfigTransfer/library.json" ModuleVersion="%UCT_VerifyVersion%" />
   </op:define>
 
-
   <op:define prefix="AIR" ModuleType="20"
     share="../src/Aircondition.share.xml"
     KoSingleOffset="400">
+    <op:verify File="../library.json" ModuleVersion="%ReleaseApplicationVersion%" />
   </op:define>
 
   <op:define prefix="LOG" ModuleType="10"

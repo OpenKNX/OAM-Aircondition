@@ -1,12 +1,12 @@
 
 # OAM-Aircondition
 
-Diese Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Hersteller.
+Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Hersteller.
 
 - Toshiba
   - HAORI (Getestet)
   - SHORAI EDGE (Getestet)
-  - Viele andere Modelle mit WLAN Modul sollten funktionieren, bitte gerne Rückmeldung wenn ein neues Modell getestet wurde 
+  - Viele andere Modelle mit WLAN-Modul sollten funktionieren. Bitte gerne Rückmeldung geben, wenn ein neues Modell getestet wurde. 
 
 Geplant:
 - Daikin (In Entwicklung)
@@ -20,7 +20,7 @@ Steuerung und Rückmeldung
 - Operation Mode
 - Set temperature
 - Louvers
-- Van speed
+- Fan speed
 - WiFi LED (if available)
 
 ## Anwenderdokumentation
@@ -29,7 +29,7 @@ Die Anwenderdokumentation ist [hier](./doc/Applikationsbeschreibung.md) zu finde
 
 ## Firmware
 
-Eine vorkomplierte Firmware ist [hier](https://github.com/OpenKNX/OAM-Aircondition/releases) zu finden. ZIP Datei herunterladen, entpacken und der Anleitung im Readme folgen.
+Eine vorkompilierte Firmware ist [hier](https://github.com/OpenKNX/OAM-Aircondition/releases) zu finden. ZIP-Datei herunterladen, entpacken und der Anleitung im Readme folgen.
 
 ## Hardware
 
@@ -39,12 +39,12 @@ KNX-TP
 - 2 x Adum1201
 - 1 x AZDelivery ESP32 Board Dev Kit C V4
 - 1 x Nano-BCU
-Die Stromversorgung erfolg die Klimaanlage, der KNX Bus wird galvanisch über den Adum1201 getrennt.
+Die Stromversorgung erfolgt über die Klimaanlage, der KNX-Bus wird galvanisch über den Adum1201 getrennt.
 
 KNX-IP
 - 1 x Adum1201
 - 1 x ESP32 Board 
-- 1 x Wiederstand 330 Ω
+- 1 x Widerstand 330 Ω
 - 1 x LED
 
 
@@ -52,7 +52,7 @@ KNX-IP
 
 Toshiba
 
-Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch. abweichen. Daher bitte zuvor die ausmessen, an welche Pins GND und VCC anliegt
+Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch abweichen. Daher bitte zuvor ausmessen, an welchen Pins GND und VCC anliegt.
 
 | Pin      | Farbe | Klimagerät      | Adum1201 (1)|
 |----------|-------|-----------------|-------------|
@@ -105,13 +105,13 @@ Da die Programmier-LED aber nur einmal zum Programmieren der KNX-Adresse leuchte
 
 | ESP32        |                        | 
 |--------------|------------------------|
-| 2            | Wiederstand 1. Seite   |
+| 2            | Widerstand 1. Seite    |
 
 Über das Define PROG_LED_PIN in der [platformio.custom.ini](platformio.custom.ini) kann auch ein anderer Pin vergeben werden.
 
 | LED                    |                        | 
 |------------------------|------------------------|
-| Anode (langer Draht)   | Wiederstand 2. Seite   |
+| Anode (langer Draht)   | Widerstand 2. Seite    |
 | Kathode (kurzer Draht) | GND ESP                |
 
 
@@ -119,14 +119,18 @@ Da die Programmier-LED aber nur einmal zum Programmieren der KNX-Adresse leuchte
 
 Der Programmier-Taster ist der Boot Taster am ESP32 Board.
 
+### Haftungsausschluss
+
+Die Software wird von Privatpersonen als Open-Source zur Verfügung gestellt. Die Nutzung erfolgt auf eigenem Risiko. Die Entwickler übernehmen keine Haftung oder Gewährleistung! Insbesondere können wir nicht für Schäden die am Klimageräte oder durch herab gesetzte Herstellergarantie entstehen, die Haftung übernehmen.
+
 ## Danke
 
-Diese Projekt konnte nur durch die Vorarbeit von vielen Personen und Projekten realisiert werden.
+Dieses Projekt konnte nur durch die Vorarbeit von vielen Personen und Projekten realisiert werden.
 
 Besonderen Dank an folgende Projekte:
 
-- [pedobry/esphome_toshiba_suzumi](https://github.com/pedobry/esphome_toshiba_suzumi) das als Vorlage für die Toshiba Anbindung gedient hat
-- [toremick/shorai-esp32](https://github.com/toremick/shorai-esp32) für die Infos zur HW Anbindung für Toshiba
+- [pedobry/esphome_toshiba_suzumi](https://github.com/pedobry/esphome_toshiba_suzumi), das als Vorlage für die Toshiba-Anbindung gedient hat
+- [toremick/shorai-esp32](https://github.com/toremick/shorai-esp32) für die Infos zur HW-Anbindung für Toshiba
 
 ## Lizenz
 

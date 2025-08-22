@@ -9,15 +9,12 @@ static const int COMMAND_DELAY = 100;
 static const int COMMAND_RETRY_AFTER = 1000;
 static const int COMMAND_REQUEST_FEEDBACK_AFTER = 500;
 static const int COMMAND_MAX_RETRY_COUNT = 3;
-constexpr const char *SPECIAL_MODE_EIGHT_DEG = "8 degrees";
-
-static const uint8_t SPECIAL_MODE_EIGHT_DEG_MIN_TEMP = 5;
-static const uint8_t SPECIAL_MODE_EIGHT_DEG_MAX_TEMP = 13;
-static const uint8_t SPECIAL_MODE_EIGHT_DEG_DEF_TEMP = 8;
 
 const uint8_t ToshibaDriver::EightDegreeSpecialModeTempOffset = 16;
+const uint8_t ToshibaDriver::EightDegreeSpecialModeMinTemp = 5;
+const uint8_t ToshibaDriver::EightDegreeSpecialModeMaxTemp = 16;
 const uint8_t ToshibaDriver::StandardModeMinTemp = 17;
-
+const uint8_t ToshibaDriver::StandardModeMaxTemp = 30;
 
 const std::vector<uint8_t> ToshibaDriver::PayloadHandshake[6] = {
     {2, 255, 255, 0, 0, 0, 0, 2},
@@ -27,7 +24,6 @@ const std::vector<uint8_t> ToshibaDriver::PayloadHandshake[6] = {
     {2, 0, 1, 2, 0, 0, 2, 0, 0, 254},
     {2, 0, 2, 0, 0, 0, 0, 254},
 };
-
 
 const std::vector<uint8_t> ToshibaDriver::PayloadPostHandshake[2] = {
     {2, 0, 2, 1, 0, 0, 2, 0, 0, 251},
@@ -63,7 +59,6 @@ void ToshibaDriver::startCommunication(bool restart)
     enqueueCommand(ToshibaCommand{.cmd = ToshibaCommandType::ToshibaCommandTypeDelay, .delay = 1000});
 
     requestData(ToshibaCommandType::ToshibaCommandTypePowerState);
-
 }
 
 ToshibaCommand ToshibaDriver::createRequestCommand(ToshibaCommandType cmd)
@@ -74,7 +69,7 @@ ToshibaCommand ToshibaDriver::createRequestCommand(ToshibaCommandType cmd)
     command.payload.push_back(static_cast<uint8_t>(cmd));
     command.payload.push_back(checksum(command.payload, command.payload.size()));
     command.awaitAnswer = true;
-    logInfoP("Requesting for %02X, checksum: %02X", (int) command.payload[12], (int) command.payload[13]);
+    logInfoP("Requesting for %02X, checksum: %02X", (int)command.payload[12], (int)command.payload[13]);
     return command;
 }
 
@@ -95,14 +90,13 @@ void ToshibaDriver::requestAllData()
     requestData(ToshibaCommandType::ToshibaCommandTypeRoomTemperature);
     requestData(ToshibaCommandType::ToshibaCommandTypeOutdoorTemperature);
     requestData(ToshibaCommandType::ToshibaCommandTypeSpecialMode);
+    requestData(ToshibaCommandType::ToshibaCommandTypePure);
     _lastTemperatureRequest = millis();
 }
 
 void ToshibaDriver::setup()
 {
     OPENKNX_AIR_CONDITION_SERIAL.begin(9600, SERIAL_8E1, OPENKNX_AIR_CONDITION_SERIAL_RX, OPENKNX_AIR_CONDITION_SERIAL_TX);
-   
-
 }
 
 /**
@@ -201,6 +195,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             break;
         case 16: // probably ACK for issued command
             logDebugP("Received message with length: %d and value %s", length, toHexString(rawData).c_str());
+            _receivedMessage.clear();
             return;
         case 17: // response to requestData with the actual value of sensor/setting
             commandType = static_cast<ToshibaCommandType>(rawData[14]);
@@ -210,15 +205,23 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             logDebugP("Received unknown message with length: %d", length);
             return;
     }
+    bool isFeedback = false;
     if (!_commandQueue.empty())
     {
-        auto& currentCommand = _commandQueue.front();
+        auto &currentCommand = _commandQueue.front();
         if (currentCommand.timestampSent != 0 && currentCommand.cmd == commandType)
         {
-            // if we have a command in queue, and it matches the received command, reswing it
+            // if we have a command in queue, and it matches the received command, erase it
             _commandQueue.erase(_commandQueue.begin());
             logDebugP("Response for command %d received", static_cast<int>(commandType));
             statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
+            if (currentCommand.requestFeedback)
+            {
+                logInfoP("Request feedback not yet sent, ignore value");
+                _receivedMessage.clear();
+                return;
+            }
+            isFeedback = true;
         }
         else
         {
@@ -236,7 +239,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
                 value -= EightDegreeSpecialModeTempOffset;
                 logDebugP("Note: Special Mode \"%s\" is active, shifting target temp to %d", EightDegreeSpecialModeTempOffset, (int)value);
             }
-            statusFeedback.targetTemperatureChanged(value);
+            statusFeedback.targetTemperatureChanged(value, isFeedback);
             break;
         case ToshibaCommandType::ToshibaCommandTypeFan:
         {
@@ -282,6 +285,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             {
                 case ToshibaSwingMode::ToshibaSwingModeOff:
                     logDebugP("Received swing mode: Off");
+                    _lastNoneMovingSwingMode = _swingMode;
                     statusFeedback.swingVerticalFixPositionChanged(0);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
@@ -306,30 +310,35 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition1:
                     logDebugP("Received swing mode: Fix Position 1");
+                    _lastNoneMovingSwingMode = _swingMode;
                     statusFeedback.swingVerticalFixPositionChanged(1);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition2:
                     logDebugP("Received swing mode: Fix Position 2");
+                    _lastNoneMovingSwingMode = _swingMode;
                     statusFeedback.swingVerticalFixPositionChanged(2);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition3:
                     logDebugP("Received swing mode: Fix Position 3");
+                    _lastNoneMovingSwingMode = _swingMode;
                     statusFeedback.swingVerticalFixPositionChanged(3);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition4:
                     logDebugP("Received swing mode: Fix Position 4");
+                    _lastNoneMovingSwingMode = _swingMode;
                     statusFeedback.swingVerticalFixPositionChanged(4);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
                     break;
                 case ToshibaSwingMode::ToshibaSwingModeFixPosition5:
                     logDebugP("Received swing mode: Fix Position 5");
+                    _lastNoneMovingSwingMode = _swingMode;
                     statusFeedback.swingVerticalFixPositionChanged(5);
                     statusFeedback.swingHorizontalChanged(false);
                     statusFeedback.swingVerticalChanged(false);
@@ -339,7 +348,6 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
                     logErrorP("Unknown swing mode: %d", (int)_swingMode);
             }
             break;
-      
         }
         case ToshibaCommandType::ToshibaCommandTypeMode:
         {
@@ -377,11 +385,24 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             break;
         case ToshibaCommandType::ToshibaCommandTypePowerSel:
         {
-            // auto pwr_level = IntToPowerLevel(static_cast<PWR_LEVEL>(value));
-            // logDebugP("Received power select: %d", value);
-            // if (pwr_select_ != nullptr) {
-            //     pwr_select_->publish_state(pwr_level);
-            // }
+            switch ((ToshibaPowerLevel)value)
+            {
+                case ToshibaPowerLevel::ToshibaPowerLevel50:
+                    logDebugP("Received power select: 50%");
+                    statusFeedback.maxPowerLevelChanged(50);
+                    break;
+                case ToshibaPowerLevel::ToshibaPowerLevel75:
+                    logDebugP("Received power select: 75%");
+                    statusFeedback.maxPowerLevelChanged(75);
+                    break;
+                case ToshibaPowerLevel::ToshibaPowerLevel100:
+                    logDebugP("Received power select: 100%");
+                    statusFeedback.maxPowerLevelChanged(100);
+                    break;
+                default:
+                    logDebugP("Unknown power select: %d", (int)value);
+                    break;
+            }
             break;
         }
         case ToshibaCommandType::ToshibaCommandTypePowerState:
@@ -394,10 +415,69 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
         {
             logInfoP("Received special mode: %d", value);
             _specialMode = static_cast<ToshibaSpecialMode>(value);
+            switch (_specialMode)
+            {
+                case ToshibaSpecialMode::ToshibaSpecialModeStandard:
+                    logDebugP("Special mode: Standard");
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeHiPower:
+                    logDebugP("Special mode: HiPower");
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeHiPower);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeEco:
+                    logDebugP("Special mode: Eco");
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeEco);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeFireplace1:
+                    logDebugP("Special mode: Fireplace1");
+                   // statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFireplace1);
+                   statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeFireplace2:
+                    logDebugP("Special mode: Fireplace2");
+                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFireplace2);
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeEightDegree:
+                    logDebugP("Special mode: Eight Degree");
+                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeEightDegree);
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeSilent1:
+                    logDebugP("Special mode: Silent1");
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeSilent1);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeSilent2:
+                    logDebugP("Special mode: Silent2");
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeSilent2);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeSleep:
+                    logDebugP("Special mode: Sleep");
+                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeSleep);
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeFloor:
+                    logDebugP("Special mode: Floor");
+                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFloor);
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+                    break;
+                case ToshibaSpecialMode::ToshibaSpecialModeComfort:
+                    logDebugP("Special mode: Comfort");
+                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeComfort);
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+                    break;
+                default:
+                    logErrorP("Unknown special mode: %d", (int)_specialMode);
+            }
         }
         break;
+        case ToshibaCommandType::ToshibaCommandTypePure:
+            logInfoP("Received pure state: %d", value);
+            statusFeedback.airPurificationChanged(value == (uint8_t)ToshibaPureState::ToshibaPureStateOn);
+            break;
         default:
-            logInfoP("Unknown command type %d with value %d", (int) commandType, (int)value);
+            logInfoP("Unknown command type %d with value %d", (int)commandType, (int)value);
             break;
     }
     _receivedMessage.clear(); // message processed, clear buffer
@@ -451,7 +531,7 @@ void ToshibaDriver::sendCommand(ToshibaCommandType cmd, uint8_t value)
     payload.push_back(static_cast<uint8_t>(cmd));
     payload.push_back(value);
     payload.push_back(checksum(payload, payload.size()));
-    logDebugP("Sending command: %02X, value: %d, checksum: %02X", (int) cmd, value, (int) payload[14]);
+    logDebugP("Sending command: %02X, value: %d, checksum: %02X", (int)cmd, value, (int)payload[14]);
     enqueueCommand({.cmd = cmd, .payload = std::vector<uint8_t>{payload}, .awaitAnswer = true, .requestFeedback = true});
 }
 
@@ -481,7 +561,7 @@ void ToshibaDriver::processCommandQueue()
     // when there is no RX message and there is a command to send
     if (cmdDelay > COMMAND_DELAY && !_commandQueue.empty() && this->_receivedMessage.empty())
     {
-        auto& newCommand = _commandQueue.front();
+        auto &newCommand = _commandQueue.front();
         if (newCommand.cmd == ToshibaCommandType::ToshibaCommandTypeDelay)
         {
             if (cmdDelay < newCommand.delay)
@@ -489,7 +569,7 @@ void ToshibaDriver::processCommandQueue()
                 // delay command did not finished yet
                 return;
             }
-            logDebugP("Delay command finished waiting {%d}ms, removing from queue", (int) newCommand.delay);
+            logDebugP("Delay command finished waiting {%d}ms, removing from queue", (int)newCommand.delay);
             _commandQueue.erase(_commandQueue.begin());
             return;
         }
@@ -509,17 +589,17 @@ void ToshibaDriver::processCommandQueue()
             {
                 if (newCommand.retryCount >= COMMAND_MAX_RETRY_COUNT)
                 {
-                     // Command timeout
+                    // Command timeout
                     statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Command timeout");
                     _commandQueue.erase(_commandQueue.begin());
                     return;
                 }
                 newCommand.retryCount++;
-                logErrorP("Command %02X timed out, retrying (%d/%d)", (int) newCommand.cmd, newCommand.retryCount, COMMAND_MAX_RETRY_COUNT);
+                logErrorP("Command %02X timed out, retrying (%d/%d)", (int)newCommand.cmd, newCommand.retryCount, COMMAND_MAX_RETRY_COUNT);
             }
             else
             {
-                // still waiting for answer            
+                // still waiting for answer
                 return;
             }
         }
@@ -539,23 +619,21 @@ void ToshibaDriver::loop()
         handleReceivedByte(c);
     }
     processCommandQueue();
-    
+
     if (statusFeedback.getDriverState() == AirConditionDriverState::AirConditionDriverStateOk)
     {
-    
         if (millis() - _lastTemperatureRequest > 60000)
         {
             _lastTemperatureRequest = millis();
             requestTemperatures();
         }
-        
     }
 }
 
 /**
  * Send the command to UART interface.
  */
-void ToshibaDriver::sendToUart(const ToshibaCommand& command)
+void ToshibaDriver::sendToUart(const ToshibaCommand &command)
 {
     logDebugP("Sending: [%s]", toHexString(command.payload).c_str());
     OPENKNX_AIR_CONDITION_SERIAL.write(command.payload.data(), command.payload.size());
@@ -563,11 +641,19 @@ void ToshibaDriver::sendToUart(const ToshibaCommand& command)
 
 float ToshibaDriver::getMinimumTargetTemperature()
 {
+    if (_specialMode == ToshibaSpecialMode::ToshibaSpecialModeEightDegree && _power && _mode == ToshibaDriverMode::ToshibaDriverModeHeat)
+    {
+        return EightDegreeSpecialModeMinTemp;
+    }
     return StandardModeMinTemp;
 }
 float ToshibaDriver::getMaximumTargetTemperature()
 {
-    return 30.0f;
+    if (_specialMode == ToshibaSpecialMode::ToshibaSpecialModeEightDegree && _power && _mode == ToshibaDriverMode::ToshibaDriverModeHeat)
+    {
+        return EightDegreeSpecialModeMaxTemp;
+    }
+    return StandardModeMaxTemp;
 }
 
 unsigned int ToshibaDriver::getMaximumFanSpeed()
@@ -585,6 +671,7 @@ unsigned int ToshibaDriver::getMaximumVertiacalFixPosition()
 
 void ToshibaDriver::setPower(bool power)
 {
+    _power = power;
     sendCommand(ToshibaCommandType::ToshibaCommandTypePowerState, static_cast<uint8_t>(power ? ToshibaState::ToshibaStateOn : ToshibaState::ToshibaStateOff));
 }
 
@@ -593,18 +680,23 @@ void ToshibaDriver::setMode(AirConditionMode mode)
     switch (mode)
     {
         case AirConditionMode::AirConditionModeAuto:
+            _mode = ToshibaDriverMode::ToshibaDriverModeAuto;
             sendCommand(ToshibaCommandType::ToshibaCommandTypeMode, static_cast<uint8_t>(ToshibaDriverMode::ToshibaDriverModeAuto));
             break;
         case AirConditionMode::AirConditionModeCool:
+            _mode = ToshibaDriverMode::ToshibaDriverModeCool;
             sendCommand(ToshibaCommandType::ToshibaCommandTypeMode, static_cast<uint8_t>(ToshibaDriverMode::ToshibaDriverModeCool));
             break;
         case AirConditionMode::AirConditionModeHeat:
+            _mode = ToshibaDriverMode::ToshibaDriverModeHeat;
             sendCommand(ToshibaCommandType::ToshibaCommandTypeMode, static_cast<uint8_t>(ToshibaDriverMode::ToshibaDriverModeHeat));
             break;
         case AirConditionMode::AirConditionModeDry:
+            _mode = ToshibaDriverMode::ToshibaDriverModeDry;
             sendCommand(ToshibaCommandType::ToshibaCommandTypeMode, static_cast<uint8_t>(ToshibaDriverMode::ToshibaDriverModeDry));
             break;
         case AirConditionMode::AirConditionModeFan:
+            _mode = ToshibaDriverMode::ToshibaDriverModeFanOnly;
             sendCommand(ToshibaCommandType::ToshibaCommandTypeMode, static_cast<uint8_t>(ToshibaDriverMode::ToshibaDriverModeFanOnly));
             break;
         default:
@@ -678,7 +770,7 @@ void ToshibaDriver::setFanSpeed(unsigned int speed)
 void ToshibaDriver::setSwingHorizontal(bool swing)
 {
     ToshibaSwingMode newSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
-     logDebugP("Setting horizontal swing %s", swing ? "on" : "off");
+    logDebugP("Setting horizontal swing %s", swing ? "on" : "off");
     logDebugP("Current swing mode: %d", (int)_swingMode);
     if (swing)
     {
@@ -686,7 +778,8 @@ void ToshibaDriver::setSwingHorizontal(bool swing)
         {
             case ToshibaSwingMode::ToshibaSwingModeOff:
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeHorizontal;
-                break;;
+                break;
+                ;
             case ToshibaSwingMode::ToshibaSwingModeBoth:
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeBoth;
                 break;
@@ -699,9 +792,7 @@ void ToshibaDriver::setSwingHorizontal(bool swing)
             default: // Fix vertical position modes
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeHorizontal;
                 break;
-
         }
-        
     }
     else
     {
@@ -717,17 +808,16 @@ void ToshibaDriver::setSwingHorizontal(bool swing)
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeVertical;
                 break;
             case ToshibaSwingMode::ToshibaSwingModeHorizontal:
-                newSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
+                newSwingMode = _lastNoneMovingSwingMode;
                 break;
             default: // Fix vertical position modes
-                newSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
+                newSwingMode = _lastNoneMovingSwingMode;
                 break;
         }
     }
     logDebugP("Setting horizontal swing to %d", (int)newSwingMode);
     _swingMode = newSwingMode;
-    sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t) newSwingMode);
-    
+    sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)newSwingMode);
 }
 
 void ToshibaDriver::setSwingVertical(bool swing)
@@ -767,10 +857,10 @@ void ToshibaDriver::setSwingVertical(bool swing)
                 newSwingMode = ToshibaSwingMode::ToshibaSwingModeHorizontal;
                 break;
             case ToshibaSwingMode::ToshibaSwingModeVertical:
-                newSwingMode = ToshibaSwingMode::ToshibaSwingModeOff;
+                newSwingMode = _lastNoneMovingSwingMode;
                 break;
             case ToshibaSwingMode::ToshibaSwingModeHorizontal:
-                newSwingMode = ToshibaSwingMode::ToshibaSwingModeHorizontal;
+                newSwingMode = _lastNoneMovingSwingMode;
                 break;
             default: // Fix vertical position modes
                 return;
@@ -778,7 +868,7 @@ void ToshibaDriver::setSwingVertical(bool swing)
     }
     logDebugP("Setting vertical swing to %d", (int)newSwingMode);
     _swingMode = newSwingMode;
-    sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t) newSwingMode);
+    sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)newSwingMode);
 }
 
 void ToshibaDriver::setSwingHorizontalFixPosition(unsigned int position)
@@ -789,9 +879,11 @@ void ToshibaDriver::setSwingHorizontalFixPosition(unsigned int position)
 
 void ToshibaDriver::setSwingVerticalFixPosition(unsigned int position)
 {
-   switch (position)
-   {
+    switch (position)
+    {
         case 0:
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeOff);
+            break;
         case 1:
             sendCommand(ToshibaCommandType::ToshibaCommandTypeSwing, (uint8_t)ToshibaSwingMode::ToshibaSwingModeFixPosition1);
             break;
@@ -816,10 +908,99 @@ void ToshibaDriver::setSwingVerticalFixPosition(unsigned int position)
 
 void ToshibaDriver::setWifiLed(bool on)
 {
-    sendCommand(ToshibaCommandType::ToshibaCommandTypeWifiLED, on ? (uint8_t) ToshibaLedState::On : (uint8_t) ToshibaLedState::Off);
+    sendCommand(ToshibaCommandType::ToshibaCommandTypeWifiLED, on ? (uint8_t)ToshibaLedState::On : (uint8_t)ToshibaLedState::Off);
 }
 
 void ToshibaDriver::setExternalSensorRoomTemperature(float temperaturCelius)
 {
 }
 
+bool ToshibaDriver::supportExternalRoomTemperatureSensor()
+{
+    return false;
+}
+
+float ToshibaDriver::accuracyInDegrees()
+{
+    return 1.f;
+}
+
+void ToshibaDriver::setDeviceMode(AirConditionDeviceMode mode)
+{
+    switch (mode)
+    {
+        case AirConditionDeviceMode::AirConditionDeviceModeStandard:
+            logDebugP("Setting device mode to Standard");
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeStandard);
+            break;
+        case AirConditionDeviceMode::AirConditionDeviceModeHiPower:
+            logDebugP("Setting device mode to HiPower");
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeHiPower);
+            break;
+        case AirConditionDeviceMode::AirConditionDeviceModeEco:
+            logDebugP("Setting device mode to Eco");
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeEco);
+            break;
+        // case AirConditionDeviceMode::AirConditionDeviceModeFireplace1:
+        //     logDebugP("Setting device mode to Fireplace1");
+        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeFireplace1);
+        //     break;
+        // case AirConditionDeviceMode::AirConditionDeviceModeFireplace2:
+        //     logDebugP("Setting device mode to Fireplace2");
+        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeFireplace2);
+        //     break;
+        // case AirConditionDeviceMode::AirConditionDeviceModeEightDegree:
+        //     logDebugP("Setting device mode to EightDegree");
+        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeEightDegree);
+        //     break;
+        case AirConditionDeviceMode::AirConditionDeviceModeSilent1:
+            logDebugP("Setting device mode to Silent1");
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeSilent1);
+            break;
+        case AirConditionDeviceMode::AirConditionDeviceModeSilent2:
+            logDebugP("Setting device mode to Silent2");
+            sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeSilent2);
+            break;
+        // case AirConditionDeviceMode::AirConditionDeviceModeSleep:
+        //     logDebugP("Setting device mode to Sleep");
+        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeSleep);
+        //     break;
+        // case AirConditionDeviceMode::AirConditionDeviceModeFloor:
+        //     logDebugP("Setting device mode to Floor");
+        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeFloor);
+        //     break;
+        // case AirConditionDeviceMode::AirConditionDeviceModeComfort:
+        //     logDebugP("Setting device mode to Comfort");
+        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeComfort);
+        //     break;
+    }
+}
+
+void ToshibaDriver::setMaxPowerLevel(uint8_t percentage)
+{
+    auto value = (uint8_t)(round(percentage / 25.f));
+    switch (value)
+    {
+        case 0:
+        case 1:
+        case 2:
+            logDebugP("Setting max power level to 50%");
+            sendCommand(ToshibaCommandType::ToshibaCommandTypePowerSel, (uint8_t)ToshibaPowerLevel::ToshibaPowerLevel50);
+            break;
+        case 3:
+            logDebugP("Setting max power level to 75%");
+            sendCommand(ToshibaCommandType::ToshibaCommandTypePowerSel, (uint8_t)ToshibaPowerLevel::ToshibaPowerLevel75);
+            break;
+        case 4:
+            logDebugP("Setting max power level to 100%");
+            sendCommand(ToshibaCommandType::ToshibaCommandTypePowerSel, (uint8_t)ToshibaPowerLevel::ToshibaPowerLevel100);
+            break;
+    }
+}
+
+
+void ToshibaDriver::setAirPurification(bool on)
+{
+    logDebugP("Setting air purification to %s", on ? "on" : "off");
+    sendCommand(ToshibaCommandType::ToshibaCommandTypePure, on ? (uint8_t)ToshibaPureState::ToshibaPureStateOn : (uint8_t)ToshibaPureState::ToshibaPureStateOff);
+}

@@ -106,3 +106,29 @@ void MitsubishiDriver::setWifiLed(bool on)
 {
     // To Do (Mitsubishi): Implementation for WiFi LED control
 }
+
+bool MitsubishiDriver::supportExternalRoomTemperatureSensor()
+{
+    return true; 
+}
+
+float MitsubishiDriver::accuracyInDegrees()
+{
+    // To Do (Mitsubishi): Implement rounding of temperature to the air condition resolution
+    return 1.f; // Assuming 1 degree Celsius accuracy
+}
+
+void MitsubishiDriver::setDeviceMode(AirConditionDeviceMode mode)
+{
+    // To Do (Mitsubishi): Implementation for device mode control
+}
+
+void MitsubishiDriver::setMaxPowerLevel(uint8_t percentage)
+{
+    // To Do (Mitsubishi): Implementation for max power level control
+}
+
+void MitsubishiDriver::setAirPurification(bool on)
+{
+    // To Do (Mitsubishi): Implementation for air purification control
+}
