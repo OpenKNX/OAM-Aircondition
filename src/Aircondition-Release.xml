@@ -34,7 +34,7 @@
   <op:define prefix="AIR" ModuleType="20"
     share="../src/Aircondition.share.xml"
     KoSingleOffset="400">
-    <op:verify File="../library.json" ModuleVersion="%ReleaseApplicationVersion%" />
+    <op:verify File="../library.json" ModuleVersion="%AIR_VerifyVersion%" />
   </op:define>
 
   <op:define prefix="LOG" ModuleType="10"

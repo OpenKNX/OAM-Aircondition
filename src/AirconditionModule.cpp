@@ -525,8 +525,8 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 break;
             case AIR_KoFanSpeed:
             {
-                uint8_t fanSpeedPercent = ko.value(DPT_Scaling);
-                unsigned int fanSpeed = _airConditionDriver->getMaximumFanSpeed() * fanSpeedPercent / 100;
+                float fanSpeedPercent = ko.value(DPT_Scaling);
+                unsigned int fanSpeed = round((float)_airConditionDriver->getMaximumFanSpeed() * fanSpeedPercent / 100.f);
                 logInfoP("Set fan speed to %u (%u%%)", fanSpeed, fanSpeedPercent);
                 _airConditionDriver->setFanSpeed(fanSpeed);
             }
