@@ -26,6 +26,7 @@ void AirconditionModule::setup()
     // <Enumeration Text="Midea" Value="2" Id="%ENID%" />
     // <Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />
     // <Enumeration Text="Toshiba" Value="4" Id="%ENID%" />
+
     switch (ParamAIR_DeviceType)
     {
         case 0:

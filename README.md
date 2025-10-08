@@ -6,22 +6,41 @@ Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Herstelle
 - Toshiba
   - HAORI (Getestet)
   - SHORAI EDGE (Getestet)
-  - Viele andere Modelle mit WLAN-Modul sollten funktionieren. Bitte gerne Rückmeldung geben, wenn ein neues Modell getestet wurde. 
+  - Viele andere Modelle mit WLAN-Modul sollten funktionieren. Bitte gerne Rückmeldung geben, wenn ein neues Modell getestet wurde.
+
+- Daikin
+  - S21 Protocol v3.30 (Vollständig implementiert)
+  - Alle Modelle mit S21-Schnittstelle (HA-Anschluss) unterstützt
+  - Features: Grundsteuerung, Spezialmodi (Powerful, Quiet, Comfort, Streamer), Intelligent Eye Sensor, Humidity Control, Swing-Modi
+  - Getestet mit verschiedenen FTXM/FTXF Serien
 
 Geplant:
-- Daikin (In Entwicklung)
 - Mitsubishi (In Entwicklung)
 
 ## Features
 
-Steuerung und Rückmeldung
-
+### Allgemeine Steuerung und Rückmeldung
 - Power
 - Operation Mode
 - Set temperature
 - Louvers
 - Fan speed
 - WiFi LED (if available)
+
+### Herstellerspezifische Features
+
+#### Toshiba
+- WLAN-LED Kontrolle
+- Erweiterte Lüftersteuerung
+
+#### Daikin (S21 Protocol)
+- **Spezialmodi**: Powerful, Quiet, Comfort, Streamer
+- **Intelligent Eye Sensor**: Automatische Temperaturanpassung basierend auf Anwesenheitserkennung
+- **Humidity Control**: 5 Stufen (Off, Low, Standard, High, Continuous, Moisturizing)
+- **Swing Modi**: Vertikal, Horizontal, Both
+- **Umfassende Sensorik**: Innen-/Außentemperatur, Luftfeuchtigkeit, Kompressorfrequenz
+- **Energy Monitoring**: Stromverbrauch-Tracking
+- **Erweiterte Diagnostik**: Vollständige S21 v3.30 Protokoll-Unterstützung
 
 ## Anwenderdokumentation
 
@@ -50,7 +69,7 @@ KNX-IP
 
 ### Klimagerät / Adum1201 (1) ###
 
-Toshiba
+#### Toshiba
 
 Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch abweichen. Daher bitte zuvor ausmessen, an welchen Pins GND und VCC anliegt.
 
@@ -61,6 +80,21 @@ Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch 
 |    3     | black | 5V              | VDD2        |
 |    4     | white | TX              | VIA         |
 |    5     | pink  | nicht verwendet |             |
+
+#### Daikin (S21 Protocol)
+
+Verbindung über den S21/HA-Anschluss des Innengeräts. Meistens ein 5-poliger Stecker.
+
+| Pin      | Signal          | Klimagerät      | 
+|----------|-----------------|-----------------|
+|    1     | +12V/+5V        | VCC             | 
+|    2     | TX (vom Gerät)  | TX              | 
+|    3     | RX (zum Gerät)  | RX              | 
+|    4     | GND             | GND             | 
+|    5     | NC/Shield       | nicht verwendet |
+
+**Wichtig**: Vor Anschluss Spannungslevel prüfen! Manche Geräte nutzen 12V, andere 5V.
+Die S21-Schnittstelle arbeitet mit 2400 baud, even parity, 2 stop bits.
 
 ### Adum1201 (1) / ESP32 Board
 
@@ -129,8 +163,14 @@ Dieses Projekt konnte nur durch die Vorarbeit von vielen Personen und Projekten 
 
 Besonderen Dank an folgende Projekte:
 
+### Toshiba
 - [pedobry/esphome_toshiba_suzumi](https://github.com/pedobry/esphome_toshiba_suzumi), das als Vorlage für die Toshiba-Anbindung gedient hat
 - [toremick/shorai-esp32](https://github.com/toremick/shorai-esp32) für die Infos zur HW-Anbindung für Toshiba
+
+### Daikin
+- [revk/ESP32-Faikin](https://github.com/revk/ESP32-Faikin) für die umfassende S21 Protokoll-Dokumentation und Reverse Engineering
+- [ESP32-Faikin S21 Protocol Wiki](https://github.com/revk/ESP32-Faikin/wiki/S21-Protocol) für die detaillierte S21 v3.30 Spezifikation
+- Die Daikin S21 Community für Feldtests und Protokoll-Verifikation
 
 ## Lizenz
 

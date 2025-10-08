@@ -9,21 +9,20 @@
                                          (time & 0x3FFF) * 3600000 ) : 0 )
                                              
 #ifndef FIRMWARE_NAME
-    #define FIRMWARE_NAME "Klimaanlagen KNX Adapter"
+    #define FIRMWARE_NAME "Klimaanlagen KNX Adapter (Dev)"
 #endif
 #define MAIN_OpenKnxId 0xAE
-#define MAIN_ApplicationNumber 54
-#define MAIN_ApplicationVersion 5
+#define MAIN_ApplicationNumber 53
+#define MAIN_ApplicationVersion 6
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 6221
-#define MAIN_MaxKoNumber 461
+#define MAIN_MaxKoNumber 399
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 20
 #define NET_ModuleVersion 5
 #define UCT_ModuleVersion 4
-#define AIR_ModuleVersion 4
 #define LOG_ModuleVersion 55
-#define FCB_ModuleVersion 6
+#define FCB_ModuleVersion 5
 // Parameter with single occurrence
 
 
@@ -702,6 +701,8 @@
 #define AIR_KoDeviceModeSilent1State 459
 #define AIR_KoDeviceModeSilent2 460
 #define AIR_KoDeviceModeSilent2State 461
+#define AIR_KoHumidityState 462
+#define AIR_KoOnlineState 463
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -807,6 +808,10 @@
 #define KoAIR_DeviceModeSilent2                   (knx.getGroupObject(AIR_KoDeviceModeSilent2))
 // Gerätemodus Geräuscharm 2 (Außengerät) Status
 #define KoAIR_DeviceModeSilent2State              (knx.getGroupObject(AIR_KoDeviceModeSilent2State))
+// Luftfeuchtigkeit Status
+#define KoAIR_HumidityState                       (knx.getGroupObject(AIR_KoHumidityState))
+// Gerät Online Status
+#define KoAIR_OnlineState                         (knx.getGroupObject(AIR_KoOnlineState))
 
 #define LOG_BuzzerInstalled                     441      // 1 Bit, Bit 7
 #define     LOG_BuzzerInstalledMask 0x80
@@ -3192,6 +3197,9 @@
 #define FCB_CHLogicKo8D                          4      // 2 Bits, Bit 7-6
 #define     FCB_CHLogicKo8DMask 0xC0
 #define     FCB_CHLogicKo8DShift 6
+#define FCB_CHLogicKo9D                          4      // 2 Bits, Bit 5-4
+#define     FCB_CHLogicKo9DMask 0x30
+#define     FCB_CHLogicKo9DShift 4
 #define FCB_CHLogicOutInv                        4      // 1 Bit, Bit 4
 #define     FCB_CHLogicOutInvMask 0x10
 #define     FCB_CHLogicOutInvShift 4
@@ -3514,6 +3522,8 @@
 #define ParamFCB_CHLogicKo7D                         (knx.paramByte(FCB_ParamCalcIndex(FCB_CHLogicKo7D)) & FCB_CHLogicKo7DMask)
 // Eingang 9
 #define ParamFCB_CHLogicKo8D                         ((knx.paramByte(FCB_ParamCalcIndex(FCB_CHLogicKo8D)) & FCB_CHLogicKo8DMask) >> FCB_CHLogicKo8DShift)
+// Eingang 10
+#define ParamFCB_CHLogicKo9D                         ((knx.paramByte(FCB_ParamCalcIndex(FCB_CHLogicKo9D)) & FCB_CHLogicKo9DMask) >> FCB_CHLogicKo9DShift)
 // Invertiert
 #define ParamFCB_CHLogicOutInv                       ((bool)(knx.paramByte(FCB_ParamCalcIndex(FCB_CHLogicOutInv)) & FCB_CHLogicOutInvMask))
 // Initialisierung

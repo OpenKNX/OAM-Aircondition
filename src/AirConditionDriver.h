@@ -32,6 +32,13 @@ enum AirConditionDeviceMode
     // AirConditionDeviceModeComfort,
     // AirConditionDeviceModeSleep,
     // AirConditionDeviceModeFloor,
+    
+    // Extended unified naming (aliases preserve existing numeric values where applicable)
+    AirConditionDeviceModeNormal         = AirConditionDeviceModeStandard,
+    AirConditionDeviceModeHighPerformance= AirConditionDeviceModeHiPower,
+    AirConditionDeviceModePowerSaving    = AirConditionDeviceModeEco,
+    AirConditionDeviceModeQuietMode      = AirConditionDeviceModeSilent1, // map primary quiet to Silent1
+
 };
 
 class AirConditionDriverStatusFeedback
@@ -52,6 +59,26 @@ public:
     virtual void deviceModeChanged(AirConditionDeviceMode mode) = 0;
     virtual void maxPowerLevelChanged(uint8_t percentage) = 0;
     virtual void airPurificationChanged(bool on) = 0;
+
+    // --- Extended feature update interface (non-breaking: provide virtuals with default empty bodies) ---
+    // These allow drivers to push richer telemetry without forcing every implementation to override.
+    // If you have an implementation, override the ones you need.
+    virtual void updatePower(bool power) { powerChanged(power); }
+    virtual void updateMode(AirConditionMode mode) { modeChanged(mode); }
+    virtual void updateTargetTemperature(float temperaturCelius) { targetTemperatureChanged(temperaturCelius, false); }
+    virtual void updateFanSpeed(int speed) { fanSpeedChanged(speed); }
+    virtual void updateSwingHorizontal(bool swing) { swingHorizontalChanged(swing); }
+    virtual void updateSwingVertical(bool swing) { swingVerticalChanged(swing); }
+    virtual void updateCurrentTemperature(float temperaturCelius) { roomTemperatureChanged(temperaturCelius); }
+    virtual void updateOutdoorTemperature(float temperaturCelius) { outsideTemperaturChanged(temperaturCelius); }
+    virtual void updateDeviceMode(AirConditionDeviceMode mode) { deviceModeChanged(mode); }
+    virtual void updateMaxPowerLevel(uint8_t percentage) { maxPowerLevelChanged(percentage); }
+    virtual void updateAirPurification(bool on) { airPurificationChanged(on); }
+    virtual void updateOnlineStatus(bool /*online*/) { }
+    virtual void updateWifiLed(bool /*on*/) { }
+    virtual void updateHumidity(uint8_t /*humidity*/) { }
+    virtual void updateHumidityMode(uint8_t /*humidityMode*/) { }  // 0=Off, 1=Low, 2=Standard, 3=High, 4=Continuous
+    virtual void updateTotalEnergyConsumption(uint32_t /*totalEnergyWh*/) { }
 };
 
 class AirConditionDriver 

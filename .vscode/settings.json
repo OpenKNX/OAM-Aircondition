@@ -74,6 +74,7 @@
         "text_encoding": "cpp",
         "fstream": "cpp",
         "coroutine": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "ranges": "cpp"
     }
 }

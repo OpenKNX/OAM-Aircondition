@@ -38,7 +38,7 @@
               <ParameterType Id="%AID%_PT-AIRDeviceType" Name="AIRDeviceType">
                 <TypeRestriction Base="Value" SizeInBit="4" UIHint="DropDown">
                   <Enumeration Text="Bitte wählen..." Value="0" Id="%ENID%" />
-                  <!--<Enumeration Text="Daikin" Value="1" Id="%ENID%" />-->
+                  <Enumeration Text="Daikin" Value="1" Id="%ENID%" />
                   <!--Enumeration Text="Midea" Value="2" Id="%ENID%" />-->
                   <!--<Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />-->
                   <Enumeration Text="Toshiba" Value="4" Id="%ENID%" />
@@ -406,7 +406,10 @@
               <ComObject Id="%AID%_O-%TT%00060" Number="60" Name="DeviceModeSilent2" Text="Gerätemodus Geräuscharm 2 (Außengerät)" FunctionText="Gerätemodus Geräuscharm 2" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Silent 2 Status -->
               <ComObject Id="%AID%_O-%TT%00061" Number="61" Name="DeviceModeSilent2State" Text="Gerätemodus Geräuscharm 2 (Außengerät) Status" FunctionText="Gerätemodus Geräuscharm 2 Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-
+              <!-- Luftfeuchtigkeits Status -->
+              <ComObject Id="%AID%_O-%TT%00062" Number="62" Name="HumidityState" Text="Luftfeuchtigkeit Status" FunctionText="Luftfeuchtigkeit Status" ObjectSize="2 Bytes" DatapointType="DPST-9-7" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Geräte Online Status -->
+              <ComObject Id="%AID%_O-%TT%00063" Number="63" Name="OnlineState" Text="Gerät Online Status" FunctionText="Gerät Online Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
             </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -516,6 +519,10 @@
               <ComObjectRef Id="%AID%_O-%TT%00060_R-%TT%0006001" RefId="%AID%_O-%TT%00060" />
               <!-- Gerätemodus Silent 2 Status -->
               <ComObjectRef Id="%AID%_O-%TT%00061_R-%TT%0006101" RefId="%AID%_O-%TT%00061" />
+              <!-- Luftfeuchtigkeits Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00062_R-%TT%0006201" RefId="%AID%_O-%TT%00062" />
+              <!-- Geräte Online Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00063_R-%TT%0006301" RefId="%AID%_O-%TT%00063" />
 
             </ComObjectRefs>
           </Static>
@@ -815,6 +822,10 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00060_R-%TT%0006001" />
                       <!-- Gerätemodus Silent 2 Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00061_R-%TT%0006101" />
+                      <!-- Luftfeuchtigkeits Status -->
+                      <ComObjectRefRef RefId="%AID%_O-%TT%00062_R-%TT%0006201" />
+                      <!-- Geräte Online Status -->   
+                      <ComObjectRefRef RefId="%AID%_O-%TT%00063_R-%TT%0006301" />
                     </ParameterBlock>
                   </when>
                 </choose>
