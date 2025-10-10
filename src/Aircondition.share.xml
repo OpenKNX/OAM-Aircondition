@@ -378,10 +378,10 @@
           
               <!-- 40-47 Reserved for specific -->
               
-              <!-- Liestungsbegrenzung -->
-              <ComObject Id="%AID%_O-%TT%00048" Number="48" Name="PowerLimit" Text="Liestungsbegrenzung" FunctionText="Liestungsbegrenzung" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-              <!-- Liestungsbegrenzung Status -->
-              <ComObject Id="%AID%_O-%TT%00049" Number="49" Name="PowerLimitState" Text="Liestungsbegrenzung Status" FunctionText="Liestungsbegrenzung Status" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Leistungsbegrenzung -->
+              <ComObject Id="%AID%_O-%TT%00048" Number="48" Name="PowerLimit" Text="Leistungsbegrenzung" FunctionText="Leistungsbegrenzung" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- Leistungsbegrenzung Status -->
+              <ComObject Id="%AID%_O-%TT%00049" Number="49" Name="PowerLimitState" Text="Leistungsbegrenzung Status" FunctionText="Leistungsbegrenzung Status" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus -->
               <ComObject Id="%AID%_O-%TT%00050" Number="50" Name="DeviceMode" Text="Gerätemodus" FunctionText="Gerätemodus" ObjectSize="1 Byte" DatapointType="DPST-17-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Gerätemodus Status -->
@@ -830,17 +830,24 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00060_R-%TT%0006001" />
                       <!-- Gerätemodus Silent 2 Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00061_R-%TT%0006101" />
-                      <!-- Luftfeuchtigkeits Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00062_R-%TT%0006201" />
                       <!-- Geräte Online Status -->   
                       <ComObjectRefRef RefId="%AID%_O-%TT%00063_R-%TT%0006301" />
-                      <!-- Luftfeuchtigkeitsmodus Percent -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
-                      <!-- TotalEnergy -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" />
-                    </ParameterBlock>
+
+                      <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                        <when test="1">
+                          <!-- Daikin -->
+
+                          <!-- Luftfeuchtigkeits Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00062_R-%TT%0006201" />
+                          <!-- Luftfeuchtigkeitsmodus Percent -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
+                          <!-- TotalEnergy -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" /> 
+                        </when>
+                      </choose>
+                    </ParameterBlock>                 
                   </when>
-                </choose>
+                </choose>  
               </ParameterBlock>
               <!-- Device Type -->
               <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
