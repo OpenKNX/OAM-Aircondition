@@ -103,17 +103,20 @@
                                         <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+5%_R-%TT%00%PPP+5%01" IndentLevel="2" HelpContext="%DOC%" />
                                         <!-- Lamellen Bewegung -->
                                         <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01" IndentLevel="2" HelpContext="%DOC%" />
-                                        <choose ParamRefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01">                              
-                                            <when test="255 0">
-                                                <!-- Bewegung: Keine Änderung, Aus -->
+                                        <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                                            <when test="2 3 4">
+                                                <choose ParamRefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01">                              
+                                                    <when test="255 0">
+                                                        <!-- Bewegung: Keine Änderung, Aus -->
                        
-                                                <!-- Vertikale Lamellenstellung -->
-                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01" IndentLevel="2" HelpContext="%DOC%" />
-                            
-                                            </when>            
+                                                        <!-- Vertikale Lamellenstellung -->
+                                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                    </when>            
+                                                </choose>
+                                                <!-- Leistungsbegrenzung -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+8%_R-%TT%00%PPP+8%01" IndentLevel="2" HelpContext="%DOC%" />
+                                            </when>
                                         </choose>
-                                        <!-- Leistungsbegrenzung -->
-                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+8%_R-%TT%00%PPP+8%01" IndentLevel="2" HelpContext="%DOC%" />
                                         <!-- Gerätemodus -->
                                         <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+9%_R-%TT%00%PPP+9%01" IndentLevel="2" HelpContext="%DOC%" />
                                         <!-- Luftreinigung -->
