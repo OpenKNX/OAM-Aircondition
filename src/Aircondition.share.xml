@@ -710,25 +710,31 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00019_R-%TT%0001901" />
                       
                       <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
-                        <when test="1 2 3">
-                          <!-- Daikin, Midea, Mitsubishi -->
+                        <when test="2 3">
+                          <!-- Midea, Mitsubishi -->
 
                           <!-- Lamelle Vertikal Höher/Tiefer -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00020_R-%TT%0002001" />
                         </when>
                       </choose>
-                      
-                      <!-- Lamelle Vertikale Position -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00024_R-%TT%0002401" />
-                      <!-- Lamelle Vertikale Position Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00025_R-%TT%0002501" />
+                      <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                        <when test="2 3 4">
+                          <!-- Midea, Mitsubishi, Toshiba -->
+
+                          <!-- Lamelle Vertikale Position -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00024_R-%TT%0002401" />
+                          <!-- Lamelle Vertikale Position Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00025_R-%TT%0002501" />
+                        </when>
+                      </choose>
+
                       <!-- Lamelle Horizontal Bewegen -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00021_R-%TT%0002101" />
                       <!-- Lamelle Horizontal Bewegen Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00022_R-%TT%0002201" />
                       <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
-                        <when test="1 2 3">
-                          <!-- Daikin, Midea, Mitsubishi -->
+                        <when test="2 3">
+                          <!-- Midea, Mitsubishi -->
 
                           <!-- Lamelle Horizontal Links/Rechts -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00023_R-%TT%0002301" />
