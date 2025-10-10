@@ -410,7 +410,11 @@
               <ComObject Id="%AID%_O-%TT%00062" Number="62" Name="HumidityState" Text="Luftfeuchtigkeit Status" FunctionText="Luftfeuchtigkeit Status" ObjectSize="2 Bytes" DatapointType="DPST-9-7" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Geräte Online Status -->
               <ComObject Id="%AID%_O-%TT%00063" Number="63" Name="OnlineState" Text="Gerät Online Status" FunctionText="Gerät Online Status" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-            </ComObjectTable>
+               <!-- Luftfeuchtigkeitsmodus Percent -->
+              <ComObject Id="%AID%_O-%TT%00064" Number="64" Name="HumidityModePercent" Text="Luftfeuchtigkeitsmodus" FunctionText="Luftfeuchtigkeitsmodus" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+               <!-- TotalEnergy -->
+              <ComObject Id="%AID%_O-%TT%00065" Number="65" Name="TotalEnergy" Text="Gesamtenergieverbrauch" FunctionText="Gesamtenergieverbrauch" ObjectSize="4 Bytes" DatapointType="DPST-13-013" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
               <ComObjectRef Id="%AID%_O-%TT%00000_R-%TT%0000001" RefId="%AID%_O-%TT%00000" />
@@ -523,6 +527,10 @@
               <ComObjectRef Id="%AID%_O-%TT%00062_R-%TT%0006201" RefId="%AID%_O-%TT%00062" />
               <!-- Geräte Online Status -->
               <ComObjectRef Id="%AID%_O-%TT%00063_R-%TT%0006301" RefId="%AID%_O-%TT%00063" />
+              <!-- Luftfeuchtigkeitsmodus Percent -->
+              <ComObjectRef Id="%AID%_O-%TT%00064_R-%TT%0006401" RefId="%AID%_O-%TT%00064" />
+              <!-- TotalEnergy -->
+              <ComObjectRef Id="%AID%_O-%TT%00065_R-%TT%0006501" RefId="%AID%_O-%TT%00065" />
 
             </ComObjectRefs>
           </Static>
@@ -826,6 +834,10 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00062_R-%TT%0006201" />
                       <!-- Geräte Online Status -->   
                       <ComObjectRefRef RefId="%AID%_O-%TT%00063_R-%TT%0006301" />
+                      <!-- Luftfeuchtigkeitsmodus Percent -->
+                      <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
+                      <!-- TotalEnergy -->
+                      <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" />
                     </ParameterBlock>
                   </when>
                 </choose>

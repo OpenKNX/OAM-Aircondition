@@ -703,6 +703,8 @@
 #define AIR_KoDeviceModeSilent2State 461
 #define AIR_KoHumidityState 462
 #define AIR_KoOnlineState 463
+#define AIR_KoHumidityModePercent 464
+#define AIR_KoTotalEnergy 465
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -812,6 +814,10 @@
 #define KoAIR_HumidityState                       (knx.getGroupObject(AIR_KoHumidityState))
 // Gerät Online Status
 #define KoAIR_OnlineState                         (knx.getGroupObject(AIR_KoOnlineState))
+// Luftfeuchtigkeitsmodus
+#define KoAIR_HumidityModePercent                 (knx.getGroupObject(AIR_KoHumidityModePercent))
+// Gesamtenergieverbrauch
+#define KoAIR_TotalEnergy                         (knx.getGroupObject(AIR_KoTotalEnergy))
 
 #define LOG_BuzzerInstalled                     441      // 1 Bit, Bit 7
 #define     LOG_BuzzerInstalledMask 0x80

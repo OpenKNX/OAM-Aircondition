@@ -1025,11 +1025,10 @@ void AirconditionModule::updateHumidityMode(uint8_t step) {
     uint8_t percent = (levels > 1) ? uint8_t(std::round(100.0f * step / float(levels - 1))) : 0;
 
     logInfoP("AirCondition report humidity mode step=%u (levels=%u -> %u%%)", step, levels, percent);
-    //KoAIR_HumidityModePercent.valueCompare(percent, DPT_Scaling);
+    KoAIR_HumidityModePercent.valueCompare(percent, DPT_Scaling);
 }
 
 void AirconditionModule::updateTotalEnergyConsumption(uint32_t totalEnergyWh) {
-    // publish to KO – either Wh (DPT 13.010) or kWh (DPT 14.056) depending on your ETS model
-    //KoAIR_TotalEnergy_kWh.valueCompare(totalEnergyWh / 1000.0f, DPT_ActiveEnergy_kWh);
+    KoAIR_TotalEnergy.valueCompare(totalEnergyWh / 1000.0f, DPT_ActiveEnergy_kWh);
 }
 
