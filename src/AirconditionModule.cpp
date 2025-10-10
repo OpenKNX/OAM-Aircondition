@@ -226,7 +226,7 @@ void AirconditionModule::showInformations()
         logInfoP("Maximum Target Temperature: %.1f °C", _airConditionDriver->getMaximumTargetTemperature());
         logInfoP("Maximum Fan Speed: %u", _airConditionDriver->getMaximumFanSpeed());
         logInfoP("Maximum Horizontal Fix Position: %u", _airConditionDriver->getMaximumHorizontalFixPosition());
-        logInfoP("Maximum Vertical Fix Position: %u", _airConditionDriver->getMaximumVertiacalFixPosition());
+        logInfoP("Maximum Vertical Fix Position: %u", _airConditionDriver->getMaximumVerticalFixPosition());
         logInfoP("Current Driver State: %d", _driverState);
         _airConditionDriver->showInformations();
     }
@@ -571,10 +571,10 @@ void AirconditionModule::processInputKo(GroupObject& ko)
             case AIR_KoLouverVerticalPosition:
             {
                 float verticalPositionPercent = ko.value(DPT_Scaling);
-                unsigned int verticalPosition = round((float)_airConditionDriver->getMaximumVertiacalFixPosition() * verticalPositionPercent / 100.f);
-                if (verticalPosition > _airConditionDriver->getMaximumVertiacalFixPosition())
+                unsigned int verticalPosition = round((float)_airConditionDriver->getMaximumVerticalFixPosition() * verticalPositionPercent / 100.f);
+                if (verticalPosition > _airConditionDriver->getMaximumVerticalFixPosition())
                 {
-                    logErrorP("Vertical position %u is out of range (0 - %u)", verticalPosition, _airConditionDriver->getMaximumVertiacalFixPosition());
+                    logErrorP("Vertical position %u is out of range (0 - %u)", verticalPosition, _airConditionDriver->getMaximumVerticalFixPosition());
                     return;
                 }
                 logInfoP("Set vertical swing position to %u", verticalPosition);
@@ -849,7 +849,7 @@ void AirconditionModule::swingHorizontalFixPositionChanged(int position)
 
 void AirconditionModule::swingVerticalFixPositionChanged(int position)
 {
-    unsigned int currentVertialPositionPercent = position * 100 / _airConditionDriver->getMaximumVertiacalFixPosition();
+    unsigned int currentVertialPositionPercent = position * 100 / _airConditionDriver->getMaximumVerticalFixPosition();
     logInfoP("AirCondition report vertical fix position changed to %u (%u%%)", position, currentVertialPositionPercent);
     KoAIR_LouverVerticalPositionState.valueCompare((uint8_t)currentVertialPositionPercent, DPT_Scaling);
 }
@@ -961,3 +961,75 @@ void AirconditionModule::showHelp()
     openknx.console.printHelpLine("room <value>", "Set the room temperature (e.g., room 22)");
 
 }
+
+void AirconditionModule::updatePower(bool power) {
+    powerChanged(power);
+}
+
+void AirconditionModule::updateMode(AirConditionMode mode) {
+    modeChanged(mode);
+}
+
+void AirconditionModule::updateTargetTemperature(float c) {
+    targetTemperatureChanged(c, /*fromKnx=*/false);
+}
+
+void AirconditionModule::updateFanSpeed(int speed) {
+    fanSpeedChanged(speed);
+}
+
+void AirconditionModule::updateSwingHorizontal(bool swing) {
+    swingHorizontalChanged(swing);
+}
+
+void AirconditionModule::updateSwingVertical(bool swing) {
+    swingVerticalChanged(swing);
+}
+
+void AirconditionModule::updateCurrentTemperature(float c) {
+    roomTemperatureChanged(c);
+}
+
+void AirconditionModule::updateOutdoorTemperature(float c) {
+    outsideTemperaturChanged(c);
+}
+
+void AirconditionModule::updateDeviceMode(AirConditionDeviceMode mode) {
+    deviceModeChanged(mode);
+}
+
+void AirconditionModule::updateMaxPowerLevel(uint8_t percentage) {
+    maxPowerLevelChanged(percentage);
+}
+
+void AirconditionModule::updateAirPurification(bool on) {
+    airPurificationChanged(on);
+}
+
+void AirconditionModule::updateOnlineStatus(bool online) {
+    logInfoP("AirCondition report online state: %s", online ? "online" : "offline");
+    KoAIR_OnlineState.valueCompare(online, DPT_State);
+}
+
+void AirconditionModule::updateWifiLed(bool on) {
+    // optional: publish to KO
+}
+
+void AirconditionModule::updateHumidity(uint8_t humidity) {
+    logInfoP("AirCondition report humidity changed to %u%%", humidity);
+    KoAIR_HumidityState.valueCompare((float)humidity, DPT_Value_Humidity);
+}
+
+void AirconditionModule::updateHumidityMode(uint8_t step) {
+    const uint8_t levels = _airConditionDriver->getMaximumHumidityModeLevels();
+    uint8_t percent = (levels > 1) ? uint8_t(std::round(100.0f * step / float(levels - 1))) : 0;
+
+    logInfoP("AirCondition report humidity mode step=%u (levels=%u -> %u%%)", step, levels, percent);
+    //KoAIR_HumidityModePercent.valueCompare(percent, DPT_Scaling);
+}
+
+void AirconditionModule::updateTotalEnergyConsumption(uint32_t totalEnergyWh) {
+    // publish to KO – either Wh (DPT 13.010) or kWh (DPT 14.056) depending on your ETS model
+    //KoAIR_TotalEnergy_kWh.valueCompare(totalEnergyWh / 1000.0f, DPT_ActiveEnergy_kWh);
+}
+

@@ -330,9 +330,9 @@ void SceneHandler::applyParameters(int index)
         case 255:
             break; // No change
         default:
-            if (params.position > _airConditionDriver.getMaximumVertiacalFixPosition())
+            if (params.position > _airConditionDriver.getMaximumVerticalFixPosition())
             {
-                logErrorP("Invalid position %d, must be between 0 and %d", (int) params.position, (int) _airConditionDriver.getMaximumVertiacalFixPosition());
+                logErrorP("Invalid position %d, must be between 0 and %d", (int) params.position, (int) _airConditionDriver.getMaximumVerticalFixPosition());
             }
             else
             {

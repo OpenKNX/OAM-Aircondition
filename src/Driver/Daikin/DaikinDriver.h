@@ -105,38 +105,56 @@ public:
     // === AirConditionDriver Interface Implementation ===
     
     // Lifecycle methods
-    void setup() override;
-    void startCommunication(bool restart) override;
-    void requestAllData() override;
-    void loop() override;
+    virtual void setup() override;
+    virtual void startCommunication(bool restart) override;
+    virtual void requestAllData() override;
+    virtual void loop() override;
 
     // Information methods
-    const std::string name() const override;
-    void showInformations() override;
+    virtual const std::string name() const override;
+    virtual void showInformations() override;
     
     // Capability queries
-    float getMinimumTargetTemperature() override;
-    float getMaximumTargetTemperature() override;
-    unsigned int getMaximumFanSpeed() override;
-    unsigned int getMaximumHorizontalFixPosition() override;
-    unsigned int getMaximumVertiacalFixPosition() override;
-    bool supportExternalRoomTemperatureSensor() override;
-    float accuracyInDegrees() override;
+    virtual float getMinimumTargetTemperature() override;
+    virtual float getMaximumTargetTemperature() override;
+    virtual unsigned int getMaximumFanSpeed() override;
+    virtual unsigned int getMaximumHorizontalFixPosition() override;
+    virtual unsigned int getMaximumVerticalFixPosition() override;
+    virtual unsigned int getMaximumHumidityModeLevels() override;
+    virtual bool supportExternalRoomTemperatureSensor() override;
+    virtual float accuracyInDegrees() override;
 
     // Control methods
-    void setPower(bool power) override;
-    void setMode(AirConditionMode mode) override;
-    void setTargetTemperature(float temperaturCelsius) override;
-    void setFanSpeed(unsigned int speed) override;
-    void setSwingHorizontal(bool swing) override;
-    void setSwingVertical(bool swing) override;
-    void setSwingHorizontalFixPosition(unsigned int position) override;
-    void setSwingVerticalFixPosition(unsigned int position) override;
-    void setExternalSensorRoomTemperature(float temperaturCelius) override;
-    void setWifiLed(bool on) override;
-    void setDeviceMode(AirConditionDeviceMode mode) override;
-    void setMaxPowerLevel(uint8_t percentage) override;
-    void setAirPurification(bool on) override;
+    virtual void setPower(bool power) override;
+    virtual void setMode(AirConditionMode mode) override;
+    virtual void setTargetTemperature(float temperaturCelsius) override;
+    virtual void setFanSpeed(unsigned int speed) override;
+    virtual void setSwingHorizontal(bool swing) override;
+    virtual void setSwingVertical(bool swing) override;
+    virtual void setSwingHorizontalFixPosition(unsigned int position) override;
+    virtual void setSwingVerticalFixPosition(unsigned int position) override;
+    virtual void setExternalSensorRoomTemperature(float temperaturCelsius) override;
+    virtual void setWifiLed(bool on) override;
+    virtual void setDeviceMode(AirConditionDeviceMode mode) override;
+    virtual void setMaxPowerLevel(uint8_t percentage) override;
+    virtual void setAirPurification(bool on) override;
+
+    void updatePower(bool power);
+    void updateMode(AirConditionMode mode);
+    void updateTargetTemperature(float temperaturCelsius);
+    void updateFanSpeed(int speed);
+    void updateSwingHorizontal(bool swing);
+    void updateSwingVertical(bool swing);
+    void updateCurrentTemperature(float temperaturCelsius);
+    void updateOutdoorTemperature(float temperaturCelsius);
+    void updateDeviceMode(AirConditionDeviceMode mode);
+    void updateMaxPowerLevel(uint8_t percentage);
+    void updateAirPurification(bool on);
+    void updateOnlineStatus(bool online);
+    void updateWifiLed(bool on);
+    void updateHumidity(uint8_t humidity);
+    void updateHumidityMode(uint8_t humidityMode);
+    void updateTotalEnergyConsumption(uint32_t totalEnergyWh);
 
     // === S21 Serial Communication Callbacks ===
     void handle_serial_result(daikin::DaikinSerial::Result result, uint8_t* data, size_t data_size);

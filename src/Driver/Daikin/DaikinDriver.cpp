@@ -338,7 +338,7 @@ float DaikinDriver::getMaximumTargetTemperature()
 
 unsigned int DaikinDriver::getMaximumFanSpeed()
 {
-    return 5;  // Daikin fan speeds: Auto (0), Level 1-5 (1-5)
+    return 6;  // Allow Scene enumerations up to value 6 (0=Auto, 1=Silent, 2..6 -> Stufe 1..5)
 }
 
 unsigned int DaikinDriver::getMaximumHorizontalFixPosition()
@@ -346,9 +346,14 @@ unsigned int DaikinDriver::getMaximumHorizontalFixPosition()
     return 0;  // S21 protocol doesn't support fixed positions, only swing on/off
 }
 
-unsigned int DaikinDriver::getMaximumVertiacalFixPosition()
+unsigned int DaikinDriver::getMaximumVerticalFixPosition()
 {
     return 0;  // S21 protocol doesn't support fixed positions, only swing on/off
+}
+
+unsigned int DaikinDriver::getMaximumHumidityModeLevels()
+{
+    return 5; 
 }
 
 bool DaikinDriver::supportExternalRoomTemperatureSensor()
@@ -489,19 +494,23 @@ void DaikinDriver::setSwingVertical(bool swing)
 
 void DaikinDriver::setSwingHorizontalFixPosition(unsigned int position)
 {
-    // S21 protocol doesn't support fixed positions
-    logInfoP("Fixed horizontal positions not supported by S21 protocol (requested: %u)", position);
+    // S21 protocol doesn't support fixed positions. For Scene compatibility we accept the
+    // request but treat it as a no-op (the driver only supports swing on/off). Log the request
+    // so integrators can see that fixed positions are ignored.
+    logInfoP("Fixed horizontal positions not supported by S21 protocol (requested: %u) - accepted as no-op", position);
 }
 
 void DaikinDriver::setSwingVerticalFixPosition(unsigned int position)
 {
-    // S21 protocol doesn't support fixed positions
-    logInfoP("Fixed vertical positions not supported by S21 protocol (requested: %u)", position);
+    // S21 protocol doesn't support fixed positions. For Scene compatibility we accept the
+    // request but treat it as a no-op (the driver only supports swing on/off). Log the request
+    // so integrators can see that fixed positions are ignored.
+    logInfoP("Fixed vertical positions not supported by S21 protocol (requested: %u) - accepted as no-op", position);
 }
 
-void DaikinDriver::setExternalSensorRoomTemperature(float temperaturCelius)
+void DaikinDriver::setExternalSensorRoomTemperature(float temperaturCelsius)
 {
-    logInfoP("Setting external sensor temperature: %.1f°C", temperaturCelius);
+    logInfoP("Setting external sensor temperature: %.1f°C", temperaturCelsius);
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
@@ -512,7 +521,7 @@ void DaikinDriver::setExternalSensorRoomTemperature(float temperaturCelius)
     }
     
     // Update pending state
-    pending_.climate.sensor_temp = temperaturCelius;
+    pending_.climate.sensor_temp = temperaturCelsius;
     pending_.activate_sensor = true;
     
     sendSensorCommand(); // Send S21 sensor command - D6 controls sensor
@@ -2532,11 +2541,12 @@ daikin::DaikinFanMode DaikinDriver::openknx_to_daikin_fan(unsigned int speed) co
 {
     switch (speed) {
         case 0:  return daikin::DaikinFanMode::Auto;
-        case 1:  return daikin::DaikinFanMode::Speed1;
-        case 2:  return daikin::DaikinFanMode::Speed2;
-        case 3:  return daikin::DaikinFanMode::Speed3;
-        case 4:  return daikin::DaikinFanMode::Speed4;
-        case 5:  return daikin::DaikinFanMode::Speed5;
+        case 1:  return daikin::DaikinFanMode::Silent;
+        case 2:  return daikin::DaikinFanMode::Speed1;
+        case 3:  return daikin::DaikinFanMode::Speed2;
+        case 4:  return daikin::DaikinFanMode::Speed3;
+        case 5:  return daikin::DaikinFanMode::Speed4;
+        case 6:  return daikin::DaikinFanMode::Speed5; 
         default: return daikin::DaikinFanMode::Auto;
     }
 }
@@ -2545,11 +2555,12 @@ unsigned int DaikinDriver::daikin_to_openknx_fan(daikin::DaikinFanMode fan) cons
 {
     switch (fan) {
         case daikin::DaikinFanMode::Auto:   return 0;
-        case daikin::DaikinFanMode::Speed1: return 1;
-        case daikin::DaikinFanMode::Speed2: return 2;
-        case daikin::DaikinFanMode::Speed3: return 3;
-        case daikin::DaikinFanMode::Speed4: return 4;
-        case daikin::DaikinFanMode::Speed5: return 5;
+        case daikin::DaikinFanMode::Silent: return 1; 
+        case daikin::DaikinFanMode::Speed1: return 2;
+        case daikin::DaikinFanMode::Speed2: return 3;
+        case daikin::DaikinFanMode::Speed3: return 4;
+        case daikin::DaikinFanMode::Speed4: return 5;
+        case daikin::DaikinFanMode::Speed5: return 6;
         default:                            return 0;
     }
 }
