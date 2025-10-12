@@ -254,6 +254,17 @@ Einstellungen, ob beim Aufruf der Szene das Gerät ein- oder ausgeschaltet werde
 
 Ermöglicht das Aktivieren eines Betriebsmodus.
 
+Optionen für Daikin:
+
+- Keine Änderung
+- Automatik
+- Kühlen
+- Heizen
+- Trocknen
+- Lüfter
+
+Optionen für Toshiba:
+
 - Keine Änderung
 - Automatik
 - Kühlen
@@ -274,6 +285,8 @@ Vorgabe der Solltemperatur
 
 Lüftergeschwindigkeit
 
+Optionen für Toshiba:
+
 - Keine Änderung
 - Automatik
 - Leise
@@ -288,6 +301,8 @@ Lüftergeschwindigkeit
 
 Steuert die Bewegung der Lamellen.
 
+Optionen für Toshiba:
+
 - Keine Änderung
 - Aus
 - Vertikal
@@ -300,6 +315,8 @@ Steuert die Bewegung der Lamellen.
 Diese Einstellung ist nur verfügbar, wenn bei Lamellenbewegung "Keine Änderung" oder "Aus" gewählt wurde.
 Gibt die Position der Lamellen an. 
 
+Optionen für Toshiba:
+
 - Keine Änderung
 - Ganz Oben
 - Oben
@@ -307,24 +324,33 @@ Gibt die Position der Lamellen an.
 - Unten
 - Ganz Unten
 
-**Daikin-spezifisch:** Absolute Lamellenpositionen sind über das S21-Protokoll nicht verfügbar. Nur die Schwenkbewegung (vertikal/horizontal) kann gesteuert werden. Diese Einstellungen werden bei Daikin-Geräten ignoriert.
+Für Daikin steht diese Option nicht zur Verfügung.
 
 <!-- DOC -->
 #### Leistungsbegrenzung
 
-Verfügbare Einstellungen:
+Mit dieser Option, kann die maximale Leistung des Klimageräts angepasst werden.
+
+Optionen für Toshiba:
 
 - Keine Änderung
 - 50%
 - 75%
 - 100%
 
-**Daikin-spezifisch:** Leistungsbegrenzung ist über das S21-Protokoll nicht verfügbar. Diese Funktion wird bei Daikin-Geräten ignoriert.
+Für Daikin steht diese Option nicht zur Verfügung.
 
 <!-- DOC -->
 #### Gerätemodus
 
-Verfügbare Einstellungen:
+Optionen für Daikin:
+
+- **Standard**: Normaler Betriebsmodus
+- **Hi-Power**: Entspricht Daikin "Powerful"-Modus für maximale Leistung
+- **ECO**: Entspricht Daikin "Econo"-Modus für energiesparenden Betrieb
+- **Leise**: Entspricht Daikin "Quiet"-Modus für reduzierten Außengeräuschpegel
+
+Optionen für Toshiba:
 
 - Keine Änderung
 - Standard
@@ -332,12 +358,6 @@ Verfügbare Einstellungen:
 - ECO
 - Leise 1 (Außengerät)
 - Leise 2 (Außengerät)
-
-**Daikin-spezifisch:** 
-- **Standard**: Normaler Betriebsmodus
-- **Hi-Power**: Entspricht Daikin "Powerful"-Modus für maximale Leistung
-- **ECO**: Entspricht Daikin "Econo"-Modus für energiesparenden Betrieb
-- **Leise**: Entspricht Daikin "Quiet"-Modus für reduzierten Außengeräuschpegel
 
 <!-- DOC -->
 #### Luftreinigung
@@ -348,4 +368,4 @@ Verfügbare Einstellungen:
 - Aus
 - Ein
 
-**Daikin-spezifisch:** Steuert die Daikin Flash Streamer Luftreinigungstechnologie. Diese Funktion ist nur bei entsprechend ausgestatteten Daikin-Geräten verfügbar.
+Für Daikin steht diese Option nicht zur Verfügung.

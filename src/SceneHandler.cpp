@@ -251,14 +251,26 @@ void SceneHandler::applyParameters(int index)
         case 255:
             break; // No change
         default:
-            if (params.temperature < _airConditionDriver.getMinimumTargetTemperature() || params.temperature > _airConditionDriver.getMaximumTargetTemperature())
+
+            float temp;
+            if (params.temperature > 100)
             {
-                logErrorP("Invalid temperature %d, must be between %.1f and %.1f", (int) params.temperature, _airConditionDriver.getMinimumTargetTemperature(), _airConditionDriver.getMaximumTargetTemperature());
+                temp = params.temperature - 100 + 0.5f;
             }
             else
             {
-                logDebugP("Setting target temperature to %d", params.temperature);
-                _airConditionDriver.setTargetTemperature(params.temperature);
+                temp = params.temperature;
+            }
+
+
+            if (temp < _airConditionDriver.getMinimumTargetTemperature() || temp > _airConditionDriver.getMaximumTargetTemperature())
+            {
+                logErrorP("Invalid temperature %.1f, must be between %.1f and %.1f", (float) temp, _airConditionDriver.getMinimumTargetTemperature(), _airConditionDriver.getMaximumTargetTemperature());
+            }
+            else
+            {
+                logDebugP("Setting target temperature to %.1f", temp);
+                _airConditionDriver.setTargetTemperature(temp);
             }
             break;
     }   

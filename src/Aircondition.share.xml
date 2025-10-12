@@ -100,6 +100,8 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <!-- Template Operation Mode
+                If a specifc device needs more entries, add the here 
               <ParameterType Id="%AID%_PT-AIRSceneOperationMode" Name="AIRSceneOperationMode">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -110,7 +112,33 @@
                   <Enumeration Text="Lüften" Value="4" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              -->
 
+              <ParameterType Id="%AID%_PT-AIRSceneOperationModeDaikin" Name="AIRSceneOperationModeDaikin">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Kühlen" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Heizen" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Trocknen" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Lüften" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneOperationModeToshiba" Name="AIRSceneOperationModeToshiba">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Kühlen" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Heizen" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Trocknen" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Lüften" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+
+              <!-- Template Temperature
+                If a specifc device needs more entries, add the here    
               <ParameterType Id="%AID%_PT-AIRSceneTemperature" Name="AIRSceneTemperature">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -130,7 +158,64 @@
                   <Enumeration Text="30°" Value="30" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              -->
 
+              <ParameterType Id="%AID%_PT-AIRSceneTemperatureDaikin" Name="AIRSceneTemperatureDaikin">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="17°" Value="17" Id="%ENID%" />
+                  <Enumeration Text="17,5°" Value="117" Id="%ENID%" />
+                  <Enumeration Text="18°" Value="18" Id="%ENID%" />
+                  <Enumeration Text="18,5°" Value="118" Id="%ENID%" />
+                  <Enumeration Text="19°" Value="19" Id="%ENID%" />
+                  <Enumeration Text="19,5°" Value="119" Id="%ENID%" />
+                  <Enumeration Text="20°" Value="20" Id="%ENID%" />
+                  <Enumeration Text="20,5°" Value="120" Id="%ENID%" />
+                  <Enumeration Text="21°" Value="21" Id="%ENID%" />
+                  <Enumeration Text="21,5°" Value="121" Id="%ENID%" />
+                  <Enumeration Text="22°" Value="22" Id="%ENID%" />
+                  <Enumeration Text="22,5°" Value="122" Id="%ENID%" />
+                  <Enumeration Text="23°" Value="23" Id="%ENID%" />
+                  <Enumeration Text="23,5°" Value="123" Id="%ENID%" />
+                  <Enumeration Text="24°" Value="24" Id="%ENID%" />
+                  <Enumeration Text="24,5°" Value="124" Id="%ENID%" />
+                  <Enumeration Text="25°" Value="25" Id="%ENID%" />
+                  <Enumeration Text="25,5°" Value="125" Id="%ENID%" />
+                  <Enumeration Text="26°" Value="26" Id="%ENID%" />
+                  <Enumeration Text="26,5°" Value="126" Id="%ENID%" />
+                  <Enumeration Text="27°" Value="27" Id="%ENID%" />
+                  <Enumeration Text="27,5°" Value="127" Id="%ENID%" />
+                  <Enumeration Text="28°" Value="28" Id="%ENID%" />
+                  <Enumeration Text="28,5°" Value="128" Id="%ENID%" />
+                  <Enumeration Text="29°" Value="29" Id="%ENID%" />
+                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />  
+                  <Enumeration Text="30°" Value="30" Id="%ENID%" /> 
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneTemperatureToshiba" Name="AIRSceneTemperatureToshiba">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="17°" Value="17" Id="%ENID%" />
+                  <Enumeration Text="18°" Value="18" Id="%ENID%" />
+                  <Enumeration Text="19°" Value="19" Id="%ENID%" />
+                  <Enumeration Text="20°" Value="20" Id="%ENID%" />
+                  <Enumeration Text="21°" Value="21" Id="%ENID%" />
+                  <Enumeration Text="22°" Value="22" Id="%ENID%" />
+                  <Enumeration Text="23°" Value="23" Id="%ENID%" />
+                  <Enumeration Text="24°" Value="24" Id="%ENID%" />
+                  <Enumeration Text="25°" Value="25" Id="%ENID%" />
+                  <Enumeration Text="26°" Value="26" Id="%ENID%" />
+                  <Enumeration Text="27°" Value="27" Id="%ENID%" />
+                  <Enumeration Text="28°" Value="28" Id="%ENID%" />
+                  <Enumeration Text="29°" Value="29" Id="%ENID%" />
+                  <Enumeration Text="30°" Value="30" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+
+              <!-- Template Fan
+                If a specifc device needs more entries, add the here    
               <ParameterType Id="%AID%_PT-AIRSceneFan" Name="AIRSceneFan">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -143,7 +228,24 @@
                   <Enumeration Text="Stufe 5" Value="6" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              -->
 
+               <ParameterType Id="%AID%_PT-AIRSceneFanToshiba" Name="AIRSceneFanToshiba">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Stufe 1" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Stufe 2" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Stufe 3" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Stufe 4" Value="5" Id="%ENID%" />
+                  <Enumeration Text="Stufe 5" Value="6" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+
+              <!-- Template Swing
+                If a specifc device needs more entries, add the here    
               <ParameterType Id="%AID%_PT-AIRSceneSwing" Name="AIRSceneSwing">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -153,8 +255,22 @@
                   <Enumeration Text="Vertikal und Horizontal" Value="3" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              -->
 
-              <ParameterType Id="%AID%_PT-AIRScenePosition" Name="AIRScenePosition">
+              <ParameterType Id="%AID%_PT-AIRSceneSwingToshiba" Name="AIRSceneSwingToshiba">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Aus" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Vertikal" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Horizontal" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Vertikal und Horizontal" Value="3" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+
+              <!-- Template Horizontal Position
+                If a specifc device needs more entries, add the here
+              <ParameterType Id="%AID%_PT-AIRSceneHorizontalPosition" Name="AIRSceneHorizontalPosition">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="Ganz Oben" Value="0" Id="%ENID%" />
@@ -164,7 +280,22 @@
                   <Enumeration Text="Ganz Unten" Value="4" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              -->
 
+              <ParameterType Id="%AID%_PT-AIRSceneHorizontalPositionToshiba" Name="AIRSceneHorizontalPositionToshiba">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Ganz Oben" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Oben" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Mitte" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Unten" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Ganz Unten" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+              
+
+              <!-- Template Horizontal Position
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRScenePowerLimit" Name="AIRScenePowerLimit">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -173,7 +304,19 @@
                   <Enumeration Text="100%" Value="100" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              -->
 
+              <ParameterType Id="%AID%_PT-AIRScenePowerLimitToshiba" Name="AIRScenePowerLimitToshiba">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="50%" Value="50" Id="%ENID%" />
+                  <Enumeration Text="75%" Value="75" Id="%ENID%" />
+                  <Enumeration Text="100%" Value="100" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <!-- Template Device Mode
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneDeviceMode" Name="AIRSceneDeviceMode">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -184,8 +327,32 @@
                   <Enumeration Text="Geräuscharm 2 (Außengerät)" Value="5" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              -->
 
+              <ParameterType Id="%AID%_PT-AIRSceneDeviceModeToshiba" Name="AIRSceneDeviceModeToshiba">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Standard" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Hi-Power" Value="2" Id="%ENID%" />
+                  <Enumeration Text="ECO" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm 1 (Außengerät)" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm 2 (Außengerät)" Value="5" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+
+               <!-- Template Device Mode
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneAirPurification" Name="AIRSceneAirPurification">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Aus" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Ein" Value="1" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+              -->
+
+                 <ParameterType Id="%AID%_PT-AIRSceneAirPurificationToshiba" Name="AIRSceneAirPurificationToshiba">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="Aus" Value="0" Id="%ENID%" />
