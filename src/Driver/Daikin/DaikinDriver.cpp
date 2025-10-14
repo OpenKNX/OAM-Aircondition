@@ -52,6 +52,8 @@ DaikinDriver::DaikinDriver(AirConditionDriverStatusFeedback& statusFeedback)
     pending_.climate.mode = daikin::Mode::Auto;
     pending_.climate.targetC = 22.0f;
     pending_.climate.fan_mode = daikin::DaikinFanMode::Auto;
+    pending_.climate.swing_v = daikin::Swing::Off;  // Initialize swing directions
+    pending_.climate.swing_h = daikin::Swing::Off;
     
     logInfoP("DaikinDriver created with S21 protocol support");
 }
@@ -454,32 +456,56 @@ void DaikinDriver::setFanSpeed(unsigned int speed)
 
 void DaikinDriver::setSwingHorizontal(bool swing)
 {
-    DAIKIN_DEBUG_PRINT("Setting horizontal swing: %s", swing ? "On" : "Off");
+    logInfoP("KNX setSwingHorizontal called: %s", swing ? "On" : "Off");
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
     }
     
-    // Update pending state
-    pending_.climate.swing_h = swing ? daikin::Swing::Horizontal : daikin::Swing::Off;
+    // What the unit currently reports (from last F5)
+    const bool devV = (state_.swing == daikin::Swing::Vertical || state_.swing == daikin::Swing::Both);
+    const bool devH = (state_.swing == daikin::Swing::Horizontal || state_.swing == daikin::Swing::Both);
+
+    // Keep the other axis as it is (or last requested if available)
+    const bool wantH = swing;
+    const bool wantV = (pending_.climate.swing_v == daikin::Swing::Vertical) ? true : devV;
+
+    if (wantV == devV && wantH == devH) {
+        logDebugP("Swing unchanged vs device; not sending D5");
+        return;
+    }
+
+    pending_.climate.swing_v = wantV ? daikin::Swing::Vertical : daikin::Swing::Off;
+    pending_.climate.swing_h = wantH ? daikin::Swing::Horizontal : daikin::Swing::Off;
     pending_.activate_swing_mode = true;
-    
-    sendSwingCommand(); // Send S21 swing command - D5 controls louvre/swing mode
+    sendSwingCommand();
 }
 
 void DaikinDriver::setSwingVertical(bool swing)
 {
-    DAIKIN_DEBUG_PRINT("Setting vertical swing: %s", swing ? "On" : "Off");
+    logInfoP("KNX setSwingVertical called: %s", swing ? "On" : "Off");
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
     }
     
-    // Update pending state
-    pending_.climate.swing_v = swing ? daikin::Swing::Vertical : daikin::Swing::Off;
+    // What the unit currently reports (from last F5)
+    const bool devV = (state_.swing == daikin::Swing::Vertical || state_.swing == daikin::Swing::Both);
+    const bool devH = (state_.swing == daikin::Swing::Horizontal || state_.swing == daikin::Swing::Both);
+
+    // Keep the other axis as it is (or last requested if available)
+    const bool wantV = swing;
+    const bool wantH = (pending_.climate.swing_h == daikin::Swing::Horizontal) ? true : devH;
+
+    if (wantV == devV && wantH == devH) {
+        logDebugP("Swing unchanged vs device; not sending D5");
+        return;
+    }
+
+    pending_.climate.swing_v = wantV ? daikin::Swing::Vertical : daikin::Swing::Off;
+    pending_.climate.swing_h = wantH ? daikin::Swing::Horizontal : daikin::Swing::Off;
     pending_.activate_swing_mode = true;
-    
-    sendSwingCommand();// Send S21 swing command - D5 controls louvre/swing mode
+    sendSwingCommand();
 }
 
 void DaikinDriver::setSwingHorizontalFixPosition(unsigned int position)
@@ -1151,6 +1177,13 @@ void DaikinDriver::scheduleFirstF1AfterWrite()
         return; // sendClimateCommand will handle its own scheduling
     }
     
+    // Flush any pending swing commands that were delayed during settle
+    if (pending_.activate_swing_mode) {
+        logInfoP("Flushing delayed D5 swing command after settle period");
+        sendSwingCommand();
+        return; // Let swing command handle its own scheduling
+    }
+    
     logInfoP("Scheduled first F1 after write with extended timeout");
 }
 
@@ -1257,15 +1290,40 @@ void DaikinDriver::sendSwingCommand()
     if (!serial_ || !pending_.activate_swing_mode) {
         return;
     }
-    logDebugP("Sending S21 swing command D5");
-
-    // Build D5 payload: swing modes
-    PayloadBuffer payload;
-    payload[0] = swing_mode_to_daikin(pending_.climate.swing_v);
-    payload[1] = swing_mode_to_daikin(pending_.climate.swing_h);
     
+    // Write coordination: Block D5 commands during post-write settle to prevent conflicts
+    if (isInPostWriteSettle()) {
+        logDebugP("D5 swing delayed: in settle");
+        return; // The swing command will be retried later when settle completes
+    }
+    
+    // Determine desired swing states
+    const bool wantV = (pending_.climate.swing_v == daikin::Swing::Vertical);
+    const bool wantH = (pending_.climate.swing_h == daikin::Swing::Horizontal);
+    
+    // ---- build 4 ASCII bytes ----
+    char swingCode = '0';
+    if (wantV && wantH) swingCode = '7';
+    else if (wantV)     swingCode = '1';
+    else if (wantH)     swingCode = '2'; // off stays '0'
+
+    char swingActive = (swingCode == '0') ? '0' : '?';
+    char humidity    = '0'; // keep off on v0
+    char reserved    = '0';
+
+    uint8_t payload[4] = {
+        static_cast<uint8_t>(swingCode),
+        static_cast<uint8_t>(swingActive),
+        static_cast<uint8_t>(humidity),
+        static_cast<uint8_t>(reserved)
+    };
+
+    logInfoP("Sending S21 D5 swing: ascii [%c %c %c %c] hex [%02X %02X %02X %02X]",
+             swingCode, swingActive, humidity, reserved,
+             payload[0], payload[1], payload[2], payload[3]);
+
     std::string cmd(StateCommand::LouvreSwingMode);
-    serial_->send_frame(cmd, payload.data(), 2);
+    serial_->send_frame(cmd, payload, 4);
     
     // v0 stability: Enter post-write settle for D5 commands
     handleWriteCommandSent(LastWriteCommand::D5_Swing);
