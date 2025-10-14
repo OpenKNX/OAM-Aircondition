@@ -877,11 +877,14 @@ void DaikinDriver::updateQueryStateMachine()
                             }
                         }
                         
-                        // All polarity combinations exhausted
-                        logInfoP("Protocol detection: All polarity combinations exhausted, no AC unit detected");
-                        logInfoP("Protocol detection phase completed, protocol remains unknown");
-                        // Stay in current state, don't initialize queries
-                        return;
+                        if (current_polarity_attempt_ < MAX_POLARITY_COMBOS) {
+                            current_polarity_attempt_++;
+                            // All polarity combinations exhausted
+                            logInfoP("Protocol detection: All polarity combinations exhausted, no AC unit detected");
+                            logInfoP("Protocol detection phase completed, protocol remains unknown");
+                            // Stay in current state, don't initialize queries
+                            return;
+                        }
                     }
                     
                     if (!first_cycle_completed_) {
