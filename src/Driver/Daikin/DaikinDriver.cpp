@@ -1441,6 +1441,7 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
         // Handle direct ASCII fan values from S21 protocol
         switch (data[3]) {
             case 'A': state_.fan = daikin::DaikinFanMode::Auto; break;
+            case '0': state_.fan = daikin::DaikinFanMode::Auto;   break; // v0-Geräte melden teils '0' für Auto
             case 'B': state_.fan = daikin::DaikinFanMode::Silent; break;  // Silent/Quiet mode
             case '3': state_.fan = daikin::DaikinFanMode::Speed1; break;
             case '4': state_.fan = daikin::DaikinFanMode::Speed2; break;
@@ -1449,7 +1450,7 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
             case '7': state_.fan = daikin::DaikinFanMode::Speed5; break;
             default: 
                 logInfoP("F1: Unknown fan mode ASCII '%c' (0x%02X), defaulting to Auto", data[3], data[3]);
-                state_.fan = daikin::DaikinFanMode::Auto; 
+                state_.fan = daikin::DaikinFanMode::Auto;
                 break;
         }
         
@@ -1470,10 +1471,23 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
         case daikin::Mode::FanOnly: modeStr = "Fan"; break;
         default: modeStr = "Off"; break;
     }
+
+    auto fanToStr = [](daikin::DaikinFanMode f){
+    switch (f){
+        case daikin::DaikinFanMode::Auto:   return "Auto";
+        case daikin::DaikinFanMode::Silent: return "Silent";
+        case daikin::DaikinFanMode::Speed1: return "1";
+        case daikin::DaikinFanMode::Speed2: return "2";
+        case daikin::DaikinFanMode::Speed3: return "3";
+        case daikin::DaikinFanMode::Speed4: return "4";
+        case daikin::DaikinFanMode::Speed5: return "5";
+        default: return "?";
+    }
+};
     
-    logInfoP("F1: power=%s, mode=%s, target=%.1f°C, fan=%d (ASCII: %c%c%02X%c)", 
-              state_.power ? "ON" : "OFF", modeStr, state_.targetC, 
-              static_cast<int>(state_.fan), data[0], data[1], data[2], data[3]);
+logInfoP("F1: power=%s, mode=%s, target=%.1f°C, fan=%s (ASCII fanNibble: %c)",
+         state_.power ? "ON" : "OFF", modeStr, state_.targetC,
+         fanToStr(state_.fan), (char)data[3]);
     
     // Check for any state changes
     if (changed || old_power != state_.power) {
@@ -1519,12 +1533,12 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
     // Use de-shielded bytes for all feature flags to prevent false positives/negatives
     support_.swing = (b0 & 0x04) != 0;      // bit 2 - swing (any kind) available
     support_.humidity = hasHumidifyMode;     // bit 1 of byte3 - Humidify operation mode available
-    support_.fan = (b0 & 0x04) != 0;        // bit 2 - fan control available (same as swing per wiki)
+    support_.fan = (b0 & 0x04) != 0;        // bit 2 - fan control capability (live fan mode comes from F1/RG queries)
     support_.sensor = (b0 & 0x08) != 0;     // bit 3 - sensor available
     support_.streamer = (b0 & 0x10) != 0;   // bit 4 - streamer available  
     support_.led = (b0 & 0x20) != 0;        // bit 5 - LED control available
     
-    logDebugP("F2: swing=%d, humidity=%d (humidify_mode=%d, extra_modes=%d), fan=%d, sensor=%d, streamer=%d, led=%d", 
+    logDebugP("F2 capability: swing=%d, humidity=%d (humidify_mode=%d, extra_modes=%d), fan=%d, sensor=%d, streamer=%d, led=%d", 
               support_.swing, support_.humidity, hasHumidifyMode, hasExtraHumdModes, 
               support_.fan, support_.sensor, support_.streamer, support_.led);
     logDebugP("F2: bytes [0x%02X, -, -, 0x%02X] de-shielded [0x%02X, -, -, 0x%02X]", 
