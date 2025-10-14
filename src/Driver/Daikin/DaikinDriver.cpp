@@ -1374,12 +1374,18 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
         return;
     }
     stats_.frames_ok++;
-    support_.swing = (data[0] & 0x01) != 0;
-    support_.humidity = (data[0] & 0x02) != 0;
-    support_.fan = (data[0] & 0x04) != 0;
-    support_.sensor = (data[0] & 0x08) != 0;
-    support_.streamer = (data[0] & 0x10) != 0;
-    support_.led = (data[0] & 0x20) != 0;
+    
+    // De-shield F2 capability bytes (S21 protocol uses 0x30 shield bits)
+    uint8_t b0 = data[0] & ~0x30;  // Remove shield bits from byte 0
+    uint8_t b3 = data[3] & ~0x30;  // Remove shield bits from byte 3
+    
+    // Use de-shielded bytes for all feature flags to prevent false positives/negatives
+    support_.swing = (b0 & 0x04) != 0;      // bit 2 - swing (any kind) available
+    support_.humidity = (b3 & 0x02) != 0;   // bit 1 of byte3 - humidity mode available  
+    support_.fan = (b0 & 0x04) != 0;        // bit 2 - fan control available (same as swing per wiki)
+    support_.sensor = (b0 & 0x08) != 0;     // bit 3 - sensor available
+    support_.streamer = (b0 & 0x10) != 0;   // bit 4 - streamer available  
+    support_.led = (b0 & 0x20) != 0;        // bit 5 - LED control available
     logDebugP("F2: swing=%d, humidity=%d, fan=%d, sensor=%d, streamer=%d, led=%d", 
               support_.swing, support_.humidity, support_.fan, support_.sensor, support_.streamer, support_.led);
 }
@@ -1449,6 +1455,7 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
         uint8_t humidity_byte = data[2];
         switch (humidity_byte) {
             case 0x00: // Off (field observation)
+            case 0x30: // ASCII '0' - Off (some v0 units report ASCII)
                 state_.humidityMode = daikin::HumidityMode::Off;
                 break;
             case 0x3A: // Low (field observation)
