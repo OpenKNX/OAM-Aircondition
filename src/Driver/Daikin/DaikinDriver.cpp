@@ -10,8 +10,6 @@
 
 // Implements the Faikin S21 protocol (8972aa9) (https://github.com/revk/ESP32-Faikin/wiki/S21-Protocol#protocol-versions)
 
-using PayloadBuffer = std::array<uint8_t, daikin::DaikinSerial::STANDARD_PAYLOAD_SIZE>; // Utility payload buffer for S21 commands
-
 // S21 decoding functions
 namespace {
     // s21_decode_target_temp function
@@ -379,11 +377,9 @@ void DaikinDriver::setPower(bool power)
         return;
     }
     
-    // Update pending state - preserve current settings except power
-    pending_.climate.power = power;           // UPDATE power state
-    pending_.climate.mode = state_.mode;      // PRESERVE current mode
-    pending_.climate.fan_mode = state_.fan;   // PRESERVE current fan
-    pending_.climate.targetC = state_.targetC;// PRESERVE current temperature
+    // Update pending state - preserve current pending values, only change power
+    // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    pending_.climate.power = power;           // UPDATE power state only
     pending_.activate_climate = true;
     
     DAIKIN_DEBUG_PRINT("Power change requested: %s -> %s", 
@@ -404,11 +400,9 @@ void DaikinDriver::setMode(AirConditionMode mode)
     
     daikin::Mode daikinMode = openknx_to_daikin_mode(mode); // Convert OpenKNX mode to Daikin mode
     
-    // Update pending state - preserve current power and other settings
-    pending_.climate.power = state_.power;     // PRESERVE current power state
-    pending_.climate.mode = daikinMode;        // UPDATE mode
-    pending_.climate.fan_mode = state_.fan;    // PRESERVE current fan
-    pending_.climate.targetC = state_.targetC; // PRESERVE current temperature
+    // Update pending state - preserve current pending values, only change mode
+    // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    pending_.climate.mode = daikinMode;        // UPDATE mode only
     pending_.activate_climate = true;
     
     sendClimateCommand();     // Send S21 mode command
@@ -427,11 +421,9 @@ void DaikinDriver::setTargetTemperature(float temperaturCelsius)
         DAIKIN_DEBUG_PRINT("Temperature clamped from %.1f°C to %.1f°C", temperaturCelsius, temp);
     }
     
-    // Update pending state - preserve current power and other settings
-    pending_.climate.power = state_.power;  // PRESERVE current power state
-    pending_.climate.mode = state_.mode;    // PRESERVE current mode  
-    pending_.climate.fan_mode = state_.fan; // PRESERVE current fan
-    pending_.climate.targetC = temp;        // UPDATE temperature
+    // Update pending state - preserve current pending values, only change temperature
+    // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    pending_.climate.targetC = temp;        // UPDATE temperature only
     pending_.activate_climate = true;
     
     sendClimateCommand(); // Send S21 temperature command - D1 controls power/mode/temp/fan
@@ -452,11 +444,9 @@ void DaikinDriver::setFanSpeed(unsigned int speed)
     
     daikin::DaikinFanMode fanMode = openknx_to_daikin_fan(speed); // Convert speed to Daikin fan mode
     
-    // Update pending state - preserve current power and other settings
-    pending_.climate.power = state_.power;     // PRESERVE current power state
-    pending_.climate.mode = state_.mode;       // PRESERVE current mode
-    pending_.climate.fan_mode = fanMode;       // UPDATE fan mode
-    pending_.climate.targetC = state_.targetC; // PRESERVE current temperature
+    // Update pending state - preserve current pending values, only change fan
+    // CRITICAL: Always preserve pending_ values, never overwrite with state_ 
+    pending_.climate.fan_mode = fanMode;       // UPDATE fan mode only
     pending_.activate_climate = true;
     
     sendClimateCommand();     // Send S21 fan command
@@ -1152,6 +1142,15 @@ void DaikinDriver::scheduleFirstF1AfterWrite()
     query_index_ = 0; // Start with F1 query
     state_start_time_ = millis();
     
+    // Flush any pending writes that were coalesced during settle
+    if (write_pending_) {
+        write_pending_ = false;
+        logInfoP("Flushing coalesced D1 after settle period");
+        // Send the accumulated pending_ state as one unified command
+        sendClimateCommand();
+        return; // sendClimateCommand will handle its own scheduling
+    }
+    
     logInfoP("Scheduled first F1 after write with extended timeout");
 }
 
@@ -1162,24 +1161,26 @@ void DaikinDriver::sendClimateCommand()
     if (!serial_ || !pending_.activate_climate) {
         return;
     }
-    logInfoP("Sending D1 command - power: %s, mode: %d, temp: %.1f, fan: %d", 
-             pending_.climate.power ? "ON" : "OFF", 
-             static_cast<int>(pending_.climate.mode),
-             pending_.climate.targetC,
-             static_cast<int>(pending_.climate.fan_mode));
+    
+    // Write coordination: Block new D1 commands during post-write settle
+    if (isInPostWriteSettle()) {
+        write_pending_ = true;  // Mark that we have a pending write
+        logDebugP("Coalescing D1 during settle; will send after settle completes");
+        return;
+    }
     
     PayloadBuffer payload;
     
-    // Byte 0: Power ('0'/'1' ASCII, not 0x00/0x01)
-    payload[0] = pending_.climate.power ? '1' : '0';
+    // ALWAYS use pending_ values as single source of truth
+    const auto power_to_send = pending_.climate.power;
+    const auto mode_to_send = pending_.climate.mode;
+    const auto temp_to_send = pending_.climate.targetC;
+    const auto fan_to_send = pending_.climate.fan_mode;
     
-    // Byte 1: Mode
-    daikin::Mode mode_to_send;
-    if (pending_.climate.power) {
-        mode_to_send = pending_.climate.mode; // Turning ON - use requested mode
-    } else {
-        mode_to_send = state_.mode; // Turning OFF - use current running mode
-    }
+    // Byte 0: Power ('0'/'1' ASCII, not 0x00/0x01)
+    payload[0] = power_to_send ? '1' : '0';
+    
+    // Byte 1: Mode - ALWAYS from pending_, no conditional logic
     // Map OpenKNX modes to S21 protocol ASCII characters (official S21 Protocol wiki)
     // S21 Protocol: "1"=Auto, "2"=Dry, "3"=Cool, "4"=Heat, "6"=Fan
     switch (mode_to_send) {
@@ -1193,12 +1194,10 @@ void DaikinDriver::sendClimateCommand()
     }
     
     // Byte 2: Target temperature (format: (setpoint/5) + 28)
-    float temp_to_send = pending_.climate.power ? pending_.climate.targetC : state_.targetC;
     int16_t setpoint_c10 = static_cast<int16_t>(temp_to_send * 10);  // Convert to C*10
     payload[2] = (setpoint_c10 / 5) + 28; 
     
-    // Byte 3: Fan speed (preserve current fan when turning off)
-    daikin::DaikinFanMode fan_to_send = pending_.climate.power ? pending_.climate.fan_mode : state_.fan;
+    // Byte 3: Fan speed
     switch (fan_to_send) {
         case daikin::DaikinFanMode::Auto: payload[3] = 'A'; break;
         case daikin::DaikinFanMode::Speed1: payload[3] = '3'; break;
@@ -1209,16 +1208,37 @@ void DaikinDriver::sendClimateCommand()
         case daikin::DaikinFanMode::Silent: payload[3] = 'B'; break; 
         default: payload[3] = 'A'; break; 
     }
-    logInfoP("D1 payload: ['%c', '%c', 0x%02X, '%c'] (power=%c, mode=%c, temp=%.1f°C, fan=%c, fan_enum=%d)", 
-             payload[0], payload[1], payload[2], payload[3],
-             payload[0], payload[1], temp_to_send, payload[3], static_cast<int>(fan_to_send));
     
-    // Debug: Show exact bytes being sent
-    DAIKIN_DEBUG_PRINT("D1 hex bytes: [0x%02X, 0x%02X, 0x%02X, 0x%02X]", 
-             payload[0], payload[1], payload[2], payload[3]);
+    // Deduplication: Skip if identical to last D1 payload
+    if (std::equal(payload.begin(), payload.begin() + 4, last_sent_d1_payload_.begin())) {
+        logDebugP("Skipping D1: payload unchanged ['%c','%c',0x%02X,'%c']", 
+                  payload[0], payload[1], payload[2], payload[3]);
+        pending_.activate_climate = false;
+        return;
+    }
+    
+    // Get human-readable names for logging  
+    const char* modeStr = (mode_to_send == daikin::Mode::Heat) ? "Heat" :
+                          (mode_to_send == daikin::Mode::Cool) ? "Cool" :
+                          (mode_to_send == daikin::Mode::FanOnly) ? "Fan" :
+                          (mode_to_send == daikin::Mode::Dry) ? "Dry" : "Auto";
+    
+    const char* fanStr = (fan_to_send == daikin::DaikinFanMode::Auto) ? "Auto" :
+                         (fan_to_send == daikin::DaikinFanMode::Silent) ? "Silent" :
+                         (fan_to_send == daikin::DaikinFanMode::Speed1) ? "Speed1" :
+                         (fan_to_send == daikin::DaikinFanMode::Speed2) ? "Speed2" :
+                         (fan_to_send == daikin::DaikinFanMode::Speed3) ? "Speed3" :
+                         (fan_to_send == daikin::DaikinFanMode::Speed4) ? "Speed4" :
+                         (fan_to_send == daikin::DaikinFanMode::Speed5) ? "Speed5" : "Unknown";
+    
+    logInfoP("Sending D1: power=%s, mode=%s('%c'), temp=%.1f°C, fan=%s('%c')", 
+             power_to_send ? "ON" : "OFF", modeStr, payload[1], temp_to_send, fanStr, payload[3]);
     
     std::string cmd("D1");
     serial_->send_frame(cmd, payload.data(), 4);
+    
+    // Store payload for deduplication
+    std::copy(payload.begin(), payload.begin() + 4, last_sent_d1_payload_.begin());
     
     // Record command time for non-blocking cooldown
     last_command_time_ = millis();
@@ -1227,8 +1247,7 @@ void DaikinDriver::sendClimateCommand()
     // v0 stability: Enter post-write settle instead of simple cooldown
     handleWriteCommandSent(LastWriteCommand::D1_ModePower);
     
-    // DON'T update internal state immediately - wait for AC response
-    logInfoP("D1 command sent at %lu ms, entering v0 post-write settle", last_command_time_);
+    logInfoP("D1 sent, entering post-write settle for %dms", getSettlePeriodForCommand(LastWriteCommand::D1_ModePower));
     
     pending_.activate_climate = false;
 }

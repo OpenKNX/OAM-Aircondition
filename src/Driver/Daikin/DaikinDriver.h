@@ -5,6 +5,10 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <array>
+
+// Type definitions
+using PayloadBuffer = std::array<uint8_t, daikin::DaikinSerial::STANDARD_PAYLOAD_SIZE>; // Utility payload buffer for S21 commands
 
 // S21 Protocol Query Definitions
 namespace StateQuery {
@@ -265,6 +269,10 @@ private:
     uint32_t last_write_time_{0};           // When last write command was sent
     bool post_write_first_f1_pending_{false}; // Need to do first F1 with extended timeout
     bool scheduler_paused_{false};          // True when scheduler is paused for settling
+    
+    // Write coordination to prevent race conditions
+    bool write_pending_{false};            // New write request during settle period
+    PayloadBuffer last_sent_d1_payload_;   // Dedupe identical D1 commands
     
     // Protocol detection optimization
     bool old_protocol_detected_{false};    // Early detection flag
