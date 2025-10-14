@@ -16,7 +16,7 @@
 #define MAIN_ApplicationVersion 7
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 6221
-#define MAIN_MaxKoNumber 465
+#define MAIN_MaxKoNumber 399
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 20
 #define NET_ModuleVersion 5

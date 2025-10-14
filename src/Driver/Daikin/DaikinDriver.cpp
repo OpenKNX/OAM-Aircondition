@@ -1072,11 +1072,13 @@ void DaikinDriver::sendClimateCommand()
     } else {
         mode_to_send = state_.mode; // Turning OFF - use current running mode
     }
+    // Map OpenKNX modes to S21 protocol ASCII characters (official S21 Protocol wiki)
+    // S21 Protocol: "1"=Auto, "2"=Dry, "3"=Cool, "4"=Heat, "6"=Fan
     switch (mode_to_send) {
-        case daikin::Mode::Heat: payload[1] = '4'; break;      
-        case daikin::Mode::Cool: payload[1] = '3'; break;      
-        case daikin::Mode::FanOnly: payload[1] = '6'; break;   
-        case daikin::Mode::Dry: payload[1] = '2'; break;       
+        case daikin::Mode::Heat: payload[1] = '4'; break; 
+        case daikin::Mode::Cool: payload[1] = '3'; break;
+        case daikin::Mode::FanOnly: payload[1] = '6'; break;
+        case daikin::Mode::Dry: payload[1] = '2'; break;
         case daikin::Mode::Auto:                               
         case daikin::Mode::Off:
         default: payload[1] = '1'; break;                      
@@ -1259,34 +1261,35 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     // Power: ASCII '1' = on, '0' = off
     state_.power = (data[0] == '1');
     
-    // Mode: ASCII character mapped through Faikin's lookup table
-    // Faikin: "30721003"[payload[1] & 0x7] - '0' (FHCA456D mapped from AXDCHXF)
-    uint8_t mode_char = data[1] & 0x7;
-    const char* mode_map = "30721003";
+    // Mode: Direct S21 protocol values (from official S21 Protocol wiki)
+    // S21 Protocol: "1"=Auto, "2"=Dry, "3"=Cool, "4"=Heat, "6"=Fan
+    // Additional: "0"=Auto,Cooling, "7"=Auto,Heating (also treated as Auto)
+    char mode_char = data[1];
     
-    logDebugP("F1: raw_byte=0x%02X ('%c'), masked=0x%02X, mapped='%c', faikin_mode=%d", 
-             data[1], (data[1] >= 32 && data[1] < 127) ? data[1] : '?', 
-             mode_char, mode_map[mode_char], mode_map[mode_char] - '0');
+    logDebugP("F1: raw_byte=0x%02X ('%c'), s21_mode='%c'", 
+             data[1], (data[1] >= 32 && data[1] < 127) ? data[1] : '?', mode_char);
     
-    if (mode_char < 8) {
-        uint8_t faikin_mode = mode_map[mode_char] - '0';
-        // Convert Faikin mode to our enum: 0=Fan, 1=Heat, 2=Cool, 3=Auto, 7=Dry
-        switch (faikin_mode) {
-            case 0: state_.mode = daikin::Mode::FanOnly; break;
-            case 1: state_.mode = daikin::Mode::Heat; break;
-            case 2: state_.mode = daikin::Mode::Cool; break;
-            case 3: state_.mode = daikin::Mode::Auto; break;
-            case 7: state_.mode = daikin::Mode::Dry; break;
-            default: 
-                logInfoP("F1: Unknown faikin_mode=%d, defaulting to Auto", faikin_mode);
-                state_.mode = daikin::Mode::Auto; 
-                break;
-        }
-        // Detect mode changes from remote control
-        if (old_mode != state_.mode) {
-            DAIKIN_DEBUG_PRINTLN("Mode changed via remote control");
-            changed = true;
-        }
+    // Direct S21 protocol mode mapping (no Faikin compatibility layer needed)
+    switch (mode_char) {
+        case '1': state_.mode = daikin::Mode::Auto; break;
+        case '2': state_.mode = daikin::Mode::Dry; break;
+        case '3': state_.mode = daikin::Mode::Cool; break;
+        case '4': state_.mode = daikin::Mode::Heat; break;
+        case '6': state_.mode = daikin::Mode::FanOnly; break;
+        case '0': // Auto, Cooling (according to wiki, treated same as '1')
+        case '7': // Auto, Heating (according to wiki, treated same as '1')
+            state_.mode = daikin::Mode::Auto; 
+            break;
+        default: 
+            logInfoP("F1: Unknown S21 mode='%c' (0x%02X), defaulting to Auto", mode_char, data[1]);
+            state_.mode = daikin::Mode::Auto; 
+            break;
+    }
+    
+    // Detect mode changes from remote control
+    if (old_mode != state_.mode) {
+        DAIKIN_DEBUG_PRINTLN("Mode changed via remote control");
+        changed = true;
     }
     
     // Temperature: Faikin's s21_decode_target_temp() - only for heat/cool/auto modes
@@ -1299,8 +1302,11 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
             DAIKIN_DEBUG_PRINTLN("Temperature changed via remote control");
             changed = true;
         }
+    }else if (state_.mode == daikin::Mode::Dry && data[2] == 0x80) {
+    // Dry mode: temperature is N/A (0x80), keep existing temperature
+    logDebugP("F1: Dry mode, temperature N/A (0x80), keeping existing target %.1f°C", state_.targetC);
     }
-    // else: keep existing temperature (Faikin: doesn't have temp in other modes)
+    // Fan mode: no temperature setpoint, keep existing
     
     // Fan: Only if RG (fan query) doesn't work - Faikin logic
     if (!support_.fan_mode_query) {
@@ -1328,8 +1334,19 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
         }
     }
     
-    logInfoP("F1: power=%s, mode=%d, target=%.1f°C, fan=%d (ASCII: %c%c%02X%c)", 
-              state_.power ? "ON" : "OFF", static_cast<int>(state_.mode), state_.targetC, 
+    // Get mode name for better UX (avoid confusion with S21 protocol numbers)
+    const char* modeStr = "Unknown";
+    switch (state_.mode) {
+        case daikin::Mode::Auto: modeStr = "Auto"; break;
+        case daikin::Mode::Cool: modeStr = "Cool"; break;
+        case daikin::Mode::Dry: modeStr = "Dry"; break;
+        case daikin::Mode::Heat: modeStr = "Heat"; break;
+        case daikin::Mode::FanOnly: modeStr = "Fan"; break;
+        default: modeStr = "Off"; break;
+    }
+    
+    logInfoP("F1: power=%s, mode=%s, target=%.1f°C, fan=%d (ASCII: %c%c%02X%c)", 
+              state_.power ? "ON" : "OFF", modeStr, state_.targetC, 
               static_cast<int>(state_.fan), data[0], data[1], data[2], data[3]);
     
     // Check for any state changes
