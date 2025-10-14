@@ -745,15 +745,23 @@ void DaikinDriver::updateQueryStateMachine()
 {
     uint32_t now = millis();
     
+    // Check if we need extended timeout for first F1 after write command
+    auto isFirstF1AfterWrite = post_write_first_f1_pending_ 
+        && query_index_ < queries_.size()
+        && queries_[query_index_].command == StateQuery::Basic; // F1
+    
     switch (query_state_) {
         case QueryState::Idle:
             // Check if it's time to start a new query cycle
             if (now - last_query_cycle_ >= QUERY_CYCLE_INTERVAL_MS) {
-                // Check if we're in command cooldown
-                if (last_command_time_ != 0 && (now - last_command_time_) < COMMAND_COOLDOWN_MS) {
+                // Skip legacy cooldown check if we've already handled post-write settle
+                bool skip_cooldown = (last_write_time_ != 0 && last_command_time_ == last_write_time_);
+                
+                // Check if we're in legacy command cooldown (for non-post-write commands)
+                if (!skip_cooldown && last_command_time_ != 0 && (now - last_command_time_) < COMMAND_COOLDOWN_MS) {
                     query_state_ = QueryState::Cooldown;
                     state_start_time_ = now;
-                    logDebugP("Command cooldown active, waiting %lu ms", 
+                    logDebugP("Legacy command cooldown active, waiting %lu ms", 
                              COMMAND_COOLDOWN_MS - (now - last_command_time_));
                 } else {
                     triggerQueryCycle();
@@ -880,23 +888,35 @@ void DaikinDriver::updateQueryStateMachine()
             }
             break;
             
-        case QueryState::WaitingForAck:
-            // Non-blocking ACK wait with timeout
-            if (now - state_start_time_ >= ACK_WAIT_TIMEOUT_MS) {
-                logDebugP("Query timeout, entering grace period for late responses");
+        case QueryState::WaitingForAck: {
+            // Dynamic timeout: extended for first F1 after write command (v0 stability)
+            uint32_t ack_deadline = isFirstF1AfterWrite ? POST_WRITE_F1_TIMEOUT_MS : ACK_WAIT_TIMEOUT_MS;
+            if (now - state_start_time_ >= ack_deadline) {
+                if (isFirstF1AfterWrite) {
+                    logDebugP("Extended F1 timeout (%u ms), entering grace period for late responses", ack_deadline);
+                } else {
+                    logDebugP("Query timeout, entering grace period for late responses");
+                }
                 query_state_ = QueryState::WaitingForGrace;
                 state_start_time_ = now;
             }
             // Response handling is done in handle_serial_result callback
             break;
+        }
             
-        case QueryState::WaitingForGrace:
-            // Grace period for late responses
-            if (now - state_start_time_ >= GRACE_PERIOD_MS) {
+        case QueryState::WaitingForGrace: {
+            // Dynamic grace period: extended for first F1 after write command (v0 stability)
+            uint32_t grace_deadline = isFirstF1AfterWrite ? POST_WRITE_F1_TIMEOUT_MS : GRACE_PERIOD_MS;
+            if (now - state_start_time_ >= grace_deadline) {
                 if (query_index_ < queries_.size()) {
                     auto& query = queries_[query_index_];
-                    logDebugP("Grace period expired for %.*s, advancing to next", 
-                              static_cast<int>(query.command.size()), query.command.data());
+                    if (isFirstF1AfterWrite) {
+                        logDebugP("Extended F1 grace period expired (%u ms) for %.*s, advancing to next", 
+                                  grace_deadline, static_cast<int>(query.command.size()), query.command.data());
+                    } else {
+                        logDebugP("Grace period expired for %.*s, advancing to next", 
+                                  static_cast<int>(query.command.size()), query.command.data());
+                    }
                 }
                 query_index_++;
                 query_state_ = QueryState::WaitingToSend;
@@ -904,6 +924,7 @@ void DaikinDriver::updateQueryStateMachine()
             }
             // Still accept late responses during grace period
             break;
+        }
             
         case QueryState::Cooldown:
             // Wait for command cooldown to complete
@@ -912,6 +933,20 @@ void DaikinDriver::updateQueryStateMachine()
                 query_state_ = QueryState::Idle;
                 // Trigger immediate query cycle
                 last_query_cycle_ = now - QUERY_CYCLE_INTERVAL_MS;
+            }
+            break;
+            
+        case QueryState::PostWriteSettle:
+            // v0 stability: Extended settling period after write commands
+            if (last_write_time_ != 0 && (now - last_write_time_) >= getSettlePeriodForCommand(last_write_command_)) {
+                logInfoP("Post-write settle complete, scheduling first F1 query with extended timeout");
+                
+                // First query after write gets special handling for v0 stability
+                scheduleFirstF1AfterWrite();
+                
+                // Clear the write tracking
+                last_write_time_ = 0;
+                last_write_command_ = LastWriteCommand::None;
             }
             break;
     }
@@ -1047,6 +1082,79 @@ bool DaikinDriver::isQuerySupported(std::string_view command) const
     return true;
 }
 
+// === Post-write command management for v0 stability ===
+
+void DaikinDriver::handleWriteCommandSent(LastWriteCommand cmd_type) 
+{
+    last_write_command_ = cmd_type;
+    last_write_time_ = millis();
+    last_command_time_ = last_write_time_;  // Sync legacy cooldown tracking
+    query_state_ = QueryState::PostWriteSettle;
+    
+    // Clear RX buffer to avoid processing stale data
+    clearRxBuffer();
+    
+    logInfoP("Entering post-write settle for %d ms", getSettlePeriodForCommand(cmd_type));
+}
+
+uint32_t DaikinDriver::getSettlePeriodForCommand(LastWriteCommand cmd_type) const 
+{
+    // v0 units need longer settling periods
+    bool is_v0 = isProtocolV0();
+    
+    switch (cmd_type) {
+        case LastWriteCommand::D1_ModePower:
+            return is_v0 ? SETTLE_AFTER_D1_MS : 3000;  // v0: 4.5s, others: 3s
+        case LastWriteCommand::D5_Swing:
+            return is_v0 ? SETTLE_AFTER_D5_MS : 2000;  // v0: 2.8s, others: 2s
+        case LastWriteCommand::Other:
+            return is_v0 ? SETTLE_AFTER_OTHER_MS : 1000;  // v0: 1.5s, others: 1s
+        default:
+            return is_v0 ? SETTLE_AFTER_OTHER_MS : 1000;  // Default fallback
+    }
+}
+
+bool DaikinDriver::isInPostWriteSettle() const 
+{
+    return query_state_ == QueryState::PostWriteSettle;
+}
+
+bool DaikinDriver::isProtocolV0() const 
+{
+    return protocol_version_.major == 0 && protocol_version_.minor == 0;
+}
+
+void DaikinDriver::clearRxBuffer() 
+{
+    // Clear any stale response data from previous query
+    if (serial_) {
+        // The DaikinSerial interface manages internal buffers automatically.
+        // For now we clear our response tracking; if stale G-frames still appear
+        // after D-commands, we may need to add a flush_input() method to DaikinSerial
+        logDebugP("Clearing response tracking for fresh start after write command");
+        
+        // Reset response tracking state
+        if (query_index_ < queries_.size()) {
+            auto& query = queries_[query_index_];
+            query.response_data.clear();
+        }
+        
+        // TODO: Consider adding serial_->flush_input() if stale frames persist
+    }
+}
+
+void DaikinDriver::scheduleFirstF1AfterWrite() 
+{
+    // First F1 after write gets extended timeout for v0 stability
+    // Mark that we need extended handling for next query
+    post_write_first_f1_pending_ = true;
+    query_state_ = QueryState::WaitingToSend;
+    query_index_ = 0; // Start with F1 query
+    state_start_time_ = millis();
+    
+    logInfoP("Scheduled first F1 after write with extended timeout");
+}
+
 // === Command Sending Implementation ===
 
 void DaikinDriver::sendClimateCommand()
@@ -1115,15 +1223,12 @@ void DaikinDriver::sendClimateCommand()
     // Record command time for non-blocking cooldown
     last_command_time_ = millis();
     last_send_time_ = millis();
-    // Interrupt current query cycle by transitioning to cooldown state
-    if (query_state_ != QueryState::Idle) {
-        query_state_ = QueryState::Cooldown;
-        state_start_time_ = millis();
-        logInfoP("D1 command sent, entering cooldown state for %lu ms", COMMAND_COOLDOWN_MS);
-    }
+    
+    // v0 stability: Enter post-write settle instead of simple cooldown
+    handleWriteCommandSent(LastWriteCommand::D1_ModePower);
+    
     // DON'T update internal state immediately - wait for AC response
-    logInfoP("D1 command sent at %lu ms, next queries delayed %lu ms for AC processing", 
-             last_command_time_, COMMAND_COOLDOWN_MS);
+    logInfoP("D1 command sent at %lu ms, entering v0 post-write settle", last_command_time_);
     
     pending_.activate_climate = false;
 }
@@ -1143,6 +1248,9 @@ void DaikinDriver::sendSwingCommand()
     std::string cmd(StateCommand::LouvreSwingMode);
     serial_->send_frame(cmd, payload.data(), 2);
     
+    // v0 stability: Enter post-write settle for D5 commands
+    handleWriteCommandSent(LastWriteCommand::D5_Swing);
+    
     pending_.activate_swing_mode = false;
 }
 
@@ -1151,13 +1259,16 @@ void DaikinDriver::sendPowerfulCommand()
     if (!serial_ || !pending_.activate_powerful) {
         return;
     }
-    logDebugP("Sending S21 powerful command D2");
+    logDebugP("Sending S21 powerful command D6");
     
     PayloadBuffer payload;
     payload[0] = pending_.climate.powerful ? 0x01 : 0x00;
     
     std::string cmd(StateCommand::Powerful);
     serial_->send_frame(cmd, payload.data(), 1);
+    
+    // v0 stability: Enter post-write settle for D-type commands 
+    handleWriteCommandSent(LastWriteCommand::Other);
     
     pending_.activate_powerful = false;
 }
@@ -1175,6 +1286,9 @@ void DaikinDriver::sendEconoCommand()
     std::string cmd(StateCommand::Econo);
     serial_->send_frame(cmd, payload.data(), 1);
     
+    // v0 stability: Enter post-write settle for D-type commands
+    handleWriteCommandSent(LastWriteCommand::Other);
+    
     pending_.activate_econo = false;
 }
 
@@ -1190,6 +1304,9 @@ void DaikinDriver::sendQuietCommand()
     
     std::string cmd(StateCommand::Quiet);
     serial_->send_frame(cmd, payload.data(), 1);
+    
+    // v0 stability: Enter post-write settle for D-type commands
+    handleWriteCommandSent(LastWriteCommand::Other);
     
     pending_.activate_quiet = false;
 }
@@ -1207,6 +1324,9 @@ void DaikinDriver::sendSensorCommand()
     std::string cmd(StateCommand::Sensor);
     serial_->send_frame(cmd, payload.data(), 1);
     
+    // v0 stability: Enter post-write settle for D-type commands
+    handleWriteCommandSent(LastWriteCommand::Other);
+    
     pending_.activate_sensor = false;
 }
 
@@ -1223,6 +1343,9 @@ void DaikinDriver::sendLedCommand()
     std::string cmd(StateCommand::Led);
     serial_->send_frame(cmd, payload.data(), 1);
     
+    // v0 stability: Enter post-write settle for D-type commands
+    handleWriteCommandSent(LastWriteCommand::Other);
+    
     pending_.activate_led = false;
 }
 
@@ -1238,6 +1361,9 @@ void DaikinDriver::sendStreamerCommand()
     
     std::string cmd(StateCommand::Streamer);
     serial_->send_frame(cmd, payload.data(), 1);
+    
+    // v0 stability: Enter post-write settle for D-type commands
+    handleWriteCommandSent(LastWriteCommand::Other);
     
     pending_.activate_streamer = false;
 }
@@ -1449,20 +1575,39 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
     
     // F5 response contains swing or humidity data
     if (support_.swing) {
-        // Fixed swing decoding: F5 uses ASCII encoding in data[0]
-        // ASCII '0' = off, '1' = vertical, '2' = horizontal, '7' = both
-        char swing_char = data[0];
-        switch (swing_char) {
-            case '0': state_.swing = daikin::Swing::Off; break;
-            case '1': state_.swing = daikin::Swing::Vertical; break;
-            case '2': state_.swing = daikin::Swing::Horizontal; break;
-            case '7': state_.swing = daikin::Swing::Both; break;
-            default:
-                logInfoP("F5: Unknown swing ASCII char '%c' (0x%02X), defaulting to Off", swing_char, swing_char);
-                state_.swing = daikin::Swing::Off;
-                break;
+        // Robust swing decoder: handle both two-flag format and combined ASCII
+        auto is01 = [](uint8_t b){ return b==0x00 || b==0x01 || b=='0' || b=='1'; };
+        
+        daikin::Swing swing = daikin::Swing::Off;
+        
+        if (data_size >= 2 && is01(data[0]) && is01(data[1])) {
+            // Two-flag format: data[0] = vertical, data[1] = horizontal
+            bool v = (data[0] == 0x01 || data[0] == '1');
+            bool h = (data[1] == 0x01 || data[1] == '1');
+            if (v && h) swing = daikin::Swing::Both;
+            else if (v) swing = daikin::Swing::Vertical;
+            else if (h) swing = daikin::Swing::Horizontal;
+            else swing = daikin::Swing::Off;
+            
+            logInfoP("F5: swing V=%s H=%s -> %d (two-flag format)", 
+                     v ? "ON" : "OFF", h ? "ON" : "OFF", static_cast<int>(swing));
+        } else {
+            // Fallback: combined ASCII in data[0]
+            char swing_char = data[0];
+            switch (swing_char) {
+                case '0': swing = daikin::Swing::Off; break;
+                case '1': swing = daikin::Swing::Vertical; break;
+                case '2': swing = daikin::Swing::Horizontal; break;
+                case '7': swing = daikin::Swing::Both; break;
+                default:
+                    logInfoP("F5: Unknown swing ASCII char '%c' (0x%02X), defaulting to Off", swing_char, swing_char);
+                    swing = daikin::Swing::Off;
+                    break;
+            }
+            logInfoP("F5: swing=%d (combined ASCII='%c')", static_cast<int>(swing), swing_char);
         }
-        logInfoP("F5: swing=%d (ASCII='%c')", static_cast<int>(state_.swing), swing_char);
+        
+        state_.swing = swing;
     }
     
     // Decode humidity mode from byte 2 (3rd byte in G5 response)
@@ -2133,9 +2278,14 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
         accept_response = true; // Accept late responses in Idle state if within window
         logDebugP("Accepting late response %lu ms after send", now - last_send_time_);
     } else if (query_state_ == QueryState::WaitingToSend && last_send_time_ != 0 && 
-               (now - last_send_time_) < 3000) { // 3 second window for very late responses
+               (now - last_send_time_) < LATE_ACCEPT_WINDOW_MS) {
         accept_response = true;  // Accept very late responses even in WaitingToSend state
         logDebugP("Accepting very late response %lu ms after send", now - last_send_time_);
+    } else if (query_state_ == QueryState::PostWriteSettle 
+               && last_send_time_ != 0 
+               && (now - last_send_time_) < LATE_RX_WINDOW_MS) {
+        accept_response = true;  // Accept responses during settle if within late window (v0 stability)
+        logDebugP("Accepting response during settle %lu ms after send", now - last_send_time_);
     } else if (data_size == 1 && data && data[0] == 0x06) { // 0x06 is proper ACK
         accept_response = true; // Always accept standalone ACKs regardless of timing (they prove communication works)
         logDebugP("Accepting standalone ACK 0x%02X regardless of timing", data[0]);
@@ -2217,6 +2367,12 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                         stats_.frames_ok++;
                         DAIKIN_DEBUG_PRINT("S21: Valid response for %.*s (%zu bytes payload)", 
                                   static_cast<int>(query.command.size()), query.command.data(), payload_len);
+                        
+                        // Clear post-write F1 flag if this was the first F1 after write (v0 stability)
+                        if (query.command == StateQuery::Basic && post_write_first_f1_pending_) {
+                            post_write_first_f1_pending_ = false;
+                            logDebugP("Cleared post-write F1 flag after successful response");
+                        }
                     } else {
                         logErrorP("S21: Frame command mismatch for %.*s (rx header: %.*s)", 
                                   static_cast<int>(query.command.size()), query.command.data(),
@@ -2508,6 +2664,8 @@ uint8_t DaikinDriver::swing_mode_to_daikin(daikin::Swing mode) const
     switch (mode) {
         case daikin::Swing::Off:        return 0x00;
         case daikin::Swing::Vertical:   return 0x01;
+        case daikin::Swing::Horizontal: return 0x01;  // Fix: handle horizontal swing
+        case daikin::Swing::Both:       return 0x01;  // Fix: handle both directions
         default:                        return 0x00;
     }
 }

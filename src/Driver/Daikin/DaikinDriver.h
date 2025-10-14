@@ -215,32 +215,56 @@ private:
     uint32_t last_send_time_{0};     // Track last serial send for pacing
     uint32_t last_query_time_{0};    // Track individual query timing
     
-    // timing constants (non-blocking)
+    // timing constants (optimized for v0 protocol stability)
     static constexpr uint32_t QUERY_CYCLE_INTERVAL_MS = 10000;      // 10 seconds for debugging
     static constexpr uint32_t PROTOCOL_DETECTION_RETRY_MS = 300000; // 5 minutes retry for unknown protocol
     static constexpr uint32_t INTER_QUERY_DELAY_MS = 35;            // 35ms between queries (non-blocking)
-    static constexpr uint32_t INTER_QUERY_DELAY_HIGH_LOAD_MS = 80;  // Increased spacing under high load
-    static constexpr uint32_t COMMAND_COOLDOWN_MS = 3000;           // 3 seconds cooldown after D1 commands
-    static constexpr uint32_t ACK_WAIT_TIMEOUT_MS = 400;            // ACK wait timeout (non-blocking)
-    static constexpr uint32_t GRACE_PERIOD_MS = 400;                // Grace period for late responses
-    static constexpr uint32_t LATE_RX_WINDOW_MS = 800;              // Window to accept late responses in Idle
+    static constexpr uint32_t INTER_QUERY_DELAY_HIGH_LOAD_MS = 500; // High load: 500-800ms spacing
     
-    // Configurable RX timing windows (mentioned in feedback)
-    static constexpr uint32_t NORMAL_RX_WINDOW_MS = 25;        // Normal response window
-    static constexpr uint32_t COALESCE_RX_WINDOW_MS = 15;      // Window for multi-byte collection after 0xC0
+    // Write command settle times (v0 units need longer settling)
+    static constexpr uint32_t SETTLE_AFTER_D1_MS = 4500;           // 4.5s after D1 (mode/power) for v0
+    static constexpr uint32_t SETTLE_AFTER_D5_MS = 3100;           // 3.1s after D5 (swing) for v0 (>cooldown)
+    static constexpr uint32_t SETTLE_AFTER_OTHER_MS = 1500;        // 1.5s for other D commands
+    
+    // ACK and response timeouts
+    static constexpr uint32_t ACK_DEADLINE_MS = 200;               // ACK comes quickly
+    static constexpr uint32_t LATE_RX_WINDOW_MS = 5000;            // 5s window for late frame acceptance
+    static constexpr uint32_t COMMAND_COOLDOWN_MS = 3000;          // Legacy cooldown period (replaced by post-write settle)
+    static constexpr uint32_t ACK_WAIT_TIMEOUT_MS = 400;           // ACK wait timeout (non-blocking)
+    static constexpr uint32_t POST_WRITE_F1_TIMEOUT_MS = 2500;     // First F1 after write command (v0 needs up to 5s)
+    static constexpr uint32_t GRACE_PERIOD_MS = 400;               // Grace period for normal responses
+    static constexpr uint32_t LATE_ACCEPT_WINDOW_MS = 5000;        // Extended window for late frames
+    
+    // Configurable RX timing windows
+    static constexpr uint32_t NORMAL_RX_WINDOW_MS = 25;            // Normal response window
+    static constexpr uint32_t COALESCE_RX_WINDOW_MS = 15;          // Window for multi-byte collection after 0xC0
     
     // state machine
     enum class QueryState {
-        Idle,           // Not running queries
-        WaitingToSend,  // Waiting for timing interval
-        WaitingForAck,  // Sent query, waiting for response
-        WaitingForGrace,// Grace period for late responses
-        Cooldown        // Waiting for command cooldown
+        Idle,             // Not running queries
+        WaitingToSend,    // Waiting for timing interval
+        WaitingForAck,    // Sent query, waiting for response
+        WaitingForGrace,  // Grace period for late responses
+        Cooldown,         // Waiting for command cooldown
+        PostWriteSettle   // Extended settle after D1/D5 commands (v0 specific)
     };
     
     QueryState query_state_{QueryState::Idle};
     uint32_t state_start_time_{0};   // When current state started
     bool high_load_detected_{false}; // Track if system is under high load
+    
+    // Post-write command tracking (v0 stability)
+    enum class LastWriteCommand {
+        None,
+        D1_ModePower,     // Need 4.5s settle + first F1 with extended timeout
+        D5_Swing,         // Need 2.8s settle
+        Other             // Need 1.5s settle
+    };
+    
+    LastWriteCommand last_write_command_{LastWriteCommand::None};
+    uint32_t last_write_time_{0};           // When last write command was sent
+    bool post_write_first_f1_pending_{false}; // Need to do first F1 with extended timeout
+    bool scheduler_paused_{false};          // True when scheduler is paused for settling
     
     // Protocol detection optimization
     bool old_protocol_detected_{false};    // Early detection flag
@@ -273,6 +297,14 @@ private:
     void sendSensorCommand();
     void sendLedCommand();
     void sendStreamerCommand();
+    
+    // Post-write command management (v0 stability)
+    void handleWriteCommandSent(LastWriteCommand cmd_type);
+    uint32_t getSettlePeriodForCommand(LastWriteCommand cmd_type) const;
+    bool isInPostWriteSettle() const;
+    bool isProtocolV0() const;
+    void clearRxBuffer();
+    void scheduleFirstF1AfterWrite();
     
     // Response handlers
     void handle_f1_response(uint8_t* data, size_t data_size);
