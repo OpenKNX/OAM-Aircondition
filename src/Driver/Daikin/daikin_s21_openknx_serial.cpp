@@ -636,7 +636,7 @@ void DaikinSerial::handle_timeout_fallback() {
     //          MAX_USER_HINT_TIMEOUTS);
     
     // Start auto-scan
-    try_next_polarity_combo();
+    // try_next_polarity_combo();
   }
 }
 

@@ -22,10 +22,11 @@ void RoomTemperatureCorrection::setup()
     }
     else
     {
-        Preferences preferences;
-        preferences.begin("RoomTempCorrect", true);
-        _targetTemperature = preferences.getFloat("Target", 0.0f);
-        preferences.end();
+        // Preferences preferences;
+        // preferences.begin("RoomTempCorrect", true);
+        // _targetTemperature = preferences.getFloat("Target", 0.0f);
+        // preferences.end();
+        _targetTemperature = 0.0f;
     }
     if (_targetTemperature != 0.0f)
     {
@@ -150,11 +151,11 @@ void RoomTemperatureCorrection::setTargetTemperaturToAircondition(float temperat
 {
     logInfoP("Set target temperature to %.1f °C", temperature);
     _targetTemperature = temperature;
-     Preferences preferences;
-    preferences.begin("RoomTempCorrect", false);
-    if (preferences.getFloat("Target", 0.0f) != _targetTemperature)
-        preferences.putFloat("Target", _targetTemperature);
-    preferences.end();
+    //  Preferences preferences;
+    // preferences.begin("RoomTempCorrect", false);
+    // if (preferences.getFloat("Target", 0.0f) != _targetTemperature)
+    //     preferences.putFloat("Target", _targetTemperature);
+    // preferences.end();
 
    
     auto calculatedTemperature = temperature - _currentOffset;

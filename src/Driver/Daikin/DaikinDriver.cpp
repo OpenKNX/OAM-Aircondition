@@ -1,6 +1,6 @@
 #include "DaikinDriver.h"
 #include <Arduino.h>
-#include <esp_heap_caps.h>
+// #include <esp_heap_caps.h>
 #include <algorithm>
 #include <numeric>
 #include <bitset>
@@ -161,7 +161,7 @@ void DaikinDriver::setup()
     DAIKIN_DEBUG_PRINT("Setting up Daikin S21 driver");
     // Get the UART reference from OpenKNX configuration
     #ifdef OPENKNX_AIR_CONDITION_SERIAL
-        HardwareSerial& ser = OPENKNX_AIR_CONDITION_SERIAL;
+        SerialUART& ser = OPENKNX_AIR_CONDITION_SERIAL;
     #else
         #error "OPENKNX_AIR_CONDITION_SERIAL must be defined in build flags"
     #endif
@@ -188,15 +188,15 @@ void DaikinDriver::setup()
              actual_rx_pin, rx_inverted ? "inverted" : "normal",
              actual_tx_pin, tx_inverted ? "inverted" : "normal");
     
-    size_t free_heap = esp_get_free_heap_size();    // Check available memory
+    // size_t free_heap = esp_get_free_heap_size();    // Check available memory
     
-    if (free_heap < 8192) {  // Need at least 8KB free for safe operation
-        logErrorP("Insufficient memory for S21 driver (free: %u bytes)", free_heap);
-        statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, 
-                                         "Insufficient memory");
-        return;
-    }
-    try {
+    // if (free_heap < 8192) {  // Need at least 8KB free for safe operation
+    //     logErrorP("Insufficient memory for S21 driver (free: %u bytes)", free_heap);
+    //     statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, 
+    //                                      "Insufficient memory");
+    //     return;
+    // }
+    // try {
         // Create the serial communication object with callbacks to this instance
         const bool user_specified_polarity = rx_inverted || tx_inverted;  // only "true" if the user really pinned an inversion
         serial_ = std::make_unique<daikin::DaikinSerial>(
@@ -219,12 +219,12 @@ void DaikinDriver::setup()
         DAIKIN_DEBUG_PRINT("Daikin S21 driver initialized successfully");
         statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
         
-    } catch (const std::exception& e) {
-        logErrorP("Failed to initialize S21 driver: %s", e.what());
-        serial_.reset();
-        statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, 
-                                         std::string("Initialization failed: ") + e.what());
-    }
+    // } catch (const std::exception& e) {
+    //     logErrorP("Failed to initialize S21 driver: %s", e.what());
+    //     serial_.reset();
+    //     statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, 
+    //                                      std::string("Initialization failed: ") + e.what());
+    // }
 }
 
 void DaikinDriver::startCommunication(bool restart)
@@ -865,7 +865,7 @@ void DaikinDriver::updateQueryStateMachine()
                                 statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Protocol detection failed");
                                 return;
                             }
-                            serial_->try_next_polarity_combo();   // serial layer rotates 3 -> 0 -> 1 -> 2 (or similar)
+                            // serial_->try_next_polarity_combo();   // serial layer rotates 3 -> 0 -> 1 -> 2 (or similar)
                             auto [rx_inv, tx_inv] = serial_->get_current_polarity();
                             logInfoP("Trying next polarity combo: TX=%s RX=%s", 
                                      tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
