@@ -198,6 +198,7 @@ void DaikinDriver::setup()
     }
     try {
         // Create the serial communication object with callbacks to this instance
+        const bool user_specified_polarity = rx_inverted || tx_inverted;  // only "true" if the user really pinned an inversion
         serial_ = std::make_unique<daikin::DaikinSerial>(
             ser, 
             actual_rx_pin,
@@ -208,7 +209,8 @@ void DaikinDriver::setup()
             [this]() { 
                 handle_serial_idle(); 
             },
-            rx_inverted, tx_inverted  // Use parsed inversion settings from build flags
+            rx_inverted, tx_inverted,  // Use parsed inversion settings from build flags
+            user_specified_polarity    // Enable auto-polarity only when user didn't specify inversions
         );
         
         logDebugP("DaikinSerial object created, initializing serial port...");
@@ -650,12 +652,13 @@ void DaikinDriver::initializeProtocolDetection()
     
     last_protocol_detection_attempt_ = millis();  // Mark that we're attempting protocol detection now
     
-    // Reset polarity detection to start from Faikin combination (TX=inverted, RX=inverted)
+    // Initialize polarity detection - serial layer handles combo selection
     if (serial_) {
-        serial_->reset_polarity_detection();
-        current_polarity_attempt_ = 3; // Start with Faikin combo 3
+        serial_->reset_polarity_detection();  // serial layer sets first auto combo or user-specified
+        polarity_combos_tried_ = 0;
+        attempts_this_combo_ = 0;
         auto [rx_inv, tx_inv] = serial_->get_current_polarity();
-        logInfoP("Starting with Faikin polarity combo 3: TX=%s RX=%s", 
+        logInfoP("Starting protocol detection with polarity: TX=%s RX=%s", 
                  tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
     }
     
@@ -852,42 +855,34 @@ void DaikinDriver::updateQueryStateMachine()
                             return; // Continue immediately with proper queries
                         }
                         
-                        // No response with current polarity - check if we should try more attempts
-                        if (protocol_detection_attempts_ < MAX_POLARITY_ATTEMPTS) {
-                            // Try F8→FY00 again with same polarity
-                            logDebugP("Protocol detection: No response, retry %u/%u with current polarity", 
-                                      protocol_detection_attempts_, MAX_POLARITY_ATTEMPTS);
+                        // Max attempts reached with current polarity - try next polarity combo
+                        if (++attempts_this_combo_ >= MAX_POLARITY_ATTEMPTS) {
+                            attempts_this_combo_ = 0;
+                            if (++polarity_combos_tried_ >= MAX_POLARITY_COMBOS) {
+                                // All polarity combinations exhausted
+                                logErrorP("Protocol detection failed across all polarity combos");
+                                logInfoP("Protocol detection phase completed, protocol remains unknown");
+                                statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Protocol detection failed");
+                                return;
+                            }
+                            serial_->try_next_polarity_combo();   // serial layer rotates 3 -> 0 -> 1 -> 2 (or similar)
+                            auto [rx_inv, tx_inv] = serial_->get_current_polarity();
+                            logInfoP("Trying next polarity combo: TX=%s RX=%s", 
+                                     tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
+                            protocol_detection_attempts_ = 0;
                             query_index_ = 0;
                             query_state_ = QueryState::WaitingToSend;
                             state_start_time_ = now;
                             return;
                         }
                         
-                        // Max attempts reached with current polarity - try next polarity combo
-                        if (current_polarity_attempt_ < MAX_POLARITY_COMBOS - 1) {
-                            if (serial_->try_next_polarity_combo()) {
-                                current_polarity_attempt_++;
-                                protocol_detection_attempts_ = 0;
-                                auto [rx_inv, tx_inv] = serial_->get_current_polarity();
-                                logInfoP("Protocol detection: Trying polarity combo %u: TX=%s RX=%s", 
-                                         current_polarity_attempt_, 
-                                         tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
-                                
-                                query_index_ = 0;
-                                query_state_ = QueryState::WaitingToSend;
-                                state_start_time_ = now;
-                                return;
-                            }
-                        }
-                        
-                        if (current_polarity_attempt_ < MAX_POLARITY_COMBOS) {
-                            current_polarity_attempt_++;
-                            // All polarity combinations exhausted
-                            logInfoP("Protocol detection: All polarity combinations exhausted, no AC unit detected");
-                            logInfoP("Protocol detection phase completed, protocol remains unknown");
-                            // Stay in current state, don't initialize queries
-                            return;
-                        }
+                        // Try F8→FY00 again with same polarity  
+                        logDebugP("Protocol detection: No response, retry %u/%u with current polarity", 
+                                  attempts_this_combo_, MAX_POLARITY_ATTEMPTS);
+                        query_index_ = 0;
+                        query_state_ = QueryState::WaitingToSend;
+                        state_start_time_ = now;
+                        return;
                     }
                     
                     if (!first_cycle_completed_) {
@@ -2531,6 +2526,8 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                              static_cast<int>(query.command.size()), query.command.data(),
                              tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
                 } else {
+                    // Handle user hint fallback for field robustness during normal operation
+                    serial_->handle_timeout_fallback();
                     DAIKIN_DEBUG_PRINT("S21: Timeout waiting for %.*s", static_cast<int>(query.command.size()), query.command.data());
                 }
                 

@@ -9,6 +9,9 @@
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "esp_err.h"
+
+// Auto-polarity detection order: RX inv, both inv, none, TX inv
+static constexpr uint8_t kAutoOrder[4] = { 2, 3, 0, 1 };
 #include "hal/uart_types.h"
 
 // Build flag validation - ensure serial configuration is defined
@@ -42,11 +45,12 @@ constexpr uart_port_t get_uart_port() {
 
 DaikinSerial::DaikinSerial(HardwareSerial &uart, int rx_pin, int tx_pin, 
                            ResultCallback result_callback, IdleCallback idle_callback,
-                           bool initial_rx_invert, bool initial_tx_invert)
+                           bool initial_rx_invert, bool initial_tx_invert,
+                           bool user_specified_polarity)
     : uart(uart), rx_pin(rx_pin), tx_pin(tx_pin), 
       result_callback(result_callback), idle_callback(idle_callback),
       current_rx_invert_(initial_rx_invert), current_tx_invert_(initial_tx_invert),
-      user_specified_polarity_(true), // Mark as user-specified
+      user_specified_polarity_(user_specified_polarity),
       original_rx_invert_(initial_rx_invert), original_tx_invert_(initial_tx_invert) {}
 
 void DaikinSerial::begin() {
@@ -524,93 +528,133 @@ void DaikinSerial::try_next_uart_variant() {
 
 // try all 4 combinations systematically
 bool DaikinSerial::try_next_polarity_combo() {
-  polarity_combo_index_++;
-  
-  if (polarity_combo_index_ > 3) {
-    // All polarity combinations exhausted
-    ESP_LOGW(TAG, "All polarity combinations exhausted (0-3)");
+  if (user_specified_polarity_ && !fallback_mode_) {
+    // Nothing to rotate in user-fixed mode (unless in fallback)
+    ESP_LOGI(TAG, "User-specified polarity fixed; not rotating combos");
     return false;
   }
-  
-  // matrix: (TX, RX) combinations
-  // 0: (normal, normal)     - false, false  
-  // 1: (inverted, normal)   - true, false 
-  // 2: (normal, inverted)   - false, true
-  // 3: (inverted, inverted) - true, true
-  switch (polarity_combo_index_) {
-    case 0: current_rx_invert_ = false; current_tx_invert_  = false; break;
-    case 1: current_rx_invert_ = false; current_tx_invert_  = true; break;
-    case 2: current_rx_invert_ = true; current_tx_invert_   = false; break; 
-    case 3: current_rx_invert_ = true; current_tx_invert_   = true; break;
+
+  auto_order_cursor_++;
+  if (auto_order_cursor_ >= 4) {
+    if (fallback_mode_) {
+      // Fallback auto-scan also failed, revert to user hint and give up
+      ESP_LOGW(TAG, "Fallback auto-scan exhausted, reverting to user-specified polarity");
+      current_rx_invert_ = original_rx_invert_;
+      current_tx_invert_ = original_tx_invert_;
+      fallback_mode_ = false;
+      user_hint_timeout_count_ = 0;
+      
+      // Apply the reverted polarity
+      uint8_t invert_mask = 0;
+      if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
+      if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
+      uart_set_line_inverse(get_uart_port(), invert_mask);
+      uart_flush(get_uart_port());
+      uart.setRxInvert(current_rx_invert_);
+      
+      ESP_LOGI(TAG, "Reverted to user hint: TX=%s RX=%s",
+               current_tx_invert_ ? "inverted" : "normal",
+               current_rx_invert_ ? "inverted" : "normal");
+    } else {
+      ESP_LOGW(TAG, "All polarity combinations exhausted (order: 2,3,0,1)");
+    }
+    return false;
   }
-  
-  const uart_port_t uart_num = get_uart_port(); // Apply polarity change using ESP-IDF UART driver
-  
+  polarity_combo_index_ = kAutoOrder[auto_order_cursor_];
+
+  // Apply TX/RX flags for this index
+  switch (polarity_combo_index_) {
+    case 0: current_tx_invert_ = false; current_rx_invert_ = false; break; // none
+    case 1: current_tx_invert_ = true;  current_rx_invert_ = false; break; // TX inv
+    case 2: current_tx_invert_ = false; current_rx_invert_ = true;  break; // RX inv
+    case 3: current_tx_invert_ = true;  current_rx_invert_ = true;  break; // both
+  }
+
   uint8_t invert_mask = 0;
   if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
   if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
-  
-  esp_err_t err = uart_set_line_inverse(uart_num, invert_mask);
+  esp_err_t err = uart_set_line_inverse(get_uart_port(), invert_mask);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to set polarity combo %u: %s", polarity_combo_index_, esp_err_to_name(err));
     return false;
   }
-  
-  uart_flush(uart_num);  // Flush after polarity change
-  
-  // Also update Arduino HardwareSerial for compatibility
+
+  uart_flush(get_uart_port());
   uart.setRxInvert(current_rx_invert_);
-  
-  ESP_LOGI(TAG, "Polarity combo %u: TX=%s RX=%s", 
+
+  ESP_LOGI(TAG, "Switched to polarity combo %u: TX=%s RX=%s",
            polarity_combo_index_,
            current_tx_invert_ ? "inverted" : "normal",
            current_rx_invert_ ? "inverted" : "normal");
-  
-  // Reset timeout tracking for new combo
+
   consecutive_timeouts_ = 0;
   rx_any_since_tx_ = false;
-  
+  user_hint_timeout_count_ = 0;  // Reset user hint timeout on successful communication
   return true;
 }
 
 void DaikinSerial::reset_polarity_detection() {
   if (user_specified_polarity_) {
-    // Reset to user-specified polarity instead of hardcoded values
+    // Apply exactly what the user asked for and STOP
     current_rx_invert_ = original_rx_invert_;
     current_tx_invert_ = original_tx_invert_;
-    
-    ESP_LOGI(TAG, "Reset to user-specified polarity: TX=%s RX=%s", 
+
+    uint8_t invert_mask = 0;
+    if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
+    if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
+    uart_set_line_inverse(get_uart_port(), invert_mask);
+    uart_flush(get_uart_port());
+    uart.setRxInvert(current_rx_invert_);
+
+    // Keep polarity_combo_index_ consistent with the applied choice
+    polarity_combo_index_ = (current_tx_invert_ ? 1 : 0) + (current_rx_invert_ ? 2 : 0);
+    auto_order_cursor_ = -1; // not used in user-specified mode
+
+    ESP_LOGI(TAG, "Reset to user-specified polarity: TX=%s RX=%s",
              current_tx_invert_ ? "inverted" : "normal",
              current_rx_invert_ ? "inverted" : "normal");
   } else {
-    // Start with the working combination for most AC units: TX=inverted, RX=inverted (combo 3)
-    // This avoids the delay of trying other polarities first
-    polarity_combo_index_ = 3;
-    current_rx_invert_ = true;   // RX inverted  
-    current_tx_invert_ = true;   // TX inverted
-    
-    ESP_LOGI(TAG, "Reset to auto-detect polarity combo 3: TX=inverted RX=inverted");
+    // Auto mode: start before the first entry in our preferred order
+    auto_order_cursor_ = -1;
+    polarity_combo_index_ = -1; // will be set by try_next_polarity_combo
+    // Immediately move to the first auto combo
+    try_next_polarity_combo();
   }
   
-  const uart_port_t uart_num = get_uart_port(); // Apply polarity using ESP-IDF UART driver
-  
-  uint8_t invert_mask = 0;
-  if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
-  if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
-  
-  esp_err_t err = uart_set_line_inverse(uart_num, invert_mask);
-  if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Failed to reset polarity: %s", esp_err_to_name(err));
-    return;
-  }
-  
-  uart_flush(uart_num); // Flush after polarity change
+  // Reset fallback state
+  user_hint_timeout_count_ = 0;
+  fallback_mode_ = false;
   
   // Also update Arduino HardwareSerial for compatibility
   uart.setRxInvert(current_rx_invert_);
   
   consecutive_timeouts_ = 0;
   rx_any_since_tx_ = false;
+}
+
+void DaikinSerial::handle_timeout_fallback() {
+  if (!user_specified_polarity_ || fallback_mode_) {
+    // Already in auto mode or fallback, nothing special to do
+    return;
+  }
+  
+  user_hint_timeout_count_++;
+  ESP_LOGD(TAG, "User hint timeout %u/%u", user_hint_timeout_count_, MAX_USER_HINT_TIMEOUTS);
+  
+  if (user_hint_timeout_count_ >= MAX_USER_HINT_TIMEOUTS) {
+    // User hint appears dead, fall back to auto-scan for recovery
+    fallback_mode_ = true;
+    auto_order_cursor_ = -1;  // Start from beginning of auto order
+    polarity_combo_index_ = -1;
+    
+    ESP_LOGW(TAG, "No response with user-specified polarity (TX=%s RX=%s) after %u attempts; scanning RX/TX inversion", 
+             original_tx_invert_ ? "inverted" : "normal",
+             original_rx_invert_ ? "inverted" : "normal",
+             MAX_USER_HINT_TIMEOUTS);
+    
+    // Start auto-scan
+    try_next_polarity_combo();
+  }
 }
 
 } // namespace daikin

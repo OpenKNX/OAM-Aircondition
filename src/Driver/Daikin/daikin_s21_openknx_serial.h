@@ -52,7 +52,8 @@ class DaikinSerial {
   DaikinSerial(HardwareSerial &uart, int rx_pin, int tx_pin, 
                ResultCallback result_callback = nullptr, 
                IdleCallback idle_callback = nullptr,
-               bool initial_rx_invert = false, bool initial_tx_invert = false);
+               bool initial_rx_invert = false, bool initial_tx_invert = false,
+               bool user_specified_polarity = false);
 
   void begin();
   void loop();
@@ -62,6 +63,7 @@ class DaikinSerial {
   void try_next_uart_variant();   // advance to next UART variant (parity/stop/inversion combo) when line is silent
   bool try_next_polarity_combo(); // try next polarity combination for protocol detection
   void reset_polarity_detection();  // reset to first polarity combination
+  void handle_timeout_fallback();   // handle timeout on user-specified polarity (may trigger fallback to auto-scan)
   std::pair<bool, bool> get_current_polarity() const { return {current_rx_invert_, current_tx_invert_}; }  // get current polarity info for logging
 
 protected:
@@ -133,7 +135,12 @@ protected:
   bool original_rx_invert_{false};
   bool original_tx_invert_{false};
   // polarity detection matrix
-  uint8_t polarity_combo_index_{0};  // 0-3 for (normal,normal) → (inverted,normal) → (normal,inverted) → (inverted,inverted)
+  int polarity_combo_index_{-1};  // start before first, then 0-3 for (normal,normal) → (inverted,normal) → (normal,inverted) → (inverted,inverted)
+  int8_t auto_order_cursor_{-1};  // cursor for auto-polarity order: {2,3,0,1} = (RX inv, both inv, none, TX inv)
+  // User hint fallback for field robustness
+  uint8_t user_hint_timeout_count_{0};  // consecutive timeouts on user-specified polarity
+  bool fallback_mode_{false};           // true when we've fallen back to auto-scan from user hint
+  static constexpr uint8_t MAX_USER_HINT_TIMEOUTS = 5;  // fallback threshold
 };
 
 } // namespace daikin
