@@ -305,6 +305,9 @@ void DaikinDriver::loop()
     
     updateQueryStateMachine(); // non-blocking state machine
     
+    // Check online timeout (independent of query state machine)
+    checkOnlineTimeout();
+    
     // Protocol detection retry mechanism - every 5 minutes if protocol unknown
     if (protocol_version_ == daikin::ProtocolUndetected) {
         if (last_protocol_detection_attempt_ == 0 || 
@@ -2399,6 +2402,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
     
     switch (result) {
             case daikin::DaikinSerial::Result::Ack:
+                markOnline(millis());  // Mark device online on ACK
                 DAIKIN_DEBUG_PRINT("S21: ACK for %.*s", static_cast<int>(query.command.size()), query.command.data());
                 stats_.acks++;
                 query.acked = true;
@@ -2408,6 +2412,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 state_start_time_ = millis();
                 break;
             case daikin::DaikinSerial::Result::Frame:
+                markOnline(millis());  // Mark device online on Frame
                 if (data_size >= 1) {
                     // S21 protocol command/response mapping:
                     // F* → G* (same tail): F8 → G8, FY00 → GY00, etc.
@@ -2886,5 +2891,27 @@ void DaikinDriver::checkF6ToF3Fallback() {
             support_.f6_special_modes = false;  // Mark F6 as unsupported
             break;
         }
+    }
+}
+
+// === Online/Offline Detection ===
+void DaikinDriver::markOnline(uint32_t now) {
+    last_rx_ok_ms_ = now;
+    if (!online_) {
+        online_ = true;
+        logInfoP("S21 online status changed: Online");
+        statusFeedback.updateOnlineStatus(true);  // → KO463 = 1
+    }
+}
+
+void DaikinDriver::checkOnlineTimeout() {
+    static constexpr uint32_t OFFLINE_MS = 15000; // 15s timeout for offline detection
+    
+    uint32_t now = millis();
+    if (online_ && last_rx_ok_ms_ != 0 && (now - last_rx_ok_ms_) > OFFLINE_MS) {
+        online_ = false;
+        logInfoP("S21 online status changed: Offline (no ACK/frame for %lu ms)", (unsigned long)(now - last_rx_ok_ms_));
+        statusFeedback.updateOnlineStatus(false);  // → KO463 = 0
+        // Optional: Query frequency throttling can be added here
     }
 }

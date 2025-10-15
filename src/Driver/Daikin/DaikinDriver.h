@@ -274,6 +274,10 @@ private:
     bool write_pending_{false};            // New write request during settle period
     PayloadBuffer last_sent_d1_payload_;   // Dedupe identical D1 commands
     
+    // Online/offline detection (robust S21 connectivity tracking)
+    uint32_t last_rx_ok_ms_{0};            // Time of last ACK or valid frame
+    bool online_{false};                   // Current online status
+    
     // Protocol detection optimization
     bool old_protocol_detected_{false};    // Early detection flag
     uint32_t c0_response_count_{0};        // Count of 0xC0 responses
@@ -313,6 +317,10 @@ private:
     bool isProtocolV0() const;
     void clearRxBuffer();
     void scheduleFirstF1AfterWrite();
+    
+    // Online/offline detection methods
+    void markOnline(uint32_t now);
+    void checkOnlineTimeout();
     
     // Response handlers
     void handle_f1_response(uint8_t* data, size_t data_size);
