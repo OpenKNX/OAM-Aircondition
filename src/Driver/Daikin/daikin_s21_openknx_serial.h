@@ -49,7 +49,7 @@ class DaikinSerial {
   using ResultCallback = std::function<void(Result, uint8_t*, size_t)>;
   using IdleCallback = std::function<void()>;
 
-  DaikinSerial(HardwareSerial &uart, int rx_pin, int tx_pin, 
+  DaikinSerial(SerialUART &uart, int rx_pin, int tx_pin, 
                ResultCallback result_callback = nullptr, 
                IdleCallback idle_callback = nullptr,
                bool initial_rx_invert = false, bool initial_tx_invert = false,
@@ -108,7 +108,7 @@ protected:
 
   void finalize_frame();
 
-  HardwareSerial &uart;
+  SerialUART &uart;
   int rx_pin;
   int tx_pin;
   ResultCallback result_callback;

@@ -1,6 +1,6 @@
 #include "RoomTemperaturCorrection.h"
 #include "AirConditionDriver.h"
-#include <Preferences.h>
+// #include <Preferences.h>
 
 RoomTemperatureCorrection::RoomTemperatureCorrection(AirConditionDriver& airConditionDriver)
     : _airConditionDriver(airConditionDriver)
