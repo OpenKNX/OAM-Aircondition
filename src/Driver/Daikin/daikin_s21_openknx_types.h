@@ -43,7 +43,17 @@ enum class Action : uint8_t {
   Cooling = 2,
   Heating = 3,
   Drying = 4,
-  Fan = 5
+  Fan = 5,
+  Auto = 6  // Auto mode without specific bias information
+};
+
+/**
+ * Auto mode bias (from S21 mode byte '0'/'7')
+ */
+enum class AutoBias : uint8_t {
+  Unknown = 0,
+  Cooling = 1,  // S21 mode '0' - Auto with cooling bias
+  Heating = 2   // S21 mode '7' - Auto with heating bias
 };
 
 /**
@@ -176,11 +186,15 @@ struct State {
   bool power{false};
   Mode mode{Mode::Off};
   Action action{Action::Off};
+  AutoBias autoBias{AutoBias::Unknown};  // S21 mode '0'/'7' distinction
   float targetC{23.0f};
   float realTargetC{23.0f};  // RX: Actual target temp with sensor adjustments
   float homeC{25.0f};
   float outsideC{25.0f};
   float liquidC{25.0f};
+  
+  // System status
+  bool compressorOn{false};  // RG2: compressor state for action determination
   
   // Fan and swing
   DaikinFanMode fan{DaikinFanMode::Auto};

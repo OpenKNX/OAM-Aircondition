@@ -1464,6 +1464,11 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
             break;
     }
     
+    // Extract Auto bias information from S21 mode byte '0'/'7'
+    state_.autoBias = (mode_char == '0') ? daikin::AutoBias::Cooling :
+                      (mode_char == '7') ? daikin::AutoBias::Heating :
+                                           daikin::AutoBias::Unknown;
+    
     // Detect mode changes from remote control
     if (old_mode != state_.mode) {
         DAIKIN_DEBUG_PRINTLN("Mode changed via remote control");
@@ -1537,9 +1542,16 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     }
 };
     
-logInfoP("F1: power=%s, mode=%s, target=%.1f°C, fan=%s (ASCII fanNibble: %c)",
-         state_.power ? "ON" : "OFF", modeStr, state_.targetC,
-         fanToStr(state_.fan), (char)data[3]);
+// Add AutoBias info for Auto modes (S21 mode '0'/'7')  
+    const char* biasInfo = "";
+    if (state_.mode == daikin::Mode::Auto) {
+        biasInfo = (state_.autoBias == daikin::AutoBias::Cooling) ? " [Auto-Cool]" :
+                   (state_.autoBias == daikin::AutoBias::Heating) ? " [Auto-Heat]" : " [Auto]";
+    }
+    
+    logInfoP("F1: power=%s, mode=%s%s, target=%.1f°C, fan=%s (ASCII fanNibble: %c)",
+             state_.power ? "ON" : "OFF", modeStr, biasInfo, state_.targetC,
+             fanToStr(state_.fan), (char)data[3]);
     
     // Check for any state changes
     if (changed || old_power != state_.power) {
@@ -2262,8 +2274,8 @@ void DaikinDriver::handle_rg2_response(uint8_t* data, size_t data_size)
     // Rg response contains compressor on/off
     if (data_size >= 1) {
         stats_.frames_ok++;
-        bool compressor_on = (data[0] & 0x01) != 0; // Process compressor state (not directly stored in State)
-        logInfoP("Rg: compressor_on=%d", compressor_on);
+        state_.compressorOn = (data[0] & 0x01) != 0; // Store compressor state for action determination
+        logInfoP("Rg: compressor_on=%d", state_.compressorOn);
     }
 }
 
@@ -2560,6 +2572,7 @@ void DaikinDriver::publishState()
     // Cache previous state to avoid redundant callbacks
     static bool last_power = false;
     static AirConditionMode last_mode = AirConditionMode::AirConditionModeAuto;
+    static daikin::Action last_action = daikin::Action::Off;
     static float last_target_temp = 0.0f;
     static float last_current_temp = 0.0f;
     static float last_outdoor_temp = 0.0f;
@@ -2584,6 +2597,31 @@ void DaikinDriver::publishState()
     if (current_mode != last_mode) {
         statusFeedback.updateMode(current_mode);
         last_mode = current_mode;
+    }
+    
+    // Calculate and update action based on mode, AutoBias, and compressor state
+    daikin::Action current_action = calculateCurrentAction();
+    if (current_action != last_action) {
+        state_.action = current_action; // Update state
+        
+        // Log action changes with context for debugging
+        const char* actionStr = (current_action == daikin::Action::Off) ? "Off" :
+                               (current_action == daikin::Action::Idle) ? "Idle" :
+                               (current_action == daikin::Action::Cooling) ? "Cooling" :
+                               (current_action == daikin::Action::Heating) ? "Heating" :
+                               (current_action == daikin::Action::Drying) ? "Drying" :
+                               (current_action == daikin::Action::Fan) ? "Fan" :
+                               (current_action == daikin::Action::Auto) ? "Auto" : "Unknown";
+        
+        const char* biasStr = (state_.autoBias == daikin::AutoBias::Cooling) ? "Cool-bias" :
+                             (state_.autoBias == daikin::AutoBias::Heating) ? "Heat-bias" : "Unknown";
+        
+        logInfoP("Action: %s (mode=%s, autoBias=%s)", 
+                 actionStr, 
+                 (state_.mode == daikin::Mode::Auto) ? "Auto" : "Direct",
+                 biasStr);
+        
+        last_action = current_action;
     }
     
     if (abs(state_.targetC - last_target_temp) > 0.1f) {
@@ -2723,6 +2761,39 @@ daikin::Action DaikinDriver::daikin_to_action(uint8_t action) const
         case 0x04: return daikin::Action::Drying;
         case 0x05: return daikin::Action::Fan;
         default:   return daikin::Action::Off;
+    }
+}
+
+daikin::Action DaikinDriver::calculateCurrentAction() const
+{
+    // If unit is off or offline, return off
+    if (!state_.power || !state_.online) {
+        return daikin::Action::Off;
+    }
+    
+    // Handle modes directly based on mode setting
+    switch (state_.mode) {
+        case daikin::Mode::Cool:
+            return daikin::Action::Cooling;
+        case daikin::Mode::Heat:
+            return daikin::Action::Heating;
+        case daikin::Mode::Dry:
+            return daikin::Action::Drying;
+        case daikin::Mode::FanOnly:
+            return daikin::Action::Fan;
+        case daikin::Mode::Off:
+            return daikin::Action::Off;
+        case daikin::Mode::Auto:
+            // Auto mode: use AutoBias to determine intended action
+            if (state_.autoBias == daikin::AutoBias::Heating) {
+                return daikin::Action::Heating;
+            } else if (state_.autoBias == daikin::AutoBias::Cooling) {
+                return daikin::Action::Cooling;
+            } else {
+                return daikin::Action::Auto;  // Unknown bias - generic auto mode
+            }
+        default:
+            return daikin::Action::Off;
     }
 }
 

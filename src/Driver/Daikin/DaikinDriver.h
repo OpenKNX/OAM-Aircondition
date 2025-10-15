@@ -358,6 +358,7 @@ private:
     uint8_t mode_to_daikin(daikin::Mode mode) const;
     daikin::Mode daikin_to_mode(uint8_t mode) const;
     daikin::Action daikin_to_action(uint8_t action) const;
+    daikin::Action calculateCurrentAction() const; 
     daikin::Swing daikin_to_swing_mode(uint8_t mode) const;
     uint8_t swing_mode_to_daikin(daikin::Swing mode) const;
     uint8_t fan_mode_to_daikin(daikin::DaikinFanMode fan) const;
