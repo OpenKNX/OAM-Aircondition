@@ -58,6 +58,7 @@ class DaikinSerial {
 
   void send_frame(std::string_view cmd, const uint8_t* payload = nullptr, size_t payload_size = 0);
   void force_legacy_fallback(const char* reason = nullptr); // Force immediate switch to legacy unframed + sum mode (used if first cycle entirely silent)
+  void force_framed_mode(const char* reason = nullptr); // Force immediate switch back to framed mode (for driver-level recovery)
 
 
 protected:

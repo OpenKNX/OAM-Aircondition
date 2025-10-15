@@ -2954,12 +2954,18 @@ void DaikinDriver::markOnline(uint32_t now) {
 
 void DaikinDriver::checkOnlineTimeout() {
     static constexpr uint32_t OFFLINE_MS = 15000; // 15s timeout for offline detection
+    static uint32_t last_framed_retry_ms = 0;
     
     uint32_t now = millis();
     if (online_ && last_rx_ok_ms_ != 0 && (now - last_rx_ok_ms_) > OFFLINE_MS) {
         online_ = false;
         logInfoP("S21 online status changed: Offline (no ACK/frame for %lu ms)", (unsigned long)(now - last_rx_ok_ms_));
         statusFeedback.updateOnlineStatus(false);  // → KO463 = 0
-        // Optional: Query frequency throttling can be added here
+        
+        // Force framed mode retry after offline timeout (recovery mechanism)
+        if (serial_ && (last_framed_retry_ms == 0 || (now - last_framed_retry_ms) > 30000)) {
+            serial_->force_framed_mode("offline recovery");
+            last_framed_retry_ms = now;
+        }
     }
 }

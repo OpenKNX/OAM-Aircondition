@@ -407,9 +407,30 @@ void DaikinSerial::maybe_switch_mode_on_timeout() {
       DAIKIN_DEBUG_PRINTLN("[S21] RX activity detected - resetting timeout counter");
     }
   } else { // UnframedSum
-    if (rx_any_since_tx_) {
+    if (!rx_any_since_tx_) {
+      consecutive_timeouts_++;
+      ESP_LOGW(TAG, "UnframedSum timeout without RX (%u/4)", consecutive_timeouts_);
+      
+      // Nach 4 stillen Legacy-Versuchen: wieder Framed probieren
+      if (consecutive_timeouts_ >= 4) {
+        protocol_mode_ = ProtocolMode::FramedSum;
+        consecutive_timeouts_ = 0;
+        ESP_LOGW(TAG, "[S21] Legacy silent after 4 attempts -> probing FramedSum again");
+        
+        // Optional: RX-Buffer flushen für sauberen Neustart
+        uart_flush(get_uart_port());
+      }
+    } else {
+      consecutive_timeouts_ = 0;
       // If we detect an STX (framed) inside legacy mode, switch back
-      for (auto b : response) if (b == STX) { protocol_mode_ = ProtocolMode::FramedSum; DAIKIN_DEBUG_PRINTLN("[S21] Detected framed STX while in legacy -> switching back to FramedSum"); break; }
+      for (auto b : response) {
+        if (b == STX) { 
+          protocol_mode_ = ProtocolMode::FramedSum; 
+          consecutive_timeouts_ = 0;
+          ESP_LOGW(TAG, "[S21] Detected framed STX while in legacy -> switching back to FramedSum"); 
+          break; 
+        }
+      }
     }
   }
 }
@@ -422,6 +443,19 @@ void DaikinSerial::force_legacy_fallback(const char* reason) {
   protocol_mode_ = ProtocolMode::UnframedSum;
   consecutive_timeouts_ = 0;
   last_force_fallback_ms_ = now;
+}
+
+void DaikinSerial::force_framed_mode(const char* reason) {
+  if (protocol_mode_ == ProtocolMode::FramedSum) return; // already framed
+  uint32_t now = millis();
+  if (now - last_force_fallback_ms_ < 5000) return; // rate limit (same as legacy)
+  ESP_LOGW(TAG, "FORCE framed mode requested%s%s", reason?": ":"", reason?reason:"");
+  protocol_mode_ = ProtocolMode::FramedSum;
+  consecutive_timeouts_ = 0;
+  last_force_fallback_ms_ = now;
+  
+  // Flush RX buffer for clean restart
+  uart_flush(get_uart_port());
 }
 
 
