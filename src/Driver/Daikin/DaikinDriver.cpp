@@ -178,15 +178,13 @@ void DaikinDriver::setup()
     int raw_rx_pin = OPENKNX_AIR_CONDITION_SERIAL_RX;
     int raw_tx_pin = OPENKNX_AIR_CONDITION_SERIAL_TX;
     
-    bool rx_inverted = (raw_rx_pin < 0);
-    bool tx_inverted = (raw_tx_pin < 0);
     int actual_rx_pin = abs(raw_rx_pin);
     int actual_tx_pin = abs(raw_tx_pin);
 
     DAIKIN_DEBUG_PRINT("S21 Serial Config: Port=%s, RX=Pin%d(%s), TX=Pin%d(%s)", 
              STRINGIFY(OPENKNX_AIR_CONDITION_SERIAL), 
-             actual_rx_pin, rx_inverted ? "inverted" : "normal",
-             actual_tx_pin, tx_inverted ? "inverted" : "normal");
+             actual_rx_pin, (raw_rx_pin < 0) ? "inverted" : "normal",
+             actual_tx_pin, (raw_tx_pin < 0) ? "inverted" : "normal");
     
     size_t free_heap = esp_get_free_heap_size();    // Check available memory
     
@@ -198,7 +196,6 @@ void DaikinDriver::setup()
     }
     try {
         // Create the serial communication object with callbacks to this instance
-        const bool user_specified_polarity = rx_inverted || tx_inverted;  // only "true" if the user really pinned an inversion
         serial_ = std::make_unique<daikin::DaikinSerial>(
             ser, 
             actual_rx_pin,
@@ -208,9 +205,7 @@ void DaikinDriver::setup()
             },
             [this]() { 
                 handle_serial_idle(); 
-            },
-            rx_inverted, tx_inverted,  // Use parsed inversion settings from build flags
-            user_specified_polarity    // Enable auto-polarity only when user didn't specify inversions
+            }
         );
         
         logDebugP("DaikinSerial object created, initializing serial port...");
@@ -652,25 +647,17 @@ void DaikinDriver::initializeProtocolDetection()
     
     last_protocol_detection_attempt_ = millis();  // Mark that we're attempting protocol detection now
     
-    // Initialize polarity detection - serial layer handles combo selection
-    if (serial_) {
-        serial_->reset_polarity_detection();  // serial layer sets first auto combo or user-specified
-        polarity_combos_tried_ = 0;
-        attempts_this_combo_ = 0;
-        auto [rx_inv, tx_inv] = serial_->get_current_polarity();
-        logInfoP("Starting protocol detection with polarity: TX=%s RX=%s", 
-                 tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
-    }
+    logInfoP("Starting protocol detection phase");
     
     // protocol detection according to S21 wiki:
     // 1. Send F8 first - this determines base protocol (v0, v2, v3+)
     // 2. Send FY00 only if F8 indicates v2+ (to distinguish v2 vs v3.x)
-    // Try this sequence across all polarity combinations before giving up
+    // Try this sequence across multiple attempts before giving up
     queries_.emplace_back(StateQuery::OldProtocol, [this](uint8_t* data, size_t data_size) { handle_f8_response(data, data_size); });
     queries_.emplace_back(StateQuery::NewProtocol, [this](uint8_t* data, size_t data_size) { handle_fy00_response(data, data_size); });
     
-    logInfoP("Protocol detection phase initialized with %zu queries (F8 → FY00) across %u polarity combinations", 
-             queries_.size(), MAX_POLARITY_COMBOS);
+    logInfoP("Protocol detection phase initialized with %zu queries (F8 → FY00)", 
+             queries_.size());
 }
 
 void DaikinDriver::initializeQueries()
@@ -813,10 +800,8 @@ void DaikinDriver::updateQueryStateMachine()
                     
                     if (isQuerySupported(query.command)) {
                         // Send this query
-                        auto [rx_inv, tx_inv] = serial_->get_current_polarity();
-                        DAIKIN_DEBUG_PRINT("S21: Protocol detection - sending %.*s (TX=%s, RX=%s)", 
-                                  static_cast<int>(query.command.size()), query.command.data(),
-                                  tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
+                        DAIKIN_DEBUG_PRINT("S21: Protocol detection - sending %.*s", 
+                                  static_cast<int>(query.command.size()), query.command.data());
                         
                         std::string cmd_str(query.command);
                         serial_->send_frame(cmd_str);
@@ -837,15 +822,13 @@ void DaikinDriver::updateQueryStateMachine()
                 if (query_index_ >= queries_.size()) {
                     // Cycle complete
                     if (protocol_detection_phase_) {
-                        // Protocol detection phase complete for this polarity combination
+                        // Protocol detection phase complete for this attempt
                         protocol_detection_attempts_++;
                         
                         if (protocol_version_ != daikin::ProtocolUndetected) {
                             // Protocol detected
-                            auto [rx_inv, tx_inv] = serial_->get_current_polarity();
-                            logInfoP("Protocol detection: Successfully detected v%d.%d with polarity TX=%s RX=%s after %u attempts", 
+                            logInfoP("Protocol detection: Successfully detected v%d.%d after %u attempts", 
                                      protocol_version_.major, protocol_version_.minor,
-                                     tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal",
                                      protocol_detection_attempts_);
                             
                             initializeQueries(); // Initialize protocol-specific queries
@@ -855,30 +838,17 @@ void DaikinDriver::updateQueryStateMachine()
                             return; // Continue immediately with proper queries
                         }
                         
-                        // Max attempts reached with current polarity - try next polarity combo
-                        if (++attempts_this_combo_ >= MAX_POLARITY_ATTEMPTS) {
-                            attempts_this_combo_ = 0;
-                            if (++polarity_combos_tried_ >= MAX_POLARITY_COMBOS) {
-                                // All polarity combinations exhausted
-                                logErrorP("Protocol detection failed across all polarity combos");
-                                logInfoP("Protocol detection phase completed, protocol remains unknown");
-                                statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Protocol detection failed");
-                                return;
-                            }
-                            serial_->try_next_polarity_combo();   // serial layer rotates 3 -> 0 -> 1 -> 2 (or similar)
-                            auto [rx_inv, tx_inv] = serial_->get_current_polarity();
-                            logInfoP("Trying next polarity combo: TX=%s RX=%s", 
-                                     tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
-                            protocol_detection_attempts_ = 0;
-                            query_index_ = 0;
-                            query_state_ = QueryState::WaitingToSend;
-                            state_start_time_ = now;
+                        // Max attempts reached for protocol detection
+                        if (protocol_detection_attempts_ >= 12) { // 12 attempts should be enough for protocol detection
+                            // Protocol detection failed completely
+                            logErrorP("Protocol detection failed after %d attempts", protocol_detection_attempts_);
+                            logInfoP("Protocol detection phase completed, protocol remains unknown");
+                            statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Protocol detection failed");
                             return;
                         }
                         
-                        // Try F8→FY00 again with same polarity  
-                        logDebugP("Protocol detection: No response, retry %u/%u with current polarity", 
-                                  attempts_this_combo_, MAX_POLARITY_ATTEMPTS);
+                        // Try F8→FY00 again
+                        logDebugP("Protocol detection: No response, retry %u", protocol_detection_attempts_);
                         query_index_ = 0;
                         query_state_ = QueryState::WaitingToSend;
                         state_start_time_ = now;
@@ -2521,13 +2491,9 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 break;
             case daikin::DaikinSerial::Result::Timeout:
                 if (protocol_detection_phase_) {
-                    auto [rx_inv, tx_inv] = serial_->get_current_polarity();
-                    DAIKIN_DEBUG_PRINT("S21: Protocol detection timeout for %.*s (TX=%s, RX=%s) - trying next query", 
-                             static_cast<int>(query.command.size()), query.command.data(),
-                             tx_inv ? "inverted" : "normal", rx_inv ? "inverted" : "normal");
+                    DAIKIN_DEBUG_PRINT("S21: Protocol detection timeout for %.*s - trying next query", 
+                             static_cast<int>(query.command.size()), query.command.data());
                 } else {
-                    // Handle user hint fallback for field robustness during normal operation
-                    serial_->handle_timeout_fallback();
                     DAIKIN_DEBUG_PRINT("S21: Timeout waiting for %.*s", static_cast<int>(query.command.size()), query.command.data());
                 }
                 

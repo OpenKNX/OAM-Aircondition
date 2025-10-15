@@ -284,12 +284,9 @@ private:
     bool first_cycle_completed_{false};    // Track first full query cycle
     bool protocol_detection_phase_{false}; // True during initial protocol detection
     
-    // polarity detection
-    uint8_t protocol_detection_attempts_{0}; // Track F8→FY00 attempts per polarity
-    uint8_t polarity_combos_tried_{0};       // how many combos we've attempted in this detection pass
-    uint8_t attempts_this_combo_{0};         // retries within a combo
-    static constexpr uint8_t MAX_POLARITY_ATTEMPTS = 3; // F8→FY00 attempts per polarity combo
-    static constexpr uint8_t MAX_POLARITY_COMBOS = 4;   // 4 polarity combinations total
+    // protocol detection
+    uint8_t protocol_detection_attempts_{0}; // Track F8→FY00 attempts 
+
 
     // === S21 Protocol Implementation ===
     void initializeProtocolDetection();  // Initialize protocol detection queries first
