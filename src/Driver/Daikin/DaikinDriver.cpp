@@ -730,7 +730,7 @@ void DaikinDriver::initializeQueries()
     queries_.emplace_back(EnvironmentQuery::TargetTemperature, [this](uint8_t* data, size_t data_size) { handle_rx_response(data, data_size); });
     queries_.emplace_back(EnvironmentQuery::FanMode, [this](uint8_t* data, size_t data_size) { handle_rg_response(data, data_size); });
     queries_.emplace_back(EnvironmentQuery::OutsideTemperature, [this](uint8_t* data, size_t data_size) { handle_ra_response(data, data_size); });
-    
+
     if (major >= 1) {  // New protocol environment queries
         queries_.emplace_back(EnvironmentQuery::CompressorFrequency, [this](uint8_t* data, size_t data_size) { handle_rd_response(data, data_size); });
         queries_.emplace_back(EnvironmentQuery::IndoorHumidity, [this](uint8_t* data, size_t data_size) { handle_re_response(data, data_size); });
@@ -999,9 +999,13 @@ bool DaikinDriver::isQuerySupported(std::string_view command) const
     
     // FY00 (New Protocol) query filtering according to wiki:
     if (command == StateQuery::NewProtocol) {
-        // Skip FY00 if old protocol (v0) already detected
+        // Always allow FY00 during protocol detection to sanity-check v0.0
+        if (protocol_detection_phase_) {
+            return true;
+        }
+        // Skip FY00 if old protocol (v0) confirmed after FY00 probe
         if (old_protocol_detected_ || major == 0) {
-            logDebugP("Skipping FY00 - old protocol v%d.%d detected", major, minor);
+            logDebugP("Skipping FY00 - old protocol v%d.%d confirmed", major, minor);
             return false;
         }
         // Skip FY00 if we're in protocol detection and haven't done F8 yet
@@ -1768,10 +1772,9 @@ void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
         
         // Check if it's ASCII format ('0', '2') or binary format
         if (data[0] == '0' && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00) {
-            // Protocol v0.0 - old protocol
+            // Protocol v0.0 detected, but run FY00 to sanity-check
             protocol_version_ = {0, 0};
-            old_protocol_detected_ = true;
-            logInfoP("F8: Protocol v0.0 detected (old protocol) - skipping FY00");
+            logInfoP("F8: Protocol v0.0 detected - will sanity-check with FY00");
         } else if (data[0] == '0' && data[1] == '2' && data[2] == 0x00 && data[3] == 0x00) {
             // Protocol v2+ detected - need FY00 to distinguish v2.0 vs v3.x
             logInfoP("F8: Protocol v2+ detected (G8 '0' '2') - sending FY00 to distinguish v2 vs v3");
@@ -1945,6 +1948,7 @@ void DaikinDriver::handle_fy00_response(uint8_t* data, size_t data_size)
     // Handle NAK case for FY00 according to wiki:
     // If we get here without setting protocol_version_, and F8 indicated v2+, then it's v2.0
     // (because v2.0 units NAK FY00, but v3+ units respond with GY00)
+    // Note: If F8 indicated v0.0, NAK/timeout on FY00 confirms it's really v0.0
 }
 
 void DaikinDriver::handle_fn_response(uint8_t* data, size_t data_size)
@@ -2461,6 +2465,10 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                         protocol_version_ = {2, 0};
                         old_protocol_detected_ = false;
                         DAIKIN_DEBUG_PRINT("S21: FY00 NAK during detection - protocol v2.0 detected");
+                    } else if (protocol_version_.major == 0 && protocol_version_.minor == 0) {
+                        // FY00 NAK with preliminary v0.0 from F8 = confirms v0.0 (old protocol)
+                        old_protocol_detected_ = true;
+                        logInfoP("FY00: NAK confirms F8's v0.0 detection - old protocol confirmed");
                     } else {
                         DAIKIN_DEBUG_PRINT("S21: FY00 NAK with known protocol v%d.%d - expected behavior", 
                                   protocol_version_.major, protocol_version_.minor);
@@ -2491,6 +2499,12 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 break;
             case daikin::DaikinSerial::Result::Timeout:
                 if (protocol_detection_phase_) {
+                    // Special handling for FY00 timeout during protocol detection
+                    if (query.command == StateQuery::NewProtocol && protocol_version_.major == 0 && protocol_version_.minor == 0) {
+                        // FY00 timeout with preliminary v0.0 from F8 = confirms v0.0 (old protocol)
+                        old_protocol_detected_ = true;
+                        logInfoP("FY00: Timeout confirms F8's v0.0 detection - old protocol confirmed");
+                    }
                     DAIKIN_DEBUG_PRINT("S21: Protocol detection timeout for %.*s - trying next query", 
                              static_cast<int>(query.command.size()), query.command.data());
                 } else {
