@@ -2004,7 +2004,7 @@ void DaikinDriver::handle_fp_response(uint8_t* data, size_t data_size)
     // FP capability/feature query - purpose not fully documented but used by Faikin for feature detection
     if (data_size > 0) {
         if (data_size == 1) { // Single byte ACK
-            DAIKIN_DEBUG_PRINT("FP response: ACK (0x%02X)", data[0]);
+            logInfoP("FP response: ACK (0x%02X)", data[0]);
             stats_.frames_ok++;
             return;
         }
@@ -2027,7 +2027,7 @@ void DaikinDriver::handle_fq_response(uint8_t* data, size_t data_size)
     // FQ capability/feature query - purpose not fully documented but used by Faikin for feature detection
     if (data_size > 0) {
         if (data_size == 1) { // Single byte ACK
-            DAIKIN_DEBUG_PRINT("FQ response: ACK (0x%02X)", data[0]);
+            logInfoP("FQ response: ACK (0x%02X)", data[0]);
             stats_.frames_ok++;
             return;
         }
@@ -2050,7 +2050,7 @@ void DaikinDriver::handle_fs_response(uint8_t* data, size_t data_size)
     // FS capability/feature query - purpose not fully documented but used by Faikin for feature detection
     if (data_size > 0) {
         if (data_size == 1) {         // Single byte ACK
-            DAIKIN_DEBUG_PRINT("FS response: ACK (0x%02X)", data[0]);
+            logInfoP("FS response: ACK (0x%02X)", data[0]);
             stats_.frames_ok++;
             return;
         }
@@ -2073,7 +2073,7 @@ void DaikinDriver::handle_ft_response(uint8_t* data, size_t data_size)
     // FT capability/feature query - purpose not fully documented but used by Faikin for feature detection
     if (data_size > 0) {
         if (data_size == 1) { // Single byte ACK
-            DAIKIN_DEBUG_PRINT("FT response: ACK (0x%02X)", data[0]);
+            logInfoP("FT response: ACK (0x%02X)", data[0]);
             stats_.frames_ok++;
             return;
         }
@@ -2251,7 +2251,7 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
         
         if (temp < 100.0f) { //sanity check
             state_.outsideC = temp;
-            DAIKIN_DEBUG_PRINT("Ra/Sa: outside_temp=%.1f°C (raw: %c%c%c%c)", 
+            logInfoP("Ra/Sa: outside_temp=%.1f°C (raw: %c%c%c%c)", 
                      state_.outsideC, data[0], data[1], data[2], data[3]);
         } else {
             logErrorP("Ra/Sa: Invalid temperature %.1f°C", temp);
@@ -2259,7 +2259,7 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
     } else if (data_size >= 2) { // Fallback
         stats_.frames_ok++;
         state_.outsideC = static_cast<float>(static_cast<int16_t>((data[1] << 8) | data[0])) / 10.0f;
-        DAIKIN_DEBUG_PRINT("Ra legacy: outside_temp=%.1f°C", state_.outsideC);
+        logInfoP("Ra legacy: outside_temp=%.1f°C", state_.outsideC);
     }
 }
 
@@ -2269,7 +2269,7 @@ void DaikinDriver::handle_rd_response(uint8_t* data, size_t data_size)
     if (data_size >= 2) {
         stats_.frames_ok++;
         state_.compressorHz = (data[1] << 8) | data[0];
-        DAIKIN_DEBUG_PRINT("Rd: compressor_freq=%dHz", state_.compressorHz);
+        logInfoP("Rd: compressor_freq=%dHz", state_.compressorHz);
     }
 }
 
@@ -2279,7 +2279,7 @@ void DaikinDriver::handle_re_response(uint8_t* data, size_t data_size)
     if (data_size >= 1) {
         stats_.frames_ok++;
         state_.humidity = data[0];
-        DAIKIN_DEBUG_PRINT("Re: humidity=%d%%", state_.humidity);
+        logInfoP("Re: humidity=%d%%", state_.humidity);
     }
 }
 
@@ -2289,7 +2289,7 @@ void DaikinDriver::handle_rg2_response(uint8_t* data, size_t data_size)
     if (data_size >= 1) {
         stats_.frames_ok++;
         bool compressor_on = (data[0] & 0x01) != 0; // Process compressor state (not directly stored in State)
-        DAIKIN_DEBUG_PRINT("Rg: compressor_on=%d", compressor_on);
+        logInfoP("Rg: compressor_on=%d", compressor_on);
     }
 }
 
