@@ -56,8 +56,9 @@ class DaikinSerial {
                bool user_specified_polarity = false);
 
   void begin();
+  void restart();
   void loop();
-
+  
   void send_frame(std::string_view cmd, const uint8_t* payload = nullptr, size_t payload_size = 0);
   void force_legacy_fallback(const char* reason = nullptr); // Force immediate switch to legacy unframed + sum mode (used if first cycle entirely silent)
   void try_next_uart_variant();   // advance to next UART variant (parity/stop/inversion combo) when line is silent

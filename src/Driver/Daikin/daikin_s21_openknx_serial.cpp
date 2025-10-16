@@ -56,16 +56,17 @@ DaikinSerial::DaikinSerial(SerialUART &uart, int rx_pin, int tx_pin,
 void DaikinSerial::begin() {
 
   bool err = false;
-  uart = OPENKNX_AIR_CONDITION_SERIAL;
   // err = OPENKNX_AIR_CONDITION_SERIAL.setRX(OPENKNX_AIR_CONDITION_SERIAL_RX);
   // err = err || OPENKNX_AIR_CONDITION_SERIAL.setTX(OPENKNX_AIR_CONDITION_SERIAL_TX);
-  uart.setPinout(abs(OPENKNX_AIR_CONDITION_SERIAL_TX), abs(OPENKNX_AIR_CONDITION_SERIAL_RX));
-  uart.setInvertTX(OPENKNX_AIR_CONDITION_SERIAL_TX < 0);
-  uart.setInvertRX(OPENKNX_AIR_CONDITION_SERIAL_RX < 0);
-
+  uart.setPinout(tx_pin, rx_pin);
   uart.setFIFOSize(1034);
-  uart.begin(2400, SERIAL_8E2);
-  
+
+  // uart.setInvertTX(current_tx_invert_);
+  // uart.setInvertRX(current_rx_invert_);
+  // uart.begin(2400, SERIAL_8E2);
+  // uart.flush();
+
+  restart();
   // Use UART port derived from build flags
   // const uart_port_t uart_num = get_uart_port();
   
@@ -116,6 +117,16 @@ void DaikinSerial::begin() {
   //   return;
   // }
   
+}
+
+void DaikinSerial::restart() {
+  uart.flush();
+  uart.end();
+  uart.setInvertRX(false); //current_rx_invert_);
+  uart.setInvertTX(false); //current_tx_invert_);
+  uart.begin(2400, (SERIAL_PARITY_NONE | SERIAL_STOP_BIT_2 | SERIAL_DATA_8)); // SERIAL_8E2);
+  uart.flush();
+
 }
 
 void DaikinSerial::loop() {
@@ -378,64 +389,56 @@ void DaikinSerial::maybe_switch_mode_on_timeout() {
       consecutive_timeouts_++;
       // ESP_LOGW(TAG, "FramedSum timeout without RX (%u/8)", consecutive_timeouts_);
       
-      // if (user_specified_polarity_) {
-      //   // User specified polarity - return to original settings after failures
-      //   if (consecutive_timeouts_ == 4) {
-      //     // Reset to original user-specified polarity instead of toggling
-      //     current_rx_invert_ = original_rx_invert_;
-      //     current_tx_invert_ = original_tx_invert_;
+      if (user_specified_polarity_) {
+        // User specified polarity - return to original settings after failures
+        if (consecutive_timeouts_ == 4) {
+          // Reset to original user-specified polarity instead of toggling
+          current_rx_invert_ = original_rx_invert_;
+          current_tx_invert_ = original_tx_invert_;
           
-      //     // Apply polarity change using ESP-IDF UART driver
-      //     const uart_port_t uart_num = get_uart_port();
+          // Also update Arduino HardwareSerial for compatibility
+          restart();
+
+          //   ESP_LOGI(TAG, "No RX after 4 attempts -> returning to user-specified polarity: RX=%s, TX=%s", 
+          //            current_rx_invert_?"inverted":"normal", current_tx_invert_?"inverted":"normal");
+          // } else {
+          //   ESP_LOGE(TAG, "Failed to reset to user polarity: %s", esp_err_to_name(err));
+          // }
+          consecutive_timeouts_ = 0; // Reset counter to give original config more attempts
+        }
+        // Skip UART variant cycling for user-specified polarity
+        // if (consecutive_timeouts_ == 6) { /* skip try_next_uart_variant() */ }
+      } else {
+        // Auto-detection mode - use original cycling logic
+        // After 4 no-RX timeouts, try toggling both inversions and reset counter
+        if (consecutive_timeouts_ == 4) {
+          current_rx_invert_ = !current_rx_invert_;
+          current_tx_invert_ = !current_tx_invert_;
           
-      //     uint8_t invert_mask = 0;
-      //     if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
-      //     if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
+          // // Apply polarity change using ESP-IDF UART driver
+          // const uart_port_t uart_num = get_uart_port();
           
-      //     esp_err_t err = uart_set_line_inverse(uart_num, invert_mask);
-      //     if (err == ESP_OK) {
-      //       uart_flush(uart_num); // Flush after polarity change
-      //     // Also update Arduino HardwareSerial for compatibility
-      //     uart.setRxInvert(current_rx_invert_);
-      //       ESP_LOGI(TAG, "No RX after 4 attempts -> returning to user-specified polarity: RX=%s, TX=%s", 
-      //                current_rx_invert_?"inverted":"normal", current_tx_invert_?"inverted":"normal");
-      //     } else {
-      //       ESP_LOGE(TAG, "Failed to reset to user polarity: %s", esp_err_to_name(err));
-      //     }
-      //     consecutive_timeouts_ = 0; // Reset counter to give original config more attempts
-      //   }
-      //   // Skip UART variant cycling for user-specified polarity
-      //   // if (consecutive_timeouts_ == 6) { /* skip try_next_uart_variant() */ }
-      // } else {
-      //   // Auto-detection mode - use original cycling logic
-      //   // After 4 no-RX timeouts, try toggling both inversions and reset counter
-      //   if (consecutive_timeouts_ == 4) {
-      //     current_rx_invert_ = !current_rx_invert_;
-      //     current_tx_invert_ = !current_tx_invert_;
+          // uint8_t invert_mask = 0;
+          // if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
+          // if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
           
-      //     // Apply polarity change using ESP-IDF UART driver
-      //     const uart_port_t uart_num = get_uart_port();
-          
-      //     uint8_t invert_mask = 0;
-      //     if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
-      //     if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
-          
-      //     esp_err_t err = uart_set_line_inverse(uart_num, invert_mask);
-      //     if (err == ESP_OK) {
-      //       uart_flush(uart_num); // Flush after polarity change
+          // esp_err_t err = uart_set_line_inverse(uart_num, invert_mask);
+          // if (err == ESP_OK) {
+          //   uart_flush(uart_num); // Flush after polarity change
             
-      //       ESP_LOGI(TAG, "No RX after 4 attempts -> toggling inversions: RX=%s, TX=%s", 
-      //                current_rx_invert_?"inverted":"normal", current_tx_invert_?"inverted":"normal");
-      //     } else {
-      //       ESP_LOGE(TAG, "Failed to toggle polarity: %s", esp_err_to_name(err));
-      //     }
-      //     consecutive_timeouts_ = 0; // Reset counter to give new config full attempts
-      //   }
-      //   // After 6 timeouts still nothing: cycle to next UART variant (parity/stop tweak)
-      //   if (consecutive_timeouts_ == 6) {
-      //     try_next_uart_variant();
-      //   }
-      // }
+          //   ESP_LOGI(TAG, "No RX after 4 attempts -> toggling inversions: RX=%s, TX=%s", 
+          //            current_rx_invert_?"inverted":"normal", current_tx_invert_?"inverted":"normal");
+          // } else {
+          //   ESP_LOGE(TAG, "Failed to toggle polarity: %s", esp_err_to_name(err));
+          // }
+          restart();
+          consecutive_timeouts_ = 0; // Reset counter to give new config full attempts
+        }
+        // After 6 timeouts still nothing: cycle to next UART variant (parity/stop tweak)
+        if (consecutive_timeouts_ == 6) {
+          try_next_uart_variant();
+        }
+      }
       
       if (consecutive_timeouts_ >= 8) {
         DAIKIN_DEBUG_PRINTLN("[S21] No inbound data after 8 framed attempts -> switching to UnframedSum fallback");
@@ -474,84 +477,87 @@ void DaikinSerial::try_next_uart_variant() {
   // 2: 8E2 RX+TX inverted
   // 3: 8E2 TX only inverted
   uint32_t config = SERIAL_8E2;
-//   switch (uart_variant_index_) {
-//     case 1: current_rx_invert_ = false; current_tx_invert_ = false; config = SERIAL_8E2; break;
-//     case 2: current_rx_invert_ = true; current_tx_invert_ = true; config = SERIAL_8E2; break;
-//     case 3: current_rx_invert_ = false; current_tx_invert_ = true; config = SERIAL_8E2; break;
-//     default:
-//       ESP_LOGW(TAG, "UART variant cycling exhausted - staying on 8E2 RX only inverted");
-//       uart_variant_index_ = 3; // clamp
-//       current_rx_invert_ = true; current_tx_invert_ = false; config = SERIAL_8E2; break;
-//   }
+  switch (uart_variant_index_) {
+    case 1: current_rx_invert_ = false; current_tx_invert_ = false; config = SERIAL_8E2; break;
+    case 2: current_rx_invert_ = true; current_tx_invert_ = true; config = SERIAL_8E2; break;
+    case 3: current_rx_invert_ = false; current_tx_invert_ = true; config = SERIAL_8E2; break;
+    default:
+      // ESP_LOGW(TAG, "UART variant cycling exhausted - staying on 8E2 RX only inverted");
+      uart_variant_index_ = 3; // clamp
+      current_rx_invert_ = true; current_tx_invert_ = false; config = SERIAL_8E2; break;
+  }
   
-//   const uart_port_t uart_num = get_uart_port();   // Apply polarity change using ESP-IDF UART driver
+  // const uart_port_t uart_num = get_uart_port();   // Apply polarity change using ESP-IDF UART driver
   
-//   uint8_t invert_mask = 0;
-//   if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
-//   if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
+  // uint8_t invert_mask = 0;
+  // if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
+  // if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
   
-//   esp_err_t err = uart_set_line_inverse(uart_num, invert_mask);
-//   if (err != ESP_OK) {
-//     ESP_LOGE(TAG, "Failed to set UART variant %u polarity: %s", uart_variant_index_, esp_err_to_name(err));
-//     return;
-//   }
+  // esp_err_t err = uart_set_line_inverse(uart_num, invert_mask);
+  // if (err != ESP_OK) {
+  //   ESP_LOGE(TAG, "Failed to set UART variant %u polarity: %s", uart_variant_index_, esp_err_to_name(err));
+  //   return;
+  // }
   
-//   uart_flush(uart_num);  // Flush after polarity change
+  // uart_flush(uart_num);  // Flush after polarity change
           
 
-//   // Also update Arduino HardwareSerial for compatibility
-//   uart.setRxInvert(current_rx_invert_);
+  // Also update Arduino HardwareSerial for compatibility
+  restart();
+  // uart.setRxInvert(current_rx_invert_);
   
-//   ESP_LOGI(TAG, "UART variant %u applied: config=%s RX_invert=%s TX_invert=%s", 
-//            (unsigned)uart_variant_index_,
-//            (config==SERIAL_8E2?"8E2": config==SERIAL_8E1?"8E1":"8N1"), 
-//            current_rx_invert_?"inverted":"normal", current_tx_invert_?"inverted":"normal");
-//   consecutive_timeouts_ = 0; // Reset counter to give new variant full attempts
-// }
+  // ESP_LOGI(TAG, "UART variant %u applied: config=%s RX_invert=%s TX_invert=%s", 
+  //          (unsigned)uart_variant_index_,
+  //          (config==SERIAL_8E2?"8E2": config==SERIAL_8E1?"8E1":"8N1"), 
+  //          current_rx_invert_?"inverted":"normal", current_tx_invert_?"inverted":"normal");
+  consecutive_timeouts_ = 0; // Reset counter to give new variant full attempts
+}
 
-// // try all 4 combinations systematically
-// bool DaikinSerial::try_next_polarity_combo() {
-//   if (user_specified_polarity_ && !fallback_mode_) {
-//     // Nothing to rotate in user-fixed mode (unless in fallback)
-//     ESP_LOGI(TAG, "User-specified polarity fixed; not rotating combos");
-//     return false;
-//   }
+// try all 4 combinations systematically
+bool DaikinSerial::try_next_polarity_combo() {
+  if (user_specified_polarity_ && !fallback_mode_) {
+    // Nothing to rotate in user-fixed mode (unless in fallback)
+    // ESP_LOGI(TAG, "User-specified polarity fixed; not rotating combos");
+    return false;
+  }
 
-  // auto_order_cursor_++;
-  // if (auto_order_cursor_ >= 4) {
-  //   if (fallback_mode_) {
-  //     // Fallback auto-scan also failed, revert to user hint and give up
-  //     ESP_LOGW(TAG, "Fallback auto-scan exhausted, reverting to user-specified polarity");
-  //     current_rx_invert_ = original_rx_invert_;
-  //     current_tx_invert_ = original_tx_invert_;
-  //     fallback_mode_ = false;
-  //     user_hint_timeout_count_ = 0;
+  auto_order_cursor_++;
+  if (auto_order_cursor_ >= 4) {
+    if (fallback_mode_) {
+      // Fallback auto-scan also failed, revert to user hint and give up
+      // ESP_LOGW(TAG, "Fallback auto-scan exhausted, reverting to user-specified polarity");
+      current_rx_invert_ = original_rx_invert_;
+      current_tx_invert_ = original_tx_invert_;
+      fallback_mode_ = false;
+      user_hint_timeout_count_ = 0;
       
-  //     // Apply the reverted polarity
-  //     uint8_t invert_mask = 0;
-  //     if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
-  //     if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
-  //     uart_set_line_inverse(get_uart_port(), invert_mask);
-  //     uart_flush(get_uart_port());
-  //     uart.setRxInvert(current_rx_invert_);
-      
-  //     ESP_LOGI(TAG, "Reverted to user hint: TX=%s RX=%s",
-  //              current_tx_invert_ ? "inverted" : "normal",
-  //              current_rx_invert_ ? "inverted" : "normal");
-  //   } else {
-  //     ESP_LOGW(TAG, "All polarity combinations exhausted (order: 2,3,0,1)");
-  //   }
-  //   return false;
-  // }
-  // polarity_combo_index_ = kAutoOrder[auto_order_cursor_];
+      // Apply the reverted polarity
+      restart();
 
-  // // Apply TX/RX flags for this index
-  // switch (polarity_combo_index_) {
-  //   case 0: current_tx_invert_ = false; current_rx_invert_ = false; break; // none
-  //   case 1: current_tx_invert_ = true;  current_rx_invert_ = false; break; // TX inv
-  //   case 2: current_tx_invert_ = false; current_rx_invert_ = true;  break; // RX inv
-  //   case 3: current_tx_invert_ = true;  current_rx_invert_ = true;  break; // both
-  // }
+    //   uint8_t invert_mask = 0;
+    //   if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
+    //   if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
+    //   uart_set_line_inverse(get_uart_port(), invert_mask);
+    //   uart_flush(get_uart_port());
+    //   uart.setRxInvert(current_rx_invert_);
+      
+    //   ESP_LOGI(TAG, "Reverted to user hint: TX=%s RX=%s",
+    //            current_tx_invert_ ? "inverted" : "normal",
+    //            current_rx_invert_ ? "inverted" : "normal");
+    // } else {
+    //   ESP_LOGW(TAG, "All polarity combinations exhausted (order: 2,3,0,1)");
+    }
+    return false;
+  }
+  polarity_combo_index_ = kAutoOrder[auto_order_cursor_];
+
+  // Apply TX/RX flags for this index
+  switch (polarity_combo_index_) {
+    case 0: current_tx_invert_ = false; current_rx_invert_ = false; break; // none
+    case 1: current_tx_invert_ = true;  current_rx_invert_ = false; break; // TX inv
+    case 2: current_tx_invert_ = false; current_rx_invert_ = true;  break; // RX inv
+    case 3: current_tx_invert_ = true;  current_rx_invert_ = true;  break; // both
+  }
 
   // uint8_t invert_mask = 0;
   // if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
@@ -569,40 +575,43 @@ void DaikinSerial::try_next_uart_variant() {
   //          polarity_combo_index_,
   //          current_tx_invert_ ? "inverted" : "normal",
   //          current_rx_invert_ ? "inverted" : "normal");
+  restart();
 
   consecutive_timeouts_ = 0;
   rx_any_since_tx_ = false;
   user_hint_timeout_count_ = 0;  // Reset user hint timeout on successful communication
-  return;
+  return true;
 }
 
 void DaikinSerial::reset_polarity_detection() {
-  // if (user_specified_polarity_) {
-  //   // Apply exactly what the user asked for and STOP
-  //   current_rx_invert_ = original_rx_invert_;
-  //   current_tx_invert_ = original_tx_invert_;
+  if (user_specified_polarity_) {
+    // Apply exactly what the user asked for and STOP
+    current_rx_invert_ = original_rx_invert_;
+    current_tx_invert_ = original_tx_invert_;
 
-  //   uint8_t invert_mask = 0;
-  //   if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
-  //   if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
-  //   uart_set_line_inverse(get_uart_port(), invert_mask);
-  //   uart_flush(get_uart_port());
-  //   uart.setRxInvert(current_rx_invert_);
+    // uint8_t invert_mask = 0;
+    // if (current_rx_invert_) invert_mask |= UART_SIGNAL_RXD_INV;
+    // if (current_tx_invert_) invert_mask |= UART_SIGNAL_TXD_INV;
+    // uart_set_line_inverse(get_uart_port(), invert_mask);
+    // uart_flush(get_uart_port());
+    // uart.setRxInvert(current_rx_invert_);
 
-  //   // Keep polarity_combo_index_ consistent with the applied choice
-  //   polarity_combo_index_ = (current_tx_invert_ ? 1 : 0) + (current_rx_invert_ ? 2 : 0);
-  //   auto_order_cursor_ = -1; // not used in user-specified mode
+    restart();
 
-  //   ESP_LOGI(TAG, "Reset to user-specified polarity: TX=%s RX=%s",
-  //            current_tx_invert_ ? "inverted" : "normal",
-  //            current_rx_invert_ ? "inverted" : "normal");
-  // } else {
-  //   // Auto mode: start before the first entry in our preferred order
-  //   auto_order_cursor_ = -1;
-  //   polarity_combo_index_ = -1; // will be set by try_next_polarity_combo
-  //   // Immediately move to the first auto combo
-  //   try_next_polarity_combo();
-  // }
+    // Keep polarity_combo_index_ consistent with the applied choice
+    polarity_combo_index_ = (current_tx_invert_ ? 1 : 0) + (current_rx_invert_ ? 2 : 0);
+    auto_order_cursor_ = -1; // not used in user-specified mode
+
+    // ESP_LOGI(TAG, "Reset to user-specified polarity: TX=%s RX=%s",
+    //          current_tx_invert_ ? "inverted" : "normal",
+    //          current_rx_invert_ ? "inverted" : "normal");
+  } else {
+    // Auto mode: start before the first entry in our preferred order
+    auto_order_cursor_ = -1;
+    polarity_combo_index_ = -1; // will be set by try_next_polarity_combo
+    // Immediately move to the first auto combo
+    try_next_polarity_combo();
+  }
   
   // Reset fallback state
   user_hint_timeout_count_ = 0;
