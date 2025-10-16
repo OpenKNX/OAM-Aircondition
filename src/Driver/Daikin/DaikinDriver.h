@@ -176,6 +176,7 @@ private:
     static constexpr uint8_t SEEN_RX = 1<<2;  // Target temperature  
     static constexpr uint8_t SEEN_RA = 1<<3;  // Outside temperature
     bool gate_publish_until_full_sample_{true};
+    bool seed_kos_pending_{true};  // Initial KO seeding after first complete sample
     
     // Query management
     std::vector<DaikinQueryState> queries_;

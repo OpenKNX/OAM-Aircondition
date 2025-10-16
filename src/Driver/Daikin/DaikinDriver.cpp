@@ -2616,6 +2616,24 @@ void DaikinDriver::publishState()
     static uint32_t last_total_energy = 0;
     static bool last_online = false;
     
+    // KO Seeding: Initialize all KOs after first complete sample to fix missing states after KNX restart
+    if (seed_kos_pending_) {
+        logInfoP("Seeding all KOs after first complete sample to prevent missing states");
+        
+        // Force all cache mismatches to ensure first publish writes all values
+        last_power = !state_.power;  // Opposite to force update
+        last_mode = (state_.mode == daikin::Mode::Auto) ? AirConditionMode::AirConditionModeCool : AirConditionMode::AirConditionModeAuto;
+        last_target_temp = state_.targetC + 10.0f;  // Different to force update
+        last_current_temp = state_.homeC + 10.0f; 
+        last_outdoor_temp = state_.outsideC + 10.0f;
+        last_fan_speed = (daikin_to_openknx_fan(state_.fan) == 0) ? 1 : 0;  // Different to force update
+        last_swing_h = !((state_.swing == daikin::Swing::Horizontal) || (state_.swing == daikin::Swing::Both));
+        last_swing_v = !((state_.swing == daikin::Swing::Vertical) || (state_.swing == daikin::Swing::Both));
+        
+        seed_kos_pending_ = false;
+        logInfoP("KO seeding completed - all states will be published");
+    }
+    
     // Only update changed values
     if (state_.power != last_power) {
         statusFeedback.updatePower(state_.power);
@@ -2980,6 +2998,7 @@ void DaikinDriver::markOnline(uint32_t now) {
         // Reset sample tracking to ensure full snapshot before publishing
         sample_seen_mask_ = 0;
         gate_publish_until_full_sample_ = true;
+        seed_kos_pending_ = true;  // Seed all KOs after first complete sample
         
         logInfoP("S21 online status changed: Online");
         statusFeedback.updateOnlineStatus(true);  // → KO463 = 1
