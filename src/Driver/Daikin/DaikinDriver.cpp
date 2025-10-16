@@ -1553,6 +1553,9 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
              state_.power ? "ON" : "OFF", modeStr, biasInfo, state_.targetC,
              fanToStr(state_.fan), (char)data[3]);
     
+    // Mark F1 sample as seen for publish gating
+    sample_seen_mask_ |= SEEN_F1;
+    
     // Check for any state changes
     if (changed || old_power != state_.power) {
         if (old_power != state_.power) {
@@ -2159,6 +2162,9 @@ void DaikinDriver::handle_rh_response(uint8_t* data, size_t data_size)
             state_.homeC = temp;
             logInfoP("RH/SH: inside_temp=%.1f°C (raw: %c%c%c%c)", 
                      state_.homeC, data[0], data[1], data[2], data[3]);
+            
+            // Mark RH sample as seen for publish gating
+            sample_seen_mask_ |= SEEN_RH;
         } else {
             logErrorP("RH/SH: Invalid temperature %.1f°C", temp);
         }
@@ -2166,6 +2172,9 @@ void DaikinDriver::handle_rh_response(uint8_t* data, size_t data_size)
         stats_.frames_ok++;
         state_.homeC = static_cast<float>(static_cast<int16_t>((data[1] << 8) | data[0])) / 10.0f;
         logDebugP("RH legacy: inside_temp=%.1f°C", state_.homeC);
+        
+        // Mark RH sample as seen for publish gating
+        sample_seen_mask_ |= SEEN_RH;
     }
 }
 
@@ -2199,6 +2208,9 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
             
             logInfoP("RX/SX: sensor_adjusted_target=%.1f°C (raw: %c%c%c%c)", 
                      state_.realTargetC, data[0], data[1], data[2], data[3]);
+            
+            // Mark RX sample as seen for publish gating
+            sample_seen_mask_ |= SEEN_RX;
         } else {
             logErrorP("RX/SX: Invalid temperature %.1f°C", temp);
         }
@@ -2216,6 +2228,9 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
         }
         
         logDebugP("RX legacy: sensor_adjusted_target=%.1f°C", state_.realTargetC);
+        
+        // Mark RX sample as seen for publish gating
+        sample_seen_mask_ |= SEEN_RX;
     }
 }
 
@@ -2239,6 +2254,9 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
             state_.outsideC = temp;
             logInfoP("Ra/Sa: outside_temp=%.1f°C (raw: %c%c%c%c)", 
                      state_.outsideC, data[0], data[1], data[2], data[3]);
+            
+            // Mark RA sample as seen for publish gating (after successful decode)
+            sample_seen_mask_ |= SEEN_RA;
         } else {
             logErrorP("Ra/Sa: Invalid temperature %.1f°C", temp);
         }
@@ -2246,6 +2264,9 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
         stats_.frames_ok++;
         state_.outsideC = static_cast<float>(static_cast<int16_t>((data[1] << 8) | data[0])) / 10.0f;
         logInfoP("Ra legacy: outside_temp=%.1f°C", state_.outsideC);
+        
+        // Mark RA sample as seen for publish gating
+        sample_seen_mask_ |= SEEN_RA;
     }
 }
 
@@ -2568,6 +2589,14 @@ void DaikinDriver::publishState()
 {
     // Update the OpenKNX status feedback with current S21 state
     logDebugP("Publishing S21 state to OpenKNX");
+    
+    // Gating: erst publizieren, wenn alle Werte einmal empfangen wurden
+    if (gate_publish_until_full_sample_ &&
+        (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) != (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
+        logDebugP("Gating publish: waiting for full sample after Online (mask=0x%02X)", sample_seen_mask_);
+        return;
+    }
+    gate_publish_until_full_sample_ = false;
     
     // Cache previous state to avoid redundant callbacks
     static bool last_power = false;
@@ -2947,6 +2976,11 @@ void DaikinDriver::markOnline(uint32_t now) {
     last_rx_ok_ms_ = now;
     if (!online_) {
         online_ = true;
+        
+        // Reset sample tracking to ensure full snapshot before publishing
+        sample_seen_mask_ = 0;
+        gate_publish_until_full_sample_ = true;
+        
         logInfoP("S21 online status changed: Online");
         statusFeedback.updateOnlineStatus(true);  // → KO463 = 1
     }

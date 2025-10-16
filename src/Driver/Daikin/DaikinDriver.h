@@ -169,6 +169,14 @@ private:
     daikin::State state_{};  // Current device state from S21 protocol
     daikin::Stats stats_{};  // Communication statistics
     
+    // Sample completeness tracking (prevent publishing wrong values after Online)
+    uint8_t sample_seen_mask_{0};
+    static constexpr uint8_t SEEN_F1 = 1<<0;  // Basic status
+    static constexpr uint8_t SEEN_RH = 1<<1;  // Inside temperature
+    static constexpr uint8_t SEEN_RX = 1<<2;  // Target temperature  
+    static constexpr uint8_t SEEN_RA = 1<<3;  // Outside temperature
+    bool gate_publish_until_full_sample_{true};
+    
     // Query management
     std::vector<DaikinQueryState> queries_;
     std::size_t query_index_{0};
