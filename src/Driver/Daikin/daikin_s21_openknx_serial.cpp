@@ -59,7 +59,7 @@ void DaikinSerial::begin() {
   // err = OPENKNX_AIR_CONDITION_SERIAL.setRX(OPENKNX_AIR_CONDITION_SERIAL_RX);
   // err = err || OPENKNX_AIR_CONDITION_SERIAL.setTX(OPENKNX_AIR_CONDITION_SERIAL_TX);
   uart.setPinout(tx_pin, rx_pin);
-  uart.setFIFOSize(1034);
+  uart.setFIFOSize(1);
 
   // uart.setInvertTX(current_tx_invert_);
   // uart.setInvertRX(current_rx_invert_);
@@ -122,9 +122,12 @@ void DaikinSerial::begin() {
 void DaikinSerial::restart() {
   uart.flush();
   uart.end();
-  uart.setInvertRX(false); //current_rx_invert_);
+  uart.setInvertRX(true); //current_rx_invert_);
   uart.setInvertTX(false); //current_tx_invert_);
   uart.begin(2400, (SERIAL_PARITY_NONE | SERIAL_STOP_BIT_2 | SERIAL_DATA_8)); // SERIAL_8E2);
+  // FIFO deaktivieren
+  uart_set_fifo_enabled(uart1, false);
+  gpio_pull_up(rx_pin);
   uart.flush();
 
 }
