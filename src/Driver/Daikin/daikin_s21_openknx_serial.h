@@ -109,7 +109,7 @@ protected:
 
   void finalize_frame();
 
-  SerialUART &uart;
+  uart_inst_t *uart;
   int rx_pin;
   int tx_pin;
   ResultCallback result_callback;

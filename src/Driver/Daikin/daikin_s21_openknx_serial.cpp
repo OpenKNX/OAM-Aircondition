@@ -47,7 +47,7 @@ DaikinSerial::DaikinSerial(SerialUART &uart, int rx_pin, int tx_pin,
                            ResultCallback result_callback, IdleCallback idle_callback,
                            bool initial_rx_invert, bool initial_tx_invert,
                            bool user_specified_polarity)
-    : uart(uart), rx_pin(rx_pin), tx_pin(tx_pin), 
+    : rx_pin(rx_pin), tx_pin(tx_pin), 
       result_callback(result_callback), idle_callback(idle_callback),
       current_rx_invert_(initial_rx_invert), current_tx_invert_(initial_tx_invert),
       user_specified_polarity_(user_specified_polarity),
@@ -55,18 +55,29 @@ DaikinSerial::DaikinSerial(SerialUART &uart, int rx_pin, int tx_pin,
 
 void DaikinSerial::begin() {
 
-  bool err = false;
-  // err = OPENKNX_AIR_CONDITION_SERIAL.setRX(OPENKNX_AIR_CONDITION_SERIAL_RX);
-  // err = err || OPENKNX_AIR_CONDITION_SERIAL.setTX(OPENKNX_AIR_CONDITION_SERIAL_TX);
-  uart.setPinout(tx_pin, rx_pin);
-  uart.setFIFOSize(1);
+    bool err = false;
+    // err = OPENKNX_AIR_CONDITION_SERIAL.setRX(OPENKNX_AIR_CONDITION_SERIAL_RX);
+    // err = err || OPENKNX_AIR_CONDITION_SERIAL.setTX(OPENKNX_AIR_CONDITION_SERIAL_TX);
+    uart = uart1;
+    // GPIO-Funktion setzen
+    gpio_set_function(rx_pin, GPIO_FUNC_UART);
+    gpio_set_function(tx_pin, GPIO_FUNC_UART);
 
-  // uart.setInvertTX(current_tx_invert_);
-  // uart.setInvertRX(current_rx_invert_);
-  // uart.begin(2400, SERIAL_8E2);
-  // uart.flush();
+    // pins invertieren
+    gpio_set_inover(rx_pin, 0); // current_rx_invert_ ? 1 : 0);
+    gpio_set_inover(tx_pin, 0); // current_tx_invert_ ? 1 : 0);
+    
+    // RX Pull-up aktivieren
+    gpio_pull_up(rx_pin);
 
-  restart();
+    // UART initialisieren
+    uart_init(uart, 2400);
+    uart_set_format(uart, 8, 2, UART_PARITY_EVEN);
+    uart_set_hw_flow(uart, false, false);
+    uart_set_fifo_enabled(uart, false); // Optional: FIFO deaktivieren
+
+
+    restart();
   // Use UART port derived from build flags
   // const uart_port_t uart_num = get_uart_port();
   
@@ -120,16 +131,8 @@ void DaikinSerial::begin() {
 }
 
 void DaikinSerial::restart() {
-  uart.flush();
-  uart.end();
-  uart.setInvertRX(true); //current_rx_invert_);
-  uart.setInvertTX(false); //current_tx_invert_);
-  uart.begin(2400, (SERIAL_PARITY_NONE | SERIAL_STOP_BIT_2 | SERIAL_DATA_8)); // SERIAL_8E2);
-  // FIFO deaktivieren
-  uart_set_fifo_enabled(uart1, false);
-  gpio_pull_up(rx_pin);
-  uart.flush();
-
+    // Flush UART
+    uart_tx_wait_blocking(uart);
 }
 
 void DaikinSerial::loop() {
@@ -155,8 +158,8 @@ void DaikinSerial::loop() {
   constexpr int MAX_BYTES_PER_LOOP = 8; // Prevent blocking on large bursts
   int bytes_processed = 0;
   
-  while (uart.available() && bytes_processed < MAX_BYTES_PER_LOOP) {
-    uint8_t b = uart.read();
+  while (uart_is_readable(uart) && bytes_processed < MAX_BYTES_PER_LOOP) {
+    uint8_t b = uart_getc(uart);
     bytes_processed++;
     
     // Filter out common noise bytes like Faikin does (0x80, 0xE0, etc.) when idle
@@ -245,7 +248,10 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
     DAIKIN_DEBUG_PRINT("[S21-TX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"%s\":\"\"}\n", 
                        hex_dump.c_str(), cmd_str.c_str());
     
-    uart.write(framed.data(), framed.size());
+    // uart.write(framed.data(), framed.size());
+    for (int i = 0; i < framed.size(); ++i) {
+        uart_putc_raw(uart, framed.data()[i]);
+    }
   } else { // UnframedSum
     uint8_t sum = 0; for (auto b : body) sum = uint8_t(sum + b);
     body.push_back(sum);
@@ -261,9 +267,14 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
     DAIKIN_DEBUG_PRINT("[S21-TX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"%s\":\"\"}\n", 
                        hex_dump.c_str(), cmd_str.c_str());
                   
-    uart.write(body.data(), body.size());
+    // uart.write(body.data(), body.size());
+    for (int i = 0; i < body.size(); ++i) {
+        uart_putc_raw(uart, body.data()[i]);
+    }
   }
-  uart.flush();
+  // uart.flush();
+  // Flush UART
+  uart_tx_wait_blocking(uart);
   rx_any_since_tx_ = false;
 
   comm_state = CommState::WaitingAck;
