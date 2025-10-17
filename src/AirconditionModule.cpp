@@ -53,12 +53,6 @@ void AirconditionModule::setup()
     }
     if (_airConditionDriver != nullptr)
     {
-        if (ParamAIR_ExternalRoomTemperature && !_airConditionDriver->supportExternalRoomTemperatureSensor())
-        {
-            logInfoP("AirCondition Driver does not support external room temperature sensor, enable RoomTemperatureCorrection");
-            _roomTemperatureCorrection = new RoomTemperatureCorrection(*_airConditionDriver);
-            _roomTemperatureCorrection->setup();
-        }
         _sceneHandler = new SceneHandler(*_airConditionDriver);
         setLocked(false);
         logInfoP("Start driver");
@@ -152,10 +146,6 @@ void AirconditionModule::loop()
     if (_airConditionDriver != nullptr)
     {
         _airConditionDriver->loop();
-        if (_roomTemperatureCorrection != nullptr)
-        {
-            _roomTemperatureCorrection->loop();
-        }
         if (_lastWifiLedDebounceRunning != 0 && millis() - _lastWifiLedDebounceRunning > 1000)
         {
             _lastWifiLedDebounceRunning = 0;
@@ -244,18 +234,6 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
             return true;
         }
     }
-    if (cmd == "rtc")
-    {
-        if (_roomTemperatureCorrection != nullptr)
-        {
-            _roomTemperatureCorrection->logState();
-        }
-        else
-        {
-            logErrorP("Room Temperature Correction is not enabled");
-        }
-        return true;
-    }
     if (cmd == "rc")
     {
         if (_airConditionDriver != nullptr)
@@ -311,30 +289,6 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         float temperature = std::stof(tempStr);
         KoAIR_RoomTemperatureInput.valueNoSend(temperature, DPT_Value_Temp);
         processInputKo(KoAIR_RoomTemperatureInput);
-        return true;
-    }
-    else if (cmd.starts_with("acroom "))
-    {
-        if (_roomTemperatureCorrection == nullptr)
-        {
-            logErrorP("Room Temperature Correction is not enabled, cannot set room temperature");
-            return false;
-        }
-        std::string tempStr = cmd.substr(7);
-        float temperature = std::stof(tempStr);
-        _roomTemperatureCorrection->setAirconditionRoomTemperatur(temperature);
-        return true;
-    }
-    else if (cmd.starts_with("actemp "))
-    {
-        if (_roomTemperatureCorrection == nullptr)
-        {
-            logErrorP("Room Temperature Correction is not enabled, cannot set target temperature");
-            return false;
-        }
-        std::string tempStr = cmd.substr(7);
-        float temperature = std::stof(tempStr);
-        _roomTemperatureCorrection->airconditionReportTargetTemperatureChanged(temperature);
         return true;
     }
     else if (cmd.starts_with("fan "))
@@ -636,10 +590,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     return;
                 }
                 logInfoP("Set external sensor room temperature to %.1f °C", roomTemperature);
-                if (_roomTemperatureCorrection != nullptr)
-                     _roomTemperatureCorrection->setNewExternalRoomTemperature(roomTemperature);
-                else
-                    _airConditionDriver->setExternalSensorRoomTemperature(roomTemperature);
+                _airConditionDriver->setExternalSensorRoomTemperature(roomTemperature);
             }
             break;
             case AIR_KoScene:
@@ -716,10 +667,7 @@ void AirconditionModule::setTargetTemperaturToAircondition(float temperature)
     {
        
         logInfoP("Set target temperature to %.1f °C", temperature);
-        if (_roomTemperatureCorrection != nullptr)
-             _roomTemperatureCorrection->setTargetTemperaturToAircondition(temperature);
-        else
-            _airConditionDriver->setTargetTemperature(temperature);
+        _airConditionDriver->setTargetTemperature(temperature);
     }
 }
 
@@ -744,16 +692,6 @@ void AirconditionModule::powerChanged(bool power)
 }
 void AirconditionModule::targetTemperatureChanged(float temperature, bool isFeedbackFromSetting)
 {
-    if (_roomTemperatureCorrection != nullptr)
-    {
-        if (!isFeedbackFromSetting)
-        {   
-            _roomTemperatureCorrection->airconditionReportTargetTemperatureChanged(temperature);
-            return;
-        }
-        temperature = _roomTemperatureCorrection->correctTemperatureFeedbackFromAircondition(temperature);
-    }
-
     logInfoP("AirCondition report target temperature changed to %.1f °C", temperature);
     KoAIR_SetTemperatureState.valueCompare(temperature, DPT_Value_Temp);
 }
@@ -855,11 +793,6 @@ void AirconditionModule::swingVerticalFixPositionChanged(int position)
 
 void AirconditionModule::roomTemperatureChanged(float temperature)
 {
-    if (_roomTemperatureCorrection != nullptr)
-    {
-        _roomTemperatureCorrection->setAirconditionRoomTemperatur(temperature);
-    }
-
     logInfoP("AirCondition report room temperature changed to %.1f °C", temperature);
     KoAIR_RoomTemperatureState.valueCompare(temperature, DPT_Value_Temp);
 }
