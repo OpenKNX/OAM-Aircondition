@@ -453,6 +453,10 @@ void DaikinDriver::setFanSpeed(unsigned int speed)
     
     daikin::DaikinFanMode fanMode = openknx_to_daikin_fan(speed); // Convert speed to Daikin fan mode
     
+    // Track explicit fan commands to prevent safety guard from overriding them
+    pending_explicit_fan_ = true;
+    DAIKIN_DEBUG_PRINT("Explicit fan command from KO - setting pending_explicit_fan_ flag");
+    
     // Update pending state - preserve current pending values, only change fan
     // CRITICAL: Always preserve pending_ values, never overwrite with state_ 
     pending_.climate.fan_mode = fanMode;       // UPDATE fan mode only
@@ -800,7 +804,7 @@ void DaikinDriver::updateQueryStateMachine()
                     
                     // Smart NAK tracking: skip bad queries
                     if (query.bad) {
-                        logDebugP("Skipping bad query (marked as unsupported): %.*s", 
+                        DAIKIN_DEBUG_PRINT("Skipping bad query (marked as unsupported): %.*s", 
                                   static_cast<int>(query.command.size()), query.command.data());
                         query_index_++;
                         continue;
@@ -1223,9 +1227,13 @@ void DaikinDriver::sendClimateCommand()
         logDebugP("D1 safety: using current target %.1f°C instead of default 22°C", state_.targetC);
         pending_.climate.targetC = state_.targetC;
     }
-    if (pending_.climate.fan_mode == daikin::DaikinFanMode::Auto && state_.fan != daikin::DaikinFanMode::Auto) {
+    if (!pending_explicit_fan_ &&
+        pending_.climate.fan_mode == daikin::DaikinFanMode::Auto && 
+        state_.fan != daikin::DaikinFanMode::Auto) {
         logDebugP("D1 safety: using current fan mode instead of default Auto");
         pending_.climate.fan_mode = state_.fan;
+    } else if (pending_explicit_fan_) {
+        logDebugP("D1 explicit fan: respecting explicit fan mode command from KO");
     }
     
     // ALWAYS use pending_ values as single source of truth
@@ -1277,6 +1285,12 @@ void DaikinDriver::sendClimateCommand()
             DAIKIN_DEBUG_PRINT("Cleared pending_explicit_off_ flag (command skipped due to deduplication)");
         }
         
+        // Clear explicit fan flag even when command is skipped
+        if (pending_explicit_fan_) {
+            pending_explicit_fan_ = false;
+            DAIKIN_DEBUG_PRINT("Cleared pending_explicit_fan_ flag (command skipped due to deduplication)");
+        }
+        
         pending_.activate_climate = false;
         return;
     }
@@ -1317,6 +1331,12 @@ void DaikinDriver::sendClimateCommand()
     if (pending_explicit_off_) {
         pending_explicit_off_ = false;
         DAIKIN_DEBUG_PRINT("Cleared pending_explicit_off_ flag after command processing");
+    }
+    
+    // Clear explicit fan flag after command processing
+    if (pending_explicit_fan_) {
+        pending_explicit_fan_ = false;
+        DAIKIN_DEBUG_PRINT("Cleared pending_explicit_fan_ flag after command processing");
     }
     
     pending_.activate_climate = false;

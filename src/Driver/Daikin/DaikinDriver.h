@@ -207,6 +207,9 @@ private:
     // Track explicit OFF commands to prevent safety guard from overriding them
     bool pending_explicit_off_{false};
     
+    // Track explicit fan commands to prevent safety guard from overriding them
+    bool pending_explicit_fan_{false};
+    
     // Protocol support detection
     daikin::ProtocolVersion protocol_version_{daikin::ProtocolUndetected};
     struct {
