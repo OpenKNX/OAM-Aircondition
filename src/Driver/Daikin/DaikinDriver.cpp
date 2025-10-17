@@ -675,8 +675,8 @@ void DaikinDriver::initializeQueries()
     // F1 - Basic status (supported by all protocols)
     queries_.emplace_back(StateQuery::Basic, [this](uint8_t* data, size_t data_size) { handle_f1_response(data, data_size); });
     
-    // F2 - Optional features (supported by all protocols)
-    queries_.emplace_back(StateQuery::OptionalFeatures, [this](uint8_t* data, size_t data_size) { handle_f2_response(data, data_size); });
+    // F2 - Optional features (supported by all protocols) - static query (read once)
+    queries_.emplace_back(StateQuery::OptionalFeatures, [this](uint8_t* data, size_t data_size) { handle_f2_response(data, data_size); }, true);
     
     // F5 - Swing/Humidity (supported by all protocols)
     queries_.emplace_back(StateQuery::SwingOrHumidity, [this](uint8_t* data, size_t data_size) { handle_f5_response(data, data_size); });
@@ -714,15 +714,15 @@ void DaikinDriver::initializeQueries()
             queries_.emplace_back(StateQuery::IRCounter, [this](uint8_t* data, size_t data_size) { handle_fg_response(data, data_size); });
             queries_.emplace_back(StateQuery::PowerConsumption, [this](uint8_t* data, size_t data_size) { handle_fm_response(data, data_size); });
             
-            // additional capability discovery queries
-            queries_.emplace_back(StateQuery::CapabilityN, [this](uint8_t* data, size_t data_size) { handle_fn_response(data, data_size); });
-            queries_.emplace_back(StateQuery::CapabilityP, [this](uint8_t* data, size_t data_size) { handle_fp_response(data, data_size); });
-            queries_.emplace_back(StateQuery::CapabilityQ, [this](uint8_t* data, size_t data_size) { handle_fq_response(data, data_size); });
-            queries_.emplace_back(StateQuery::CapabilityS, [this](uint8_t* data, size_t data_size) { handle_fs_response(data, data_size); });
-            queries_.emplace_back(StateQuery::CapabilityT, [this](uint8_t* data, size_t data_size) { handle_ft_response(data, data_size); });
-            // FK is optional - only add for newer versions
+            // additional capability discovery queries - static (read once)
+            queries_.emplace_back(StateQuery::CapabilityN, [this](uint8_t* data, size_t data_size) { handle_fn_response(data, data_size); }, true);
+            queries_.emplace_back(StateQuery::CapabilityP, [this](uint8_t* data, size_t data_size) { handle_fp_response(data, data_size); }, true);
+            queries_.emplace_back(StateQuery::CapabilityQ, [this](uint8_t* data, size_t data_size) { handle_fq_response(data, data_size); }, true);
+            queries_.emplace_back(StateQuery::CapabilityS, [this](uint8_t* data, size_t data_size) { handle_fs_response(data, data_size); }, true);
+            queries_.emplace_back(StateQuery::CapabilityT, [this](uint8_t* data, size_t data_size) { handle_ft_response(data, data_size); }, true);
+            // FK is optional - only add for newer versions - static (read once)
             if (major >= 3) {
-                queries_.emplace_back(StateQuery::CapabilityK, [this](uint8_t* data, size_t data_size) { handle_fk_response(data, data_size); });
+                queries_.emplace_back(StateQuery::CapabilityK, [this](uint8_t* data, size_t data_size) { handle_fk_response(data, data_size); }, true);
             }
         }
     }
@@ -795,6 +795,14 @@ void DaikinDriver::updateQueryStateMachine()
                     // Smart NAK tracking: skip bad queries
                     if (query.bad) {
                         logDebugP("Skipping bad query (marked as unsupported): %.*s", 
+                                  static_cast<int>(query.command.size()), query.command.data());
+                        query_index_++;
+                        continue;
+                    }
+                    
+                    // Skip static queries that have already been successfully read
+                    if (query.is_static && query.acked) {
+                        DAIKIN_DEBUG_PRINT("Skipping static query (already read): %.*s", 
                                   static_cast<int>(query.command.size()), query.command.data());
                         query_index_++;
                         continue;
@@ -3051,17 +3059,23 @@ void DaikinDriver::markOnline(uint32_t now) {
     last_rx_ok_ms_ = now;
     if (!online_) {
         online_ = true;
-        
+
         // Reset sample tracking to ensure full snapshot before publishing
         sample_seen_mask_ = 0;
         gate_publish_until_full_sample_ = true;
-        seed_kos_pending_ = true;  // Seed all KOs after first complete sample
-        online_since_ms_ = now;     // start gate timeout window
-        
+        seed_kos_pending_ = true;   // Seed all KOs after first complete sample
+        online_since_ms_ = now;      // start gate timeout window
+
+        // Nach Reconnect: statische Capability-Frames (F2/FN/FP/FQ/FS/FT/FK) einmalig neu erlauben
+        for (auto& q : queries_) {
+            if (q.is_static) q.acked = false;
+        }
+
         logInfoP("S21 online status changed: Online");
         statusFeedback.updateOnlineStatus(true);  // → KO463 = 1
     }
 }
+
 
 void DaikinDriver::checkOnlineTimeout() {
     static constexpr uint32_t OFFLINE_MS = 15000; // 15s timeout for offline detection
