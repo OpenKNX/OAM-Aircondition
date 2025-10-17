@@ -675,9 +675,9 @@
               <!-- Lufreinigung Status -->
               <ComObjectRef Id="%AID%_O-%TT%00039_R-%TT%0003901" RefId="%AID%_O-%TT%00039" />
 
-              <!-- Liestungsbegrenzung -->
+              <!-- Leistungsbegrenzung -->
               <ComObjectRef Id="%AID%_O-%TT%00048_R-%TT%0004801" RefId="%AID%_O-%TT%00048" />
-              <!-- Liestungsbegrenzung Status -->
+              <!-- Leistungsbegrenzung Status -->
               <ComObjectRef Id="%AID%_O-%TT%00049_R-%TT%0004901" RefId="%AID%_O-%TT%00049" />
               <!-- Gerätemodus -->
               <ComObjectRef Id="%AID%_O-%TT%00050_R-%TT%0005001" RefId="%AID%_O-%TT%00050" />
@@ -988,9 +988,9 @@
                       <!-- Luftreinigung Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00039_R-%TT%0003901" />
 
-                      <!-- Liestungsbegrenzung -->
+                      <!-- Leistungsbegrenzung -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00048_R-%TT%0004801" />
-                      <!-- Liestungsbegrenzung Status -->
+                      <!-- Leistungsbegrenzung Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00049_R-%TT%0004901" />
                       <!-- Gerätemodus -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00050_R-%TT%0005001" />
