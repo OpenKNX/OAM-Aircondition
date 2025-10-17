@@ -177,6 +177,10 @@ private:
     static constexpr uint8_t SEEN_RA = 1<<3;  // Outside temperature
     bool gate_publish_until_full_sample_{true};
     bool seed_kos_pending_{true};  // Initial KO seeding after first complete sample
+    uint32_t online_since_ms_{0};  // when we last went online (for gate timeout)
+
+    // Gate timeout (publish even without full sample)
+    static constexpr uint32_t FULL_SAMPLE_GATE_TIMEOUT_MS = 5000; // 5s
     
     // Query management
     std::vector<DaikinQueryState> queries_;

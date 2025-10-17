@@ -1555,6 +1555,11 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     
     // Mark F1 sample as seen for publish gating
     sample_seen_mask_ |= SEEN_F1;
+    if (gate_publish_until_full_sample_ &&
+        (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) == (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
+        logDebugP("F1: full sample reached -> immediate publish");
+        publishState();
+    }
     
     // Check for any state changes
     if (changed || old_power != state_.power) {
@@ -2165,6 +2170,12 @@ void DaikinDriver::handle_rh_response(uint8_t* data, size_t data_size)
             
             // Mark RH sample as seen for publish gating
             sample_seen_mask_ |= SEEN_RH;
+            // If gating active and mask now complete, publish immediately
+            if (gate_publish_until_full_sample_ &&
+                (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) == (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
+                logDebugP("RH: full sample reached -> immediate publish");
+                publishState();
+            }
         } else {
             logErrorP("RH/SH: Invalid temperature %.1f°C", temp);
         }
@@ -2175,6 +2186,11 @@ void DaikinDriver::handle_rh_response(uint8_t* data, size_t data_size)
         
         // Mark RH sample as seen for publish gating
         sample_seen_mask_ |= SEEN_RH;
+        if (gate_publish_until_full_sample_ &&
+            (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) == (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
+            logDebugP("RH legacy: full sample reached -> immediate publish");
+            publishState();
+        }
     }
 }
 
@@ -2211,6 +2227,11 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
             
             // Mark RX sample as seen for publish gating
             sample_seen_mask_ |= SEEN_RX;
+            if (gate_publish_until_full_sample_ &&
+                (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) == (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
+                logDebugP("RX: full sample reached -> immediate publish");
+                publishState();
+            }
         } else {
             logErrorP("RX/SX: Invalid temperature %.1f°C", temp);
         }
@@ -2231,6 +2252,11 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
         
         // Mark RX sample as seen for publish gating
         sample_seen_mask_ |= SEEN_RX;
+        if (gate_publish_until_full_sample_ &&
+            (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) == (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
+            logDebugP("RX legacy: full sample reached -> immediate publish");
+            publishState();
+        }
     }
 }
 
@@ -2257,6 +2283,11 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
             
             // Mark RA sample as seen for publish gating (after successful decode)
             sample_seen_mask_ |= SEEN_RA;
+            if (gate_publish_until_full_sample_ &&
+                (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) == (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
+                logDebugP("RA: full sample reached -> immediate publish");
+                publishState();
+            }
         } else {
             logErrorP("Ra/Sa: Invalid temperature %.1f°C", temp);
         }
@@ -2267,6 +2298,11 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
         
         // Mark RA sample as seen for publish gating
         sample_seen_mask_ |= SEEN_RA;
+        if (gate_publish_until_full_sample_ &&
+            (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) == (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
+            logDebugP("RA legacy: full sample reached -> immediate publish");
+            publishState();
+        }
     }
 }
 
@@ -2590,11 +2626,19 @@ void DaikinDriver::publishState()
     // Update the OpenKNX status feedback with current S21 state
     logDebugP("Publishing S21 state to OpenKNX");
     
-    // Gating: erst publizieren, wenn alle Werte einmal empfangen wurden
+    // Gating: erst publizieren, wenn alle Werte einmal empfangen wurden,
+    // oder Gate per Timeout fallen lassen
     if (gate_publish_until_full_sample_ &&
         (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) != (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
-        logDebugP("Gating publish: waiting for full sample after Online (mask=0x%02X)", sample_seen_mask_);
-        return;
+        uint32_t now = millis();
+        if (online_since_ms_ != 0 && (now - online_since_ms_) > FULL_SAMPLE_GATE_TIMEOUT_MS) {
+            logInfoP("Gate timeout after %lu ms -> publishing with partial sample (mask=0x%02X)",
+                     (unsigned long)(now - online_since_ms_), sample_seen_mask_);
+            gate_publish_until_full_sample_ = false; // fall through and publish
+        } else {
+            logDebugP("Gating publish: waiting for full sample after Online (mask=0x%02X)", sample_seen_mask_);
+            return;
+        }
     }
     gate_publish_until_full_sample_ = false;
     
@@ -2999,6 +3043,7 @@ void DaikinDriver::markOnline(uint32_t now) {
         sample_seen_mask_ = 0;
         gate_publish_until_full_sample_ = true;
         seed_kos_pending_ = true;  // Seed all KOs after first complete sample
+        online_since_ms_ = now;     // start gate timeout window
         
         logInfoP("S21 online status changed: Online");
         statusFeedback.updateOnlineStatus(true);  // → KO463 = 1
