@@ -204,6 +204,9 @@ private:
         bool activate_sensor{false};
     } pending_;
     
+    // Track explicit OFF commands to prevent safety guard from overriding them
+    bool pending_explicit_off_{false};
+    
     // Protocol support detection
     daikin::ProtocolVersion protocol_version_{daikin::ProtocolUndetected};
     struct {

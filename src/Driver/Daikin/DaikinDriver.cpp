@@ -380,6 +380,12 @@ void DaikinDriver::setPower(bool power)
         return;
     }
     
+    // Track explicit OFF commands from KO to prevent safety override
+    if (!power) {
+        pending_explicit_off_ = true;
+        DAIKIN_DEBUG_PRINT("Explicit OFF command from KO - setting pending_explicit_off_ flag");
+    }
+    
     // Update pending state - preserve current pending values, only change power
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
     pending_.climate.power = power;           // UPDATE power state only
@@ -1202,9 +1208,12 @@ void DaikinDriver::sendClimateCommand()
     
     // Safety guard: If pending values are still at defaults, fill from current state
     // This prevents unintended shutdowns when only partial updates are made
-    if (pending_.climate.power == false && state_.power == true) {
+    // EXCEPTION: Respect explicit OFF commands from KO to allow intentional shutdown
+    if (pending_.climate.power == false && state_.power == true && !pending_explicit_off_) {
         logDebugP("D1 safety: pending.power was false but state.power is true - using state value");
         pending_.climate.power = state_.power;
+    } else if (pending_explicit_off_) {
+        logDebugP("D1 explicit OFF: respecting explicit power=OFF command from KO");
     }
     if (pending_.climate.mode == daikin::Mode::Auto && state_.mode != daikin::Mode::Auto) {
         logDebugP("D1 safety: using current mode %d instead of default Auto", static_cast<int>(state_.mode));
@@ -1261,6 +1270,13 @@ void DaikinDriver::sendClimateCommand()
     if (std::equal(payload.begin(), payload.begin() + 4, last_sent_d1_payload_.begin())) {
         logDebugP("Skipping D1: payload unchanged ['%c','%c',0x%02X,'%c']", 
                   payload[0], payload[1], payload[2], payload[3]);
+        
+        // Clear explicit OFF flag even when command is skipped
+        if (pending_explicit_off_) {
+            pending_explicit_off_ = false;
+            DAIKIN_DEBUG_PRINT("Cleared pending_explicit_off_ flag (command skipped due to deduplication)");
+        }
+        
         pending_.activate_climate = false;
         return;
     }
@@ -1296,6 +1312,12 @@ void DaikinDriver::sendClimateCommand()
     handleWriteCommandSent(LastWriteCommand::D1_ModePower);
     
     logInfoP("D1 sent, entering post-write settle for %dms", getSettlePeriodForCommand(LastWriteCommand::D1_ModePower));
+    
+    // Clear explicit OFF flag after command processing
+    if (pending_explicit_off_) {
+        pending_explicit_off_ = false;
+        DAIKIN_DEBUG_PRINT("Cleared pending_explicit_off_ flag after command processing");
+    }
     
     pending_.activate_climate = false;
 }
@@ -2319,8 +2341,7 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
         return;
     }
     if (data_size == 1) { // Single-byte response is always ACK
-        uint8_t response = data[0];
-        DAIKIN_DEBUG_PRINT("Ra: Single-byte ACK received (0x%02X) - no outside temperature data", response);
+        DAIKIN_DEBUG_PRINT("Ra: Single-byte ACK received (0x%02X) - no outside temperature data", data[0]);
         return; 
     }
     // Ra/Sa response: expect 4-byte sensor response (Sa case)
