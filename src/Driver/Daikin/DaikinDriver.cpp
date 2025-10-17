@@ -251,6 +251,12 @@ void DaikinDriver::startCommunication(bool restart)
         DAIKIN_DEBUG_PRINT("S21 driver state reset for restart");
     }
     
+    //KO-Seeding at startup (even if Offline)
+    gate_publish_until_full_sample_ = false;  // do not wait for Full Sample
+    seed_kos_pending_ = true;                 // force first publish round
+    publishState();                           // initially write all KOs
+    statusFeedback.updateOnlineStatus(false); // explicitly set KO463 = 0
+
     // Start communication with smart protocol detection
     last_query_cycle_ = 0; // Force immediate cycle start
     
