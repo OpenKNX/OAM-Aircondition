@@ -1200,6 +1200,25 @@ void DaikinDriver::sendClimateCommand()
     
     PayloadBuffer payload;
     
+    // Safety guard: If pending values are still at defaults, fill from current state
+    // This prevents unintended shutdowns when only partial updates are made
+    if (pending_.climate.power == false && state_.power == true) {
+        logDebugP("D1 safety: pending.power was false but state.power is true - using state value");
+        pending_.climate.power = state_.power;
+    }
+    if (pending_.climate.mode == daikin::Mode::Auto && state_.mode != daikin::Mode::Auto) {
+        logDebugP("D1 safety: using current mode %d instead of default Auto", static_cast<int>(state_.mode));
+        pending_.climate.mode = state_.mode;
+    }
+    if (std::abs(pending_.climate.targetC - 22.0f) < 0.1f && std::abs(state_.targetC - 22.0f) > 0.1f) {
+        logDebugP("D1 safety: using current target %.1f°C instead of default 22°C", state_.targetC);
+        pending_.climate.targetC = state_.targetC;
+    }
+    if (pending_.climate.fan_mode == daikin::DaikinFanMode::Auto && state_.fan != daikin::DaikinFanMode::Auto) {
+        logDebugP("D1 safety: using current fan mode instead of default Auto");
+        pending_.climate.fan_mode = state_.fan;
+    }
+    
     // ALWAYS use pending_ values as single source of truth
     const auto power_to_send = pending_.climate.power;
     const auto mode_to_send = pending_.climate.mode;
@@ -2234,6 +2253,12 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
         if (temp < 100.0f) { //sanity check
             state_.realTargetC = temp;  // Store sensor-adjusted target
             
+            // In Fan mode, F1 provides no valid setpoint, so use RX/SX value as the actual target
+            if (state_.mode == daikin::Mode::FanOnly && state_.power) {
+                state_.targetC = state_.realTargetC;
+                logDebugP("Fan mode: using RX/SX target %.1f°C as state_.targetC", state_.targetC);
+            }
+            
             // If real target differs from set target, sensor is actively adjusting
             bool sensor_active = std::abs(state_.realTargetC - state_.targetC) > 0.5f;
             if (sensor_active != state_.sensor) {
@@ -2259,6 +2284,12 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
     } else if (data_size >= 2) { // Fallback
         stats_.frames_ok++;
         state_.realTargetC = static_cast<float>(static_cast<int16_t>((data[1] << 8) | data[0])) / 10.0f;
+        
+        // In Fan mode, F1 provides no valid setpoint, so use RX/SX value as the actual target
+        if (state_.mode == daikin::Mode::FanOnly && state_.power) {
+            state_.targetC = state_.realTargetC;
+            logDebugP("Fan mode legacy: using RX/SX target %.1f°C as state_.targetC", state_.targetC);
+        }
         
         // Check for sensor activity via temperature difference
         bool sensor_active = std::abs(state_.realTargetC - state_.targetC) > 0.5f;
@@ -2697,6 +2728,14 @@ void DaikinDriver::publishState()
         
         seed_kos_pending_ = false;
         logInfoP("KO seeding completed - all states will be published");
+        
+        // Mirror current state to pending to prevent unintended shutdowns
+        // After first complete sample, any subsequent D1 writes should preserve current state
+        pending_.climate.power = state_.power;
+        pending_.climate.mode = state_.mode;
+        pending_.climate.targetC = state_.targetC;
+        pending_.climate.fan_mode = state_.fan;
+        logDebugP("Mirrored state to pending after first complete sample");
     }
     
     // Only update changed values
