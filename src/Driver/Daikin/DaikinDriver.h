@@ -234,7 +234,12 @@ private:
     
     // timing constants (optimized for v0 protocol stability)
     static constexpr uint32_t QUERY_CYCLE_INTERVAL_MS = 10000;      // 10 seconds for debugging
-    static constexpr uint32_t PROTOCOL_DETECTION_RETRY_MS = 300000; // 5 minutes retry for unknown protocol
+    // Retry-Intervall für Protokolldetektion, standard 10 s; via -DDAIKIN_PROTOCOL_DETECTION_RETRY_MS=1000 z. B. auf 1 s setzbar
+    #ifdef DAIKIN_PROTOCOL_DETECTION_RETRY_MS
+    static constexpr uint32_t PROTOCOL_DETECTION_RETRY_MS = DAIKIN_PROTOCOL_DETECTION_RETRY_MS;
+    #else
+    static constexpr uint32_t PROTOCOL_DETECTION_RETRY_MS = 10000;  // 10 seconds retry for unknown protocol
+    #endif
     static constexpr uint32_t INTER_QUERY_DELAY_MS = 35;            // 35ms between queries (non-blocking)
     static constexpr uint32_t INTER_QUERY_DELAY_HIGH_LOAD_MS = 500; // High load: 500-800ms spacing
     
@@ -296,9 +301,10 @@ private:
     uint32_t c0_response_count_{0};        // Count of 0xC0 responses
     bool first_cycle_completed_{false};    // Track first full query cycle
     bool protocol_detection_phase_{false}; // True during initial protocol detection
+    bool protocol_detection_failed_reported_{false}; // avoid repeated error logs after giving up
     
     // protocol detection
-    uint8_t protocol_detection_attempts_{0}; // Track F8→FY00 attempts 
+    uint8_t protocol_detection_attempts_{0}; // Track F8→FY00 attempts (capped at 12) 
 
 
     // === S21 Protocol Implementation ===

@@ -305,13 +305,14 @@ void DaikinDriver::loop()
     // Check online timeout (independent of query state machine)
     checkOnlineTimeout();
     
-    // Protocol detection retry mechanism - every 5 minutes if protocol unknown
+    // Protocol detection retry mechanism - configurable interval if protocol unknown
     if (protocol_version_ == daikin::ProtocolUndetected) {
         if (last_protocol_detection_attempt_ == 0 || 
             (now - last_protocol_detection_attempt_) >= PROTOCOL_DETECTION_RETRY_MS) {
             
             last_protocol_detection_attempt_ = now;
-            DAIKIN_DEBUG_PRINT("Protocol unknown - retrying protocol detection (5 minute interval)");
+            logInfoP("Protocol unknown - retrying protocol detection (interval %lu ms)",
+                     (unsigned long)PROTOCOL_DETECTION_RETRY_MS);
             
             // Reset state and restart protocol detection
             initializeProtocolDetection();
@@ -643,6 +644,7 @@ void DaikinDriver::initializeProtocolDetection()
     queries_.clear();
     query_index_ = 0;
     protocol_detection_phase_ = true;
+    protocol_detection_failed_reported_ = false;
     protocol_detection_attempts_ = 0;
     
     last_protocol_detection_attempt_ = millis();  // Mark that we're attempting protocol detection now
@@ -824,6 +826,7 @@ void DaikinDriver::updateQueryStateMachine()
                     if (protocol_detection_phase_) {
                         // Protocol detection phase complete for this attempt
                         protocol_detection_attempts_++;
+                        if (protocol_detection_attempts_ > 12) protocol_detection_attempts_ = 12;
                         
                         if (protocol_version_ != daikin::ProtocolUndetected) {
                             // Protocol detected
@@ -840,10 +843,20 @@ void DaikinDriver::updateQueryStateMachine()
                         
                         // Max attempts reached for protocol detection
                         if (protocol_detection_attempts_ >= 12) { // 12 attempts should be enough for protocol detection
-                            // Protocol detection failed completely
-                            logErrorP("Protocol detection failed after %d attempts", protocol_detection_attempts_);
-                            logInfoP("Protocol detection phase completed, protocol remains unknown");
-                            statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Protocol detection failed");
+                            // Protocol detection failed completely (report ONCE)
+                            if (!protocol_detection_failed_reported_) {
+                                logErrorP("Protocol detection failed after %d attempts", protocol_detection_attempts_);
+                                logInfoP("Protocol detection phase completed, protocol remains unknown");
+                                statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Protocol detection failed");
+                                protocol_detection_failed_reported_ = true;
+                            }
+                            // Leave detection phase and wait for the periodic retry (5 min)
+                            protocol_detection_phase_ = false;
+                            // schedule next retry using existing timer logic
+                            last_protocol_detection_attempt_ = now;
+                            // reset query loop to idle
+                            query_index_ = 0;
+                            query_state_ = QueryState::Idle;
                             return;
                         }
                         
