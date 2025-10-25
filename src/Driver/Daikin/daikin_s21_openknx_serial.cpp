@@ -9,6 +9,7 @@
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
 
 #include "hal/uart_types.h"
 
@@ -28,22 +29,16 @@ namespace daikin {
 static const char *const TAG = "daikin_s21.serial";
 
 // Helper function to map HardwareSerial objects to uart_port_t
-constexpr uart_port_t get_uart_port() {
-  // Map build flag serial object to ESP-IDF UART port
-  if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial) {
-    return UART_NUM_0;
-  } else if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial1) {
-    return UART_NUM_1;
-  } else if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial2) {
-    return UART_NUM_2;
-  } else {
-    return UART_NUM_2;
-  }
+static inline uart_port_t get_uart_port() {
+  if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial)  return UART_NUM_0;
+  if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial1) return UART_NUM_1;
+  return UART_NUM_2;
 }
 
 DaikinSerial::DaikinSerial(HardwareSerial &uart, int rx_pin, int tx_pin, 
+                           bool rx_inverted, bool tx_inverted,
                            ResultCallback result_callback, IdleCallback idle_callback)
-    : uart(uart), rx_pin(rx_pin), tx_pin(tx_pin), 
+    : uart(uart), rx_pin(rx_pin), tx_pin(tx_pin), rx_inverted(rx_inverted), tx_inverted(tx_inverted),
       result_callback(result_callback), idle_callback(idle_callback) {}
 
 void DaikinSerial::begin() {
@@ -69,8 +64,8 @@ void DaikinSerial::begin() {
     return;
   }
   
-  // Use UART port derived from build flags
-  const uart_port_t uart_num = get_uart_port();
+  // Cache the port we use
+  port_ = get_uart_port();
   
   uart_config_t uart_config = {
     .baud_rate = 2400,  // S21 protocol
@@ -82,39 +77,35 @@ void DaikinSerial::begin() {
   };
   
   if (!err) {
-    err = uart_param_config(uart_num, &uart_config); // Configure UART parameters first (before driver install)
+    err = uart_param_config(port_, &uart_config);
   }
   
   if (!err) {
-    err = uart_set_pin(uart_num, tx_pin, rx_pin, -1, -1); // Set pins, disable the RTS/CTS hardware flow control pins
+    err = uart_set_pin(port_, tx_pin, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
   }
   
   if (!err) {
-    err = gpio_pullup_en((gpio_num_t)rx_pin);  // Enable RX pull-up
+    err = gpio_pullup_en((gpio_num_t)rx_pin);
   }
   
   if (!err) {
-    // Parse polarity from build flags - negative pin numbers indicate inversion
-    bool rx_invert = (OPENKNX_AIR_CONDITION_SERIAL_RX < 0);
-    bool tx_invert = (OPENKNX_AIR_CONDITION_SERIAL_TX < 0);
-    
-    uint8_t invert_mask = 0;
-    if (rx_invert) invert_mask |= UART_SIGNAL_RXD_INV;
-    if (tx_invert) invert_mask |= UART_SIGNAL_TXD_INV;
-    
-    err = uart_set_line_inverse(uart_num, invert_mask);
+    err = uart_driver_install(port_, 1024, 0, 0, NULL, 0);
+  }
+  
+  // Per-line inversion AFTER driver install
+  if (!err) {
+    uint32_t inv = 0;
+    if (rx_inverted) inv |= UART_SIGNAL_RXD_INV;
+    if (tx_inverted) inv |= UART_SIGNAL_TXD_INV;
+    err = uart_set_line_inverse(port_, inv);
   }
   
   if (!err) {
-    err = uart_driver_install(uart_num, 1024, 0, 0, NULL, 0);   // Install UART driver --> 1024 RX buffer, 0 TX buffer, no event queue
+    err = uart_set_rx_full_threshold(port_, 1);
   }
   
   if (!err) {
-    err = uart_set_rx_full_threshold(uart_num, 1);   // Set RX threshold
-  }
-  
-  if (!err) {
-    err = uart_flush(uart_num); //flush after setup (non-blocking version)
+    err = uart_flush_input(port_);
   }
   
   if (err) {
@@ -122,16 +113,9 @@ void DaikinSerial::begin() {
     return;
   }
   
-  // Parse polarity from build flags - negative pin numbers indicate inversion
-  bool rx_invert = (OPENKNX_AIR_CONDITION_SERIAL_RX < 0);
-  bool tx_invert = (OPENKNX_AIR_CONDITION_SERIAL_TX < 0);
-  
-  // Also initialize Arduino HardwareSerial for compatibility with existing code
-  uart.begin(2400, SERIAL_8E2, rx_pin, tx_pin, rx_invert, tx_invert);
-  
-  ESP_LOGI(TAG, "S21 UART configured: RX pin %d (%s, pull-up), TX pin %d (%s), 2400 8E2", 
-           rx_pin, rx_invert ? "inverted" : "normal", 
-           tx_pin, tx_invert ? "inverted" : "normal");
+  ESP_LOGI(TAG, "S21 UART configured: RX %d (%s), TX %d (%s), 2400 8E2",
+           rx_pin, rx_inverted ? "inverted" : "normal",
+           tx_pin, tx_inverted ? "inverted" : "normal");
 }
 
 void DaikinSerial::loop() {
@@ -154,12 +138,16 @@ void DaikinSerial::loop() {
   }
   
   // Non-blocking serial processing: limit bytes per loop iteration
-  constexpr int MAX_BYTES_PER_LOOP = 8; // Prevent blocking on large bursts
-  int bytes_processed = 0;
-  
-  while (uart.available() && bytes_processed < MAX_BYTES_PER_LOOP) {
-    uint8_t b = uart.read();
-    bytes_processed++;
+  constexpr int MAX_BYTES_PER_LOOP = 16;
+  size_t avail = 0;
+  uart_get_buffered_data_len(port_, &avail);
+  avail = avail > MAX_BYTES_PER_LOOP ? MAX_BYTES_PER_LOOP : avail;
+
+  if (avail) {
+    uint8_t buf[64];
+    int n = uart_read_bytes(port_, buf, avail, 0 /* no wait */);
+    for (int i = 0; i < n; ++i) {
+      uint8_t b = buf[i];
     
     // Filter out common noise bytes like Faikin does (0x80, 0xE0, etc.) when idle
     // These are often seen as lone bytes between frames in noisy environments
@@ -211,6 +199,7 @@ void DaikinSerial::loop() {
         }
         break;
     }
+    }
   }
 }
 
@@ -247,7 +236,8 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
     DAIKIN_DEBUG_PRINT("[S21-TX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"%s\":\"\"}\n", 
                        hex_dump.c_str(), cmd_str.c_str());
     
-    uart.write(framed.data(), framed.size());
+    uart_write_bytes(port_, (const char*)framed.data(), framed.size());
+    uart_wait_tx_done(port_, pdMS_TO_TICKS(50));  // short wait to drain
   } else { // UnframedSum
     uint8_t sum = 0; for (auto b : body) sum = uint8_t(sum + b);
     body.push_back(sum);
@@ -263,9 +253,9 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
     DAIKIN_DEBUG_PRINT("[S21-TX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"%s\":\"\"}\n", 
                        hex_dump.c_str(), cmd_str.c_str());
                   
-    uart.write(body.data(), body.size());
+    uart_write_bytes(port_, (const char*)body.data(), body.size());
+    uart_wait_tx_done(port_, pdMS_TO_TICKS(50));  // short wait to drain
   }
-  uart.flush();
   rx_any_since_tx_ = false;
 
   comm_state = CommState::WaitingAck;
@@ -418,7 +408,7 @@ void DaikinSerial::maybe_switch_mode_on_timeout() {
         ESP_LOGW(TAG, "[S21] Legacy silent after 4 attempts -> probing FramedSum again");
         
         // Optional: RX-Buffer flushen für sauberen Neustart
-        uart_flush(get_uart_port());
+        uart_flush_input(port_);
       }
     } else {
       consecutive_timeouts_ = 0;
@@ -455,7 +445,7 @@ void DaikinSerial::force_framed_mode(const char* reason) {
   last_force_fallback_ms_ = now;
   
   // Flush RX buffer for clean restart
-  uart_flush(get_uart_port());
+  uart_flush_input(port_);
 }
 
 

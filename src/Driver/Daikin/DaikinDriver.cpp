@@ -180,11 +180,13 @@ void DaikinDriver::setup()
     
     int actual_rx_pin = abs(raw_rx_pin);
     int actual_tx_pin = abs(raw_tx_pin);
+    bool rx_inverted = (raw_rx_pin < 0);
+    bool tx_inverted = (raw_tx_pin < 0);
 
     DAIKIN_DEBUG_PRINT("S21 Serial Config: Port=%s, RX=Pin%d(%s), TX=Pin%d(%s)", 
              STRINGIFY(OPENKNX_AIR_CONDITION_SERIAL), 
-             actual_rx_pin, (raw_rx_pin < 0) ? "inverted" : "normal",
-             actual_tx_pin, (raw_tx_pin < 0) ? "inverted" : "normal");
+             actual_rx_pin, rx_inverted ? "inverted" : "normal",
+             actual_tx_pin, tx_inverted ? "inverted" : "normal");
     
     size_t free_heap = esp_get_free_heap_size();    // Check available memory
     
@@ -200,6 +202,8 @@ void DaikinDriver::setup()
             ser, 
             actual_rx_pin,
             actual_tx_pin,
+            rx_inverted,
+            tx_inverted,
             [this](daikin::DaikinSerial::Result result, uint8_t* data, size_t data_size) { 
                 handle_serial_result(result, data, data_size); 
             },

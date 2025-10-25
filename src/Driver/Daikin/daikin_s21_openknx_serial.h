@@ -7,6 +7,7 @@
 #include <functional>
 #include <Arduino.h>
 #include "daikin_s21_openknx_types.h"
+#include "driver/uart.h"
 
 // Conditional compilation for Daikin S21 debug output
 #ifdef DAIKIN_SERIAL_DEBUG
@@ -50,6 +51,7 @@ class DaikinSerial {
   using IdleCallback = std::function<void()>;
 
   DaikinSerial(HardwareSerial &uart, int rx_pin, int tx_pin, 
+               bool rx_inverted = false, bool tx_inverted = false,
                ResultCallback result_callback = nullptr, 
                IdleCallback idle_callback = nullptr);
 
@@ -106,6 +108,9 @@ protected:
   HardwareSerial &uart;
   int rx_pin;
   int tx_pin;
+  bool rx_inverted;
+  bool tx_inverted;
+  uart_port_t port_{UART_NUM_1}; // Cached port number
   ResultCallback result_callback;
   IdleCallback idle_callback;
   CommState comm_state{};
