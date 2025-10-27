@@ -8,9 +8,13 @@
 void setup()
 {
 
-    const uint8_t firmwareRevision = 0;
+    const uint8_t firmwareRevision = 2;
     openknx.init(firmwareRevision);
+#if defined(KNX_IP_WIFI) || defined(KNX_IP_LAN)
     openknx.addModule(0, openknxNetwork);
+#else
+    // openknx.unsupportedEtsModule(ETS_ModuleId_NET);
+#endif
     openknx.addModule(1, openknxLogic);
     openknx.addModule(2, openknxFunctionBlocksModule);
     openknx.addModule(3, openknxAircondition);
@@ -24,6 +28,7 @@ void loop()
    openknx.loop();
 }
 
+#ifdef OPENKNX_DUALCORE
 void setup1()
 {
     openknx.setup1();
@@ -33,3 +38,4 @@ void loop1()
 {
     openknx.loop1();
 }
+#endif 

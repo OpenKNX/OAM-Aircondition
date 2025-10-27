@@ -2,6 +2,50 @@
 	"version": "2.0.0",
 	"tasks": [
         {
+            "label": "\u2714 (release)",
+            "type": "shell",
+            "command": "scripts/OpenKNX-Build.ps1",
+            "args": [
+                "useCurrent"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "\u2714 (debug)",
+            "type": "shell",
+            "command": "scripts/OpenKNX-Build.ps1",
+            "args": [
+                "-DebugBuild",
+                "useCurrent"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "\u2794 (release)",
+            "type": "shell",
+            "command": "scripts/OpenKNX-Build.ps1",
+            "args": [
+                "useCurrent",
+                "upload"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "\u2794 (debug)",
+            "type": "shell",
+            "command": "scripts/OpenKNX-Build.ps1",
+            "args": [
+                "-DebugBuild",
+                "useCurrent",
+                "upload"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
             "label": "Generate Dependencies.txt",
             "type": "shell",
             "command": "lib/OGM-Common/scripts/setup/reusable/Build-Dependencies.ps1",
@@ -95,6 +139,18 @@
             "command": "scripts/Build-Release.ps1", 
             "args": [
                 "Release"
+            ],
+            "problemMatcher": [],
+            "group": "test"
+        },
+        {
+            "label": "Resolve platformio.ini",
+            "type": "shell",
+            "command": "~/.platformio/penv/Scripts/pio",
+            "args": [
+                "project",
+                "config",
+                ">platformio.ini.full.txt"
             ],
             "problemMatcher": [],
             "group": "test"

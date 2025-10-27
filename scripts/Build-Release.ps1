@@ -44,16 +44,19 @@ if (!$?) { exit 1 }
 # ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_REG1_LAN_BASE firmware-Aircondition-REG1-LAN-Base esp32
 # if (!$?) { exit 1 }
 
- ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_TP firmware-Aircondition-Adafruit_Feather_ESP32_V2_TP esp32
- if (!$?) { exit 1 }
+#  ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_TP firmware-Aircondition-Adafruit_Feather_ESP32_V2_TP esp32
+#  if (!$?) { exit 1 }
 
- ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_IP firmware-Aircondition-Adafruit_Feather_ESP32_V2_IP esp32
- if (!$?) { exit 1 }
+#  ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_IP firmware-Aircondition-Adafruit_Feather_ESP32_V2_IP esp32
+#  if (!$?) { exit 1 }
 
- ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_AZDelivery_DevKit_C_V4_TP firmware-Aircondition-AZDelivery_DevKit_C_V4_TP esp32
- if (!$?) { exit 1 }
+#  ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_AZDelivery_DevKit_C_V4_TP firmware-Aircondition-AZDelivery_DevKit_C_V4_TP esp32
+#  if (!$?) { exit 1 }
 
- ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_AZDelivery_DevKit_C_V4_IP firmware-Aircondition-AZDelivery_DevKit_C_V4_IP esp32
+#  ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_AZDelivery_DevKit_C_V4_IP firmware-Aircondition-AZDelivery_DevKit_C_V4_IP esp32
+#  if (!$?) { exit 1 }
+
+ ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 develop_REG1_ESP_DEV_TP_NET_USB firmware-ESP32-DEV-Board_Just_for_testers esp32-tp
  if (!$?) { exit 1 }
 
 
