@@ -105,12 +105,14 @@ protected:
 
   void finalize_frame();
 
-  SerialUART *uart;
+  uart_inst_t *uart;
   int rx_pin;
   int tx_pin;
   bool rx_inverted;
   bool tx_inverted;
   // uart_port_t port_{UART_NUM_1}; // Cached port number
+  void uart_flush_input(uart_inst_t *uart);
+
   ResultCallback result_callback;
   IdleCallback idle_callback;
   CommState comm_state{};

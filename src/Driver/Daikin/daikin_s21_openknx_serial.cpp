@@ -53,7 +53,7 @@ void DaikinSerial::begin() {
     bool err = false;
     // err = OPENKNX_AIR_CONDITION_SERIAL.setRX(OPENKNX_AIR_CONDITION_SERIAL_RX);
     // err = err || OPENKNX_AIR_CONDITION_SERIAL.setTX(OPENKNX_AIR_CONDITION_SERIAL_TX);
-    uart = uart;
+    uart = uart1;
     // GPIO-Funktion setzen
     gpio_set_function(rx_pin, GPIO_FUNC_UART);
     gpio_set_function(tx_pin, GPIO_FUNC_UART);
@@ -129,6 +129,13 @@ void DaikinSerial::restart() {
     // Flush UART
     uart_tx_wait_blocking(uart);
 }
+
+void DaikinSerial::uart_flush_input(uart_inst_t *uart) {
+  while (uart_is_readable(uart0)) {
+      uart_getc(uart0); // verwirft das Byte
+  }
+}
+
 
 void DaikinSerial::loop() {
   // Handle timeouts
@@ -419,10 +426,10 @@ void DaikinSerial::maybe_switch_mode_on_timeout() {
       if (consecutive_timeouts_ >= 4) {
         protocol_mode_ = ProtocolMode::FramedSum;
         consecutive_timeouts_ = 0;
-        ESP_LOGW(TAG, "[S21] Legacy silent after 4 attempts -> probing FramedSum again");
+        // ESP_LOGW(TAG, "[S21] Legacy silent after 4 attempts -> probing FramedSum again");
         
         // Optional: RX-Buffer flushen für sauberen Neustart
-        uart_flush_input(port_);
+        uart_flush_input(uart);
       }
     } else {
       consecutive_timeouts_ = 0;
@@ -459,7 +466,7 @@ void DaikinSerial::force_framed_mode(const char* reason) {
   last_force_fallback_ms_ = now;
   
   // Flush RX buffer for clean restart
-  uart_flush_input(port_);
+  uart_flush_input(uart);
 }
 
 
