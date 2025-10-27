@@ -169,6 +169,19 @@ private:
     daikin::State state_{};  // Current device state from S21 protocol
     daikin::Stats stats_{};  // Communication statistics
     
+    // Sample completeness tracking (prevent publishing wrong values after Online)
+    uint8_t sample_seen_mask_{0};
+    static constexpr uint8_t SEEN_F1 = 1<<0;  // Basic status
+    static constexpr uint8_t SEEN_RH = 1<<1;  // Inside temperature
+    static constexpr uint8_t SEEN_RX = 1<<2;  // Target temperature  
+    static constexpr uint8_t SEEN_RA = 1<<3;  // Outside temperature
+    bool gate_publish_until_full_sample_{true};
+    bool seed_kos_pending_{true};  // Initial KO seeding after first complete sample
+    uint32_t online_since_ms_{0};  // when we last went online (for gate timeout)
+
+    // Gate timeout (publish even without full sample)
+    static constexpr uint32_t FULL_SAMPLE_GATE_TIMEOUT_MS = 5000; // 5s
+    
     // Query management
     std::vector<DaikinQueryState> queries_;
     std::size_t query_index_{0};
@@ -190,6 +203,12 @@ private:
         bool activate_streamer{false};
         bool activate_sensor{false};
     } pending_;
+    
+    // Track explicit OFF commands to prevent safety guard from overriding them
+    bool pending_explicit_off_{false};
+    
+    // Track explicit fan commands to prevent safety guard from overriding them
+    bool pending_explicit_fan_{false};
     
     // Protocol support detection
     daikin::ProtocolVersion protocol_version_{daikin::ProtocolUndetected};
@@ -221,7 +240,12 @@ private:
     
     // timing constants (optimized for v0 protocol stability)
     static constexpr uint32_t QUERY_CYCLE_INTERVAL_MS = 10000;      // 10 seconds for debugging
-    static constexpr uint32_t PROTOCOL_DETECTION_RETRY_MS = 300000; // 5 minutes retry for unknown protocol
+    // Retry-Intervall für Protokolldetektion, standard 10 s; via -DDAIKIN_PROTOCOL_DETECTION_RETRY_MS=1000 z. B. auf 1 s setzbar
+    #ifdef DAIKIN_PROTOCOL_DETECTION_RETRY_MS
+    static constexpr uint32_t PROTOCOL_DETECTION_RETRY_MS = DAIKIN_PROTOCOL_DETECTION_RETRY_MS;
+    #else
+    static constexpr uint32_t PROTOCOL_DETECTION_RETRY_MS = 10000;  // 10 seconds retry for unknown protocol
+    #endif
     static constexpr uint32_t INTER_QUERY_DELAY_MS = 35;            // 35ms between queries (non-blocking)
     static constexpr uint32_t INTER_QUERY_DELAY_HIGH_LOAD_MS = 500; // High load: 500-800ms spacing
     
@@ -283,13 +307,11 @@ private:
     uint32_t c0_response_count_{0};        // Count of 0xC0 responses
     bool first_cycle_completed_{false};    // Track first full query cycle
     bool protocol_detection_phase_{false}; // True during initial protocol detection
+    bool protocol_detection_failed_reported_{false}; // avoid repeated error logs after giving up
     
-    // polarity detection
-    uint8_t protocol_detection_attempts_{0}; // Track F8→FY00 attempts per polarity
-    uint8_t polarity_combos_tried_{0};       // how many combos we've attempted in this detection pass
-    uint8_t attempts_this_combo_{0};         // retries within a combo
-    static constexpr uint8_t MAX_POLARITY_ATTEMPTS = 3; // F8→FY00 attempts per polarity combo
-    static constexpr uint8_t MAX_POLARITY_COMBOS = 4;   // 4 polarity combinations total
+    // protocol detection
+    uint8_t protocol_detection_attempts_{0}; // Track F8→FY00 attempts (capped at 12) 
+
 
     // === S21 Protocol Implementation ===
     void initializeProtocolDetection();  // Initialize protocol detection queries first
@@ -361,6 +383,7 @@ private:
     uint8_t mode_to_daikin(daikin::Mode mode) const;
     daikin::Mode daikin_to_mode(uint8_t mode) const;
     daikin::Action daikin_to_action(uint8_t action) const;
+    daikin::Action calculateCurrentAction() const; 
     daikin::Swing daikin_to_swing_mode(uint8_t mode) const;
     uint8_t swing_mode_to_daikin(daikin::Swing mode) const;
     uint8_t fan_mode_to_daikin(daikin::DaikinFanMode fan) const;

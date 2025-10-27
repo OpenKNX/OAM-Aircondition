@@ -1,12 +1,10 @@
 #pragma once
 #include "AirConditionDriver.h"
-#include "RoomTemperaturCorrection.h"
 
 class SceneHandler;
 
 class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedback
 {
-    RoomTemperatureCorrection* _roomTemperatureCorrection = nullptr;
     AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
     bool _lastPower = false;
     bool _lastWifiLedState = true;

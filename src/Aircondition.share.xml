@@ -143,19 +143,32 @@
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="17°" Value="17" Id="%ENID%" />
+                  <Enumeration Text="17,5°" Value="117" Id="%ENID%" />
                   <Enumeration Text="18°" Value="18" Id="%ENID%" />
+                  <Enumeration Text="18,5°" Value="118" Id="%ENID%" />
                   <Enumeration Text="19°" Value="19" Id="%ENID%" />
+                  <Enumeration Text="19,5°" Value="119" Id="%ENID%" />
                   <Enumeration Text="20°" Value="20" Id="%ENID%" />
+                  <Enumeration Text="20,5°" Value="120" Id="%ENID%" />
                   <Enumeration Text="21°" Value="21" Id="%ENID%" />
+                  <Enumeration Text="21,5°" Value="121" Id="%ENID%" />
                   <Enumeration Text="22°" Value="22" Id="%ENID%" />
+                  <Enumeration Text="22,5°" Value="122" Id="%ENID%" />
                   <Enumeration Text="23°" Value="23" Id="%ENID%" />
+                  <Enumeration Text="23,5°" Value="123" Id="%ENID%" />
                   <Enumeration Text="24°" Value="24" Id="%ENID%" />
+                  <Enumeration Text="24,5°" Value="124" Id="%ENID%" />
                   <Enumeration Text="25°" Value="25" Id="%ENID%" />
+                  <Enumeration Text="25,5°" Value="125" Id="%ENID%" />
                   <Enumeration Text="26°" Value="26" Id="%ENID%" />
+                  <Enumeration Text="26,5°" Value="126" Id="%ENID%" />
                   <Enumeration Text="27°" Value="27" Id="%ENID%" />
+                  <Enumeration Text="27,5°" Value="127" Id="%ENID%" />
                   <Enumeration Text="28°" Value="28" Id="%ENID%" />
+                  <Enumeration Text="28,5°" Value="128" Id="%ENID%" />
                   <Enumeration Text="29°" Value="29" Id="%ENID%" />
-                  <Enumeration Text="30°" Value="30" Id="%ENID%" />
+                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />  
+                  <Enumeration Text="30°" Value="30" Id="%ENID%" /> 
                 </TypeRestriction>
               </ParameterType>
               -->
@@ -662,9 +675,9 @@
               <!-- Lufreinigung Status -->
               <ComObjectRef Id="%AID%_O-%TT%00039_R-%TT%0003901" RefId="%AID%_O-%TT%00039" />
 
-              <!-- Liestungsbegrenzung -->
+              <!-- Leistungsbegrenzung -->
               <ComObjectRef Id="%AID%_O-%TT%00048_R-%TT%0004801" RefId="%AID%_O-%TT%00048" />
-              <!-- Liestungsbegrenzung Status -->
+              <!-- Leistungsbegrenzung Status -->
               <ComObjectRef Id="%AID%_O-%TT%00049_R-%TT%0004901" RefId="%AID%_O-%TT%00049" />
               <!-- Gerätemodus -->
               <ComObjectRef Id="%AID%_O-%TT%00050_R-%TT%0005001" RefId="%AID%_O-%TT%00050" />
@@ -975,9 +988,9 @@
                       <!-- Luftreinigung Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00039_R-%TT%0003901" />
 
-                      <!-- Liestungsbegrenzung -->
+                      <!-- Leistungsbegrenzung -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00048_R-%TT%0004801" />
-                      <!-- Liestungsbegrenzung Status -->
+                      <!-- Leistungsbegrenzung Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00049_R-%TT%0004901" />
                       <!-- Gerätemodus -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00050_R-%TT%0005001" />
