@@ -45,7 +45,7 @@ static const char *const TAG = "daikin_s21.serial";
 
 DaikinSerial::DaikinSerial(SerialUART &uart, int rx_pin, int tx_pin, 
                            ResultCallback result_callback, IdleCallback idle_callback)
-    : rx_pin(rx_pin), tx_pin(tx_pin), rx_inverted(rx_inverted), tx_inverted(tx_inverted),
+    : rx_pin(rx_pin), tx_pin(tx_pin),
       result_callback(result_callback), idle_callback(idle_callback) {}
 
 void DaikinSerial::begin() {
@@ -131,8 +131,8 @@ void DaikinSerial::restart() {
 }
 
 void DaikinSerial::uart_flush_input(uart_inst_t *uart) {
-  while (uart_is_readable(uart0)) {
-      uart_getc(uart0); // verwirft das Byte
+  while (uart_is_readable(uart)) {
+      uart_getc(uart); // verwirft das Byte
   }
 }
 

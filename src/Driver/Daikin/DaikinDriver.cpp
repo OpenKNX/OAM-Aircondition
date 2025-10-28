@@ -200,8 +200,8 @@ void DaikinDriver::setup()
         // Create the serial communication object with callbacks to this instance
         serial_ = std::make_unique<daikin::DaikinSerial>(
             ser, 
-            rx_inverted,
-            tx_inverted,
+            actual_rx_pin,
+            actual_tx_pin,
             [this](daikin::DaikinSerial::Result result, uint8_t* data, size_t data_size) { 
                 handle_serial_result(result, data, data_size); 
             },
