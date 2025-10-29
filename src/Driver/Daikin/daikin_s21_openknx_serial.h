@@ -58,6 +58,9 @@ protected:
   // Timing (will be tuned to spec / wiki guidance)
   static constexpr uint32_t ack_delay_period_ms{45};        // Delay before ACK normally appears
   static constexpr uint32_t rx_timeout_period_ms{900};      // Generous window for framed reply (ACK may precede data)
+  
+  // Airtime calculation for 2400 baud, 8E2 (1 start + 8 data + 1 parity + 2 stop = 12 bits/byte)
+  static constexpr uint32_t ms_per_byte_2400_8e2{5};        // ~5ms per byte at 2400 bps
 
   // Framing per S21 wiki - no escaping, simple STX + payload + SUM + ETX
   static constexpr uint8_t STX{0x02};
@@ -109,6 +112,10 @@ protected:
   bool rx_any_since_tx_{false};
   uint32_t last_force_fallback_ms_{0};
   uint32_t last_rx_timestamp_ms{0};
+  
+  // Non-blocking TX timing
+  uint32_t last_tx_start_ms_{0};        // When transmission started
+  uint32_t tx_airtime_ms_{0};           // Calculated airtime for current frame
 
 };
 

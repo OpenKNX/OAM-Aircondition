@@ -128,8 +128,11 @@ size_t SerialHAL_ESP32::write(const uint8_t* data, size_t length) {
 bool SerialHAL_ESP32::flush(uint32_t timeout_ms) {
     if (!initialized_) return false;
     
-    esp_err_t err = uart_wait_tx_done(port_, pdMS_TO_TICKS(timeout_ms));
-    return (err == ESP_OK);
+    // Non-blocking approach: return immediately to avoid stalling main loop  
+    // TX airtime is calculated and accounted for in the S21 protocol layer
+    // esp_err_t err = uart_wait_tx_done(port_, pdMS_TO_TICKS(timeout_ms));
+    // return (err == ESP_OK);
+    return true;
 }
 
 void SerialHAL_ESP32::clearRxBuffer() {

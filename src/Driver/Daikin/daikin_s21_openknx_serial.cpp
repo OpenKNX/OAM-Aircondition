@@ -159,8 +159,13 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
     // }
     //Serial.printf("[S21-TX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"%s\":\"\"}\n", hex_dump.c_str(), cmd_str.c_str());
     
+    // Calculate airtime for non-blocking approach
+    const uint32_t frame_bytes = framed.size();
+    tx_airtime_ms_ = frame_bytes * ms_per_byte_2400_8e2;
+    last_tx_start_ms_ = millis();
+    
     serial_hal_->write(framed.data(), framed.size());
-    serial_hal_->flush();  // Wait for transmission to complete
+    // Do NOT flush() - avoid blocking ~150ms for transmission
   } else { // UnframedSum
     uint8_t sum = 0; for (auto b : body) sum = uint8_t(sum + b);
     body.push_back(sum);
@@ -174,14 +179,20 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
     //   hex_dump += hex_byte;
     // }
     //Serial.printf("[S21-TX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"%s\":\"\"}\n", hex_dump.c_str(), cmd_str.c_str());
-                  
+    
+    // Calculate airtime for non-blocking approach                
+    const uint32_t frame_bytes = body.size();
+    tx_airtime_ms_ = frame_bytes * ms_per_byte_2400_8e2;
+    last_tx_start_ms_ = millis();
+    
     serial_hal_->write(body.data(), body.size());
-    serial_hal_->flush();  // Wait for transmission to complete
+    // Do NOT flush() - avoid blocking ~150ms for transmission
   }
   rx_any_since_tx_ = false;
 
   comm_state = CommState::WaitingAck;
-  start_rx_timeout(rx_timeout_period_ms, TimeoutType::Ack);
+  // Include TX airtime in ACK timeout to account for transmission delay
+  start_rx_timeout(tx_airtime_ms_ + rx_timeout_period_ms, TimeoutType::Ack);
 }
 
 uint8_t DaikinSerial::calculate_checksum(const uint8_t* data, size_t size) {

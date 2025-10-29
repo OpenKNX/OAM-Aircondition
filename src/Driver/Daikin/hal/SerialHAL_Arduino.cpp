@@ -124,9 +124,9 @@ size_t SerialHAL_Arduino::write(const uint8_t* data, size_t length) {
 bool SerialHAL_Arduino::flush(uint32_t timeout_ms) {
     if (!initialized_) return false;
     
-    // Trust HardwareSerial::flush() to complete transmission
-    // Most Arduino cores implement this correctly and will block until TX is complete
-    uart_.flush();
+    // Non-blocking approach: return immediately to avoid stalling main loop
+    // TX airtime is calculated and accounted for in the S21 protocol layer
+    // uart_.flush();  // Commented out to prevent ~150ms blocking
     return true;
 }
 
