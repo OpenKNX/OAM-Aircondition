@@ -10,7 +10,11 @@ void setup()
 
     const uint8_t firmwareRevision = 0;
     openknx.init(firmwareRevision);
+#if defined(KNX_IP_WIFI) || defined(KNX_IP_LAN)
     openknx.addModule(0, openknxNetwork);
+#else
+    openknx.unsupportedEtsModule(ETS_ModuleId_NET);
+#endif
     openknx.addModule(1, openknxLogic);
     openknx.addModule(2, openknxFunctionBlocksModule);
     openknx.addModule(3, openknxAircondition);

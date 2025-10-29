@@ -170,7 +170,11 @@ void AirconditionModule::loop()
             switch (ParamAIR_WifiLED)
             {
                 case 0: // WLAN Status
+#if defined(KNX_IP_WIFI) || defined(KNX_IP_LAN)
                     on = openknxNetwork.connected();
+#else
+                    on = false;
+#endif
                     needDebounce = true;
                     break;
                 case 1: // Always off
