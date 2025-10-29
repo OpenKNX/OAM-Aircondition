@@ -16,7 +16,25 @@ class ProtocolVersion {
   uint8_t major{};
   uint8_t minor{};
 
-  auto operator<=>(const ProtocolVersion&) const = default;
+  // C++17 compatible comparison operators
+  bool operator==(const ProtocolVersion& other) const {
+    return major == other.major && minor == other.minor;
+  }
+  bool operator!=(const ProtocolVersion& other) const {
+    return !(*this == other);
+  }
+  bool operator<(const ProtocolVersion& other) const {
+    return major < other.major || (major == other.major && minor < other.minor);
+  }
+  bool operator<=(const ProtocolVersion& other) const {
+    return *this < other || *this == other;
+  }
+  bool operator>(const ProtocolVersion& other) const {
+    return !(*this <= other);
+  }
+  bool operator>=(const ProtocolVersion& other) const {
+    return !(*this < other);
+  }
 };
 
 inline constexpr ProtocolVersion ProtocolUndetected{0xFF, 0xFF};
@@ -107,7 +125,14 @@ class DaikinC10 {
   explicit constexpr operator int16_t() const { return value; }
   constexpr float f_degc() const { return static_cast<float>(*this); }
 
-  constexpr auto operator<=>(const DaikinC10 &other) const = default;
+  // C++17 compatible comparison operators
+  constexpr bool operator==(const DaikinC10 &other) const { return value == other.value; }
+  constexpr bool operator!=(const DaikinC10 &other) const { return value != other.value; }
+  constexpr bool operator<(const DaikinC10 &other) const { return value < other.value; }
+  constexpr bool operator<=(const DaikinC10 &other) const { return value <= other.value; }
+  constexpr bool operator>(const DaikinC10 &other) const { return value > other.value; }
+  constexpr bool operator>=(const DaikinC10 &other) const { return value >= other.value; }
+  
   constexpr DaikinC10 operator+(const DaikinC10 &arg) const { return this->value + arg.value; }
   constexpr DaikinC10 operator-(const DaikinC10 &arg) const { return this->value - arg.value; }
   constexpr DaikinC10 operator*(const DaikinC10 &arg) const { return this->value * arg.value; }
@@ -174,7 +199,25 @@ struct ClimateSettings {
   bool sensor{false};
   float sensor_temp{23.0f};
 
-  constexpr bool operator==(const ClimateSettings &other) const = default;
+  // C++17 compatible equality operator
+  bool operator==(const ClimateSettings &other) const {
+    return power == other.power &&
+           mode == other.mode && 
+           targetC == other.targetC &&
+           fan_mode == other.fan_mode &&
+           swing_v == other.swing_v &&
+           swing_h == other.swing_h &&
+           powerful == other.powerful &&
+           econo == other.econo &&
+           quiet == other.quiet &&
+           led == other.led &&
+           streamer == other.streamer &&
+           sensor == other.sensor &&
+           sensor_temp == other.sensor_temp;
+  }
+  bool operator!=(const ClimateSettings &other) const {
+    return !(*this == other);
+  }
 };
 
 /**

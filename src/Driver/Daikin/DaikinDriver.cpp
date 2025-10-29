@@ -1,11 +1,9 @@
 #include "DaikinDriver.h"
 #include <Arduino.h>
-#include <esp_heap_caps.h>
 #include <algorithm>
 #include <numeric>
 #include <bitset>
 #include <cctype>
-#include "utils.h"
 #include "macros.h"
 
 // Implements the Faikin S21 protocol (8972aa9) (https://github.com/revk/ESP32-Faikin/wiki/S21-Protocol#protocol-versions)
@@ -86,7 +84,6 @@ void DaikinDriver::showInformations()
         default: modeStr = "Off"; break;
     }
     logInfoP("Mode: %s", modeStr);
-    
     logInfoP("Target Temp: %.1f°C", state_.targetC);
     logInfoP("Current Temp: %.1f°C", state_.homeC);
     logInfoP("Outside Temp: %.1f°C", state_.outsideC);
@@ -158,72 +155,56 @@ void DaikinDriver::showInformations()
 
 void DaikinDriver::setup()
 {
-    DAIKIN_DEBUG_PRINT("Setting up Daikin S21 driver");
     // Get the UART reference from OpenKNX configuration
     #ifdef OPENKNX_AIR_CONDITION_SERIAL
         HardwareSerial& ser = OPENKNX_AIR_CONDITION_SERIAL;
     #else
-        #error "OPENKNX_AIR_CONDITION_SERIAL must be defined in build flags"
-    #endif
-    // Validate pin configuration
-    #ifndef OPENKNX_AIR_CONDITION_SERIAL_RX
-        #error "OPENKNX_AIR_CONDITION_SERIAL_RX must be defined in build flags"
-    #endif
-    #ifndef OPENKNX_AIR_CONDITION_SERIAL_TX  
-        #error "OPENKNX_AIR_CONDITION_SERIAL_TX must be defined in build flags"
+        // Fallback for platforms without explicit serial configuration
+        HardwareSerial& ser = Serial1; // Default UART
     #endif
     
-    // Parse pin configuration from build flags
+    // Get pin configuration from build flags or use defaults
+    #ifdef OPENKNX_AIR_CONDITION_SERIAL_RX
+        int raw_rx_pin = OPENKNX_AIR_CONDITION_SERIAL_RX;
+    #else
+        int raw_rx_pin = 16; // Default RX pin
+    #endif
+    
+    #ifdef OPENKNX_AIR_CONDITION_SERIAL_TX
+        int raw_tx_pin = OPENKNX_AIR_CONDITION_SERIAL_TX;
+    #else
+        int raw_tx_pin = 17; // Default TX pin
+    #endif
+    
+    // Parse pin configuration from variables set above
     // Negative pin numbers indicate inversion: -48 = pin 48 inverted, 48 = pin 48 normal
-    int raw_rx_pin = OPENKNX_AIR_CONDITION_SERIAL_RX;
-    int raw_tx_pin = OPENKNX_AIR_CONDITION_SERIAL_TX;
-    
     int actual_rx_pin = abs(raw_rx_pin);
     int actual_tx_pin = abs(raw_tx_pin);
     bool rx_inverted = (raw_rx_pin < 0);
     bool tx_inverted = (raw_tx_pin < 0);
 
-    DAIKIN_DEBUG_PRINT("S21 Serial Config: Port=%s, RX=Pin%d(%s), TX=Pin%d(%s)", 
-             STRINGIFY(OPENKNX_AIR_CONDITION_SERIAL), 
+    logInfoP("S21 Serial Config: RX=Pin%d(%s), TX=Pin%d(%s)", 
              actual_rx_pin, rx_inverted ? "inverted" : "normal",
              actual_tx_pin, tx_inverted ? "inverted" : "normal");
     
-    size_t free_heap = esp_get_free_heap_size();    // Check available memory
+    // Create the serial communication object with callbacks to this instance
+    serial_ = std::make_unique<daikin::DaikinSerial>(
+        ser, 
+        actual_rx_pin,
+        actual_tx_pin,
+        rx_inverted,
+        tx_inverted,
+        [this](daikin::DaikinSerial::Result result, uint8_t* data, size_t data_size) { 
+            handle_serial_result(result, data, data_size); 
+        },
+        [this]() { 
+            handle_serial_idle(); 
+        }
+    );
     
-    if (free_heap < 8192) {  // Need at least 8KB free for safe operation
-        logErrorP("Insufficient memory for S21 driver (free: %u bytes)", free_heap);
-        statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, 
-                                         "Insufficient memory");
-        return;
-    }
-    try {
-        // Create the serial communication object with callbacks to this instance
-        serial_ = std::make_unique<daikin::DaikinSerial>(
-            ser, 
-            actual_rx_pin,
-            actual_tx_pin,
-            rx_inverted,
-            tx_inverted,
-            [this](daikin::DaikinSerial::Result result, uint8_t* data, size_t data_size) { 
-                handle_serial_result(result, data, data_size); 
-            },
-            [this]() { 
-                handle_serial_idle(); 
-            }
-        );
-        
-        logDebugP("DaikinSerial object created, initializing serial port...");
-        serial_->begin();
-
-        DAIKIN_DEBUG_PRINT("Daikin S21 driver initialized successfully");
-        statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
-        
-    } catch (const std::exception& e) {
-        logErrorP("Failed to initialize S21 driver: %s", e.what());
-        serial_.reset();
-        statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, 
-                                         std::string("Initialization failed: ") + e.what());
-    }
+    logDebugP("DaikinSerial object created, initializing serial port...");
+    serial_->begin();
+    statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
 }
 
 void DaikinDriver::startCommunication(bool restart)
@@ -234,7 +215,6 @@ void DaikinDriver::startCommunication(bool restart)
                                          "Driver not initialized");
         return;
     }
-    DAIKIN_DEBUG_PRINT("Starting S21 communication (restart: %s)", restart ? "true" : "false");
     statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateStarting);
     
     if (restart) {
@@ -251,8 +231,6 @@ void DaikinDriver::startCommunication(bool restart)
         state_.fan = daikin::DaikinFanMode::Auto;
         state_.mode = daikin::Mode::Auto;
         state_.swing = daikin::Swing::Off;
-        
-        DAIKIN_DEBUG_PRINT("S21 driver state reset for restart");
     }
     
     //KO-Seeding at startup (even if Offline)
@@ -264,16 +242,12 @@ void DaikinDriver::startCommunication(bool restart)
     // Start communication with smart protocol detection
     last_query_cycle_ = 0; // Force immediate cycle start
     
-    // SMART LOGIC: Only detect protocol if unknown, otherwise use known protocol
+    // Only detect protocol if unknown, otherwise use known protocol
     if (protocol_version_ == daikin::ProtocolUndetected) {
-        DAIKIN_DEBUG_PRINT("Starting S21 communication with protocol detection phase (unknown protocol)");
         initializeProtocolDetection();
     } else {
-        DAIKIN_DEBUG_PRINT("Starting S21 communication with known protocol v%d.%d", 
-                 protocol_version_.major, protocol_version_.minor);
         initializeQueries(); // Use already-detected protocol
     }
-    
     triggerQueryCycle();
 }
 
@@ -283,30 +257,24 @@ void DaikinDriver::requestAllData()
         logErrorP("S21 driver not initialized");
         return;
     }
-    DAIKIN_DEBUG_PRINT("Requesting all S21 data");
     triggerQueryCycle();
 }
 
 void DaikinDriver::loop()
 {
-    if (!serial_) {
-        return;
-    }
-    
+    if (!serial_) { return;}
+
     static uint32_t last_loop_time = 0;
     uint32_t now = millis();
     // Detect high load conditions (loop taking too long)
     if (last_loop_time != 0 && (now - last_loop_time) > 20) {
         if (!high_load_detected_) {
-            DAIKIN_DEBUG_PRINT("High load detected (%lu ms loop), increasing query spacing", now - last_loop_time);
             high_load_detected_ = true;
         }
     } else if (high_load_detected_ && (now - last_loop_time) <= 10) {
-        DAIKIN_DEBUG_PRINT("Load normalized, returning to normal query spacing");
         high_load_detected_ = false;
     }
     last_loop_time = now;
-    
     
     serial_->loop(); // Process serial communication (non-blocking)
     
@@ -336,7 +304,6 @@ void DaikinDriver::loop()
 }
 
 // === Capability Queries ===
-
 float DaikinDriver::getMinimumTargetTemperature()
 {
     return 18.0f;  // S21 protocol minimum temperature
@@ -378,13 +345,8 @@ float DaikinDriver::accuracyInDegrees()
 }
 
 // === Control Methods ===
-
 void DaikinDriver::setPower(bool power)
 {
-    DAIKIN_DEBUG_PRINT("Setting power: %s (current internal state: %s)", 
-             power ? "On" : "Off", 
-             state_.power ? "On" : "Off");
-    
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
@@ -393,7 +355,6 @@ void DaikinDriver::setPower(bool power)
     // Track explicit OFF commands from KO to prevent safety override
     if (!power) {
         pending_explicit_off_ = true;
-        DAIKIN_DEBUG_PRINT("Explicit OFF command from KO - setting pending_explicit_off_ flag");
     }
     
     // Update pending state - preserve current pending values, only change power
@@ -401,17 +362,12 @@ void DaikinDriver::setPower(bool power)
     pending_.climate.power = power;           // UPDATE power state only
     pending_.activate_climate = true;
     
-    DAIKIN_DEBUG_PRINT("Power change requested: %s -> %s", 
-             state_.power ? "On" : "Off",
-             power ? "On" : "Off");
-    
     // Send S21 power command - D1 controls power/mode/temp/fan
     sendClimateCommand();
 }
 
 void DaikinDriver::setMode(AirConditionMode mode)
 {
-    DAIKIN_DEBUG_PRINT("Setting mode: %d", static_cast<int>(mode));
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
@@ -429,16 +385,12 @@ void DaikinDriver::setMode(AirConditionMode mode)
 
 void DaikinDriver::setTargetTemperature(float temperaturCelsius)
 {
-    DAIKIN_DEBUG_PRINT("Setting target temperature: %.1f°C", temperaturCelsius);
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
     }
     
     float temp = std::clamp(temperaturCelsius, getMinimumTargetTemperature(), getMaximumTargetTemperature());  // Clamp temperature to valid range
-    if (temp != temperaturCelsius) {
-        DAIKIN_DEBUG_PRINT("Temperature clamped from %.1f°C to %.1f°C", temperaturCelsius, temp);
-    }
     
     // Update pending state - preserve current pending values, only change temperature
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
@@ -450,22 +402,18 @@ void DaikinDriver::setTargetTemperature(float temperaturCelsius)
 
 void DaikinDriver::setFanSpeed(unsigned int speed)
 {
-    DAIKIN_DEBUG_PRINT("Setting fan speed: %u", speed);
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
     }
-    
     if (speed > getMaximumFanSpeed()) {
         logErrorP("Invalid fan speed: %u (max: %u)", speed, getMaximumFanSpeed());
         return;
     }
-    
     daikin::DaikinFanMode fanMode = openknx_to_daikin_fan(speed); // Convert speed to Daikin fan mode
     
     // Track explicit fan commands to prevent safety guard from overriding them
     pending_explicit_fan_ = true;
-    DAIKIN_DEBUG_PRINT("Explicit fan command from KO - setting pending_explicit_fan_ flag");
     
     // Update pending state - preserve current pending values, only change fan
     // CRITICAL: Always preserve pending_ values, never overwrite with state_ 
@@ -477,7 +425,6 @@ void DaikinDriver::setFanSpeed(unsigned int speed)
 
 void DaikinDriver::setSwingHorizontal(bool swing)
 {
-    logInfoP("KNX setSwingHorizontal called: %s", swing ? "On" : "Off");
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
@@ -504,7 +451,6 @@ void DaikinDriver::setSwingHorizontal(bool swing)
 
 void DaikinDriver::setSwingVertical(bool swing)
 {
-    logInfoP("KNX setSwingVertical called: %s", swing ? "On" : "Off");
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
@@ -566,7 +512,6 @@ void DaikinDriver::setExternalSensorRoomTemperature(float temperaturCelsius)
 
 void DaikinDriver::setWifiLed(bool on)
 {
-    DAIKIN_DEBUG_PRINT("Setting WiFi LED: %s", on ? "On" : "Off");
     if (!serial_) {
         logErrorP("S21 driver not initialized");
         return;
@@ -658,8 +603,6 @@ void DaikinDriver::setAirPurification(bool on)
 
 void DaikinDriver::initializeProtocolDetection()
 {
-    logInfoP("Starting S21 protocol detection phase");
-    
     // Clear existing queries
     queries_.clear();
     query_index_ = 0;
@@ -757,10 +700,8 @@ void DaikinDriver::initializeQueries()
         queries_.emplace_back(EnvironmentQuery::CompressorFrequency, [this](uint8_t* data, size_t data_size) { handle_rd_response(data, data_size); });
         queries_.emplace_back(EnvironmentQuery::IndoorHumidity, [this](uint8_t* data, size_t data_size) { handle_re_response(data, data_size); });
     }
-    
     if (major >= 2) {  // Advanced environment queries for v2.0+
         queries_.emplace_back(EnvironmentQuery::CompressorOnOff, [this](uint8_t* data, size_t data_size) { handle_rg2_response(data, data_size); });
-        
         if (major >= 3) {  // Very advanced queries for v3.0+
             queries_.emplace_back(EnvironmentQuery::UnitState, [this](uint8_t* data, size_t data_size) { handle_rzb2_response(data, data_size); });
             queries_.emplace_back(EnvironmentQuery::SystemState, [this](uint8_t* data, size_t data_size) { handle_rzc3_response(data, data_size); });
@@ -787,7 +728,6 @@ void DaikinDriver::updateQueryStateMachine()
             if (now - last_query_cycle_ >= QUERY_CYCLE_INTERVAL_MS) {
                 // Skip legacy cooldown check if we've already handled post-write settle
                 bool skip_cooldown = (last_write_time_ != 0 && last_command_time_ == last_write_time_);
-                
                 // Check if we're in legacy command cooldown (for non-post-write commands)
                 if (!skip_cooldown && last_command_time_ != 0 && (now - last_command_time_) < COMMAND_COOLDOWN_MS) {
                     query_state_ = QueryState::Cooldown;
@@ -814,24 +754,21 @@ void DaikinDriver::updateQueryStateMachine()
                     
                     // Smart NAK tracking: skip bad queries
                     if (query.bad) {
-                        DAIKIN_DEBUG_PRINT("Skipping bad query (marked as unsupported): %.*s", 
-                                  static_cast<int>(query.command.size()), query.command.data());
+                        //logDebugP("Skipping bad query (marked as unsupported): %.*s", static_cast<int>(query.command.size()), query.command.data());
                         query_index_++;
                         continue;
                     }
                     
                     // Skip static queries that have already been successfully read
                     if (query.is_static && query.acked) {
-                        DAIKIN_DEBUG_PRINT("Skipping static query (already read): %.*s", 
-                                  static_cast<int>(query.command.size()), query.command.data());
+                        //logDebugP("Skipping static query (already read): %.*s", static_cast<int>(query.command.size()), query.command.data());
                         query_index_++;
                         continue;
                     }
                     
                     if (isQuerySupported(query.command)) {
                         // Send this query
-                        DAIKIN_DEBUG_PRINT("S21: Protocol detection - sending %.*s", 
-                                  static_cast<int>(query.command.size()), query.command.data());
+                        //logDebugP("S21: Protocol detection - sending %.*s", static_cast<int>(query.command.size()), query.command.data());
                         
                         std::string cmd_str(query.command);
                         serial_->send_frame(cmd_str);
@@ -874,16 +811,13 @@ void DaikinDriver::updateQueryStateMachine()
                             // Protocol detection failed completely (report ONCE)
                             if (!protocol_detection_failed_reported_) {
                                 logErrorP("Protocol detection failed after %d attempts", protocol_detection_attempts_);
-                                logInfoP("Protocol detection phase completed, protocol remains unknown");
                                 statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Protocol detection failed");
                                 protocol_detection_failed_reported_ = true;
                             }
-                            // Leave detection phase and wait for the periodic retry (5 min)
-                            protocol_detection_phase_ = false;
-                            // schedule next retry using existing timer logic
-                            last_protocol_detection_attempt_ = now;
-                            // reset query loop to idle
-                            query_index_ = 0;
+                           
+                            protocol_detection_phase_ = false; // Leave detection phase and wait for the periodic retry
+                            last_protocol_detection_attempt_ = now; // schedule next retry using existing timer logic
+                            query_index_ = 0; // reset query loop to idle
                             query_state_ = QueryState::Idle;
                             return;
                         }
@@ -907,7 +841,6 @@ void DaikinDriver::updateQueryStateMachine()
                             sendLedCommand();
                         }
                     }
-                    
                     publishState();
                     query_index_ = 0;
                     last_query_cycle_ = now;
@@ -969,8 +902,7 @@ void DaikinDriver::updateQueryStateMachine()
             if (last_write_time_ != 0 && (now - last_write_time_) >= getSettlePeriodForCommand(last_write_command_)) {
                 logInfoP("Post-write settle complete, scheduling first F1 query with extended timeout");
                 
-                // First query after write gets special handling for v0 stability
-                scheduleFirstF1AfterWrite();
+                scheduleFirstF1AfterWrite(); // First query after write gets special handling for v0 stability
                 
                 // Clear the write tracking
                 last_write_time_ = 0;
@@ -985,7 +917,7 @@ bool DaikinDriver::canSendQuery() const
     uint32_t now = millis();
     // Determine effective inter-query delay based on system load
     uint32_t effective_delay = high_load_detected_ ? INTER_QUERY_DELAY_HIGH_LOAD_MS : INTER_QUERY_DELAY_MS;
-    // Check minimum time between sends (adaptive)
+    // Check minimum time between sends
     if (last_send_time_ != 0 && (now - last_send_time_) < effective_delay) {
         return false;
     }
@@ -1094,8 +1026,7 @@ bool DaikinDriver::isQuerySupported(std::string_view command) const
     
     // Protocol v3+ specific commands per wiki
     if (major < 3) {
-        if (command.starts_with("FU") ||              // FU** - v3.20+ only per wiki
-            command.starts_with("FX")) {              // FX** - v3+ only per wiki
+        if (command.size() >= 2 && (command.substr(0, 2) == "FU" || command.substr(0, 2) == "FX")) {  // FU** - v3.20+ only per wiki, FX** - v3+ only per wiki
             logDebugP("Skipping v3+ query %.*s - protocol v%d.%d too old", 
                       static_cast<int>(command.size()), command.data(), major, minor);
             return false;
@@ -1104,7 +1035,7 @@ bool DaikinDriver::isQuerySupported(std::string_view command) const
     
     // Extended FU queries require v3.20+ per wiki
     if (major < 3 || (major == 3 && minor < 20)) {
-        if (command.starts_with("FU0") && command.size() > 3) {  // FU02, FU04, etc.
+        if (command.size() > 3 && command.substr(0, 3) == "FU0") {  // FU02, FU04, etc.
             logDebugP("Skipping v3.20+ query %.*s - protocol v%d.%d too old", 
                       static_cast<int>(command.size()), command.data(), major, minor);
             return false;
@@ -1115,7 +1046,6 @@ bool DaikinDriver::isQuerySupported(std::string_view command) const
 }
 
 // === Post-write command management for v0 stability ===
-
 void DaikinDriver::handleWriteCommandSent(LastWriteCommand cmd_type) 
 {
     last_write_command_ = cmd_type;
@@ -1199,12 +1129,10 @@ void DaikinDriver::scheduleFirstF1AfterWrite()
         sendSwingCommand();
         return; // Let swing command handle its own scheduling
     }
-    
     logInfoP("Scheduled first F1 after write with extended timeout");
 }
 
 // === Command Sending Implementation ===
-
 void DaikinDriver::sendClimateCommand()
 {
     if (!serial_ || !pending_.activate_climate) {
@@ -1292,15 +1220,11 @@ void DaikinDriver::sendClimateCommand()
         // Clear explicit OFF flag even when command is skipped
         if (pending_explicit_off_) {
             pending_explicit_off_ = false;
-            DAIKIN_DEBUG_PRINT("Cleared pending_explicit_off_ flag (command skipped due to deduplication)");
         }
-        
         // Clear explicit fan flag even when command is skipped
         if (pending_explicit_fan_) {
             pending_explicit_fan_ = false;
-            DAIKIN_DEBUG_PRINT("Cleared pending_explicit_fan_ flag (command skipped due to deduplication)");
         }
-        
         pending_.activate_climate = false;
         return;
     }
@@ -1340,23 +1264,17 @@ void DaikinDriver::sendClimateCommand()
     // Clear explicit OFF flag after command processing
     if (pending_explicit_off_) {
         pending_explicit_off_ = false;
-        DAIKIN_DEBUG_PRINT("Cleared pending_explicit_off_ flag after command processing");
     }
-    
     // Clear explicit fan flag after command processing
     if (pending_explicit_fan_) {
         pending_explicit_fan_ = false;
-        DAIKIN_DEBUG_PRINT("Cleared pending_explicit_fan_ flag after command processing");
     }
-    
     pending_.activate_climate = false;
 }
 
 void DaikinDriver::sendSwingCommand()
 {
-    if (!serial_ || !pending_.activate_swing_mode) {
-        return;
-    }
+    if (!serial_ || !pending_.activate_swing_mode) { return; }
     
     // Write coordination: Block D5 commands during post-write settle to prevent conflicts
     if (isInPostWriteSettle()) {
@@ -1400,9 +1318,7 @@ void DaikinDriver::sendSwingCommand()
 
 void DaikinDriver::sendPowerfulCommand()
 {
-    if (!serial_ || !pending_.activate_powerful) {
-        return;
-    }
+    if (!serial_ || !pending_.activate_powerful) { return; }
     logDebugP("Sending S21 powerful command D6");
     
     PayloadBuffer payload;
@@ -1419,9 +1335,7 @@ void DaikinDriver::sendPowerfulCommand()
 
 void DaikinDriver::sendEconoCommand()
 {
-    if (!serial_ || !pending_.activate_econo) {
-        return;
-    }
+    if (!serial_ || !pending_.activate_econo) { return; }
     logDebugP("Sending S21 econo command D3");
 
     PayloadBuffer payload;
@@ -1438,9 +1352,7 @@ void DaikinDriver::sendEconoCommand()
 
 void DaikinDriver::sendQuietCommand()
 {
-    if (!serial_ || !pending_.activate_quiet) {
-        return;
-    }
+    if (!serial_ || !pending_.activate_quiet) { return; }
     logDebugP("Sending S21 quiet command D4");
     
     PayloadBuffer payload;
@@ -1457,9 +1369,7 @@ void DaikinDriver::sendQuietCommand()
 
 void DaikinDriver::sendSensorCommand()
 {
-    if (!serial_ || !pending_.activate_sensor) {
-        return;
-    }
+    if (!serial_ || !pending_.activate_sensor) { return; }
     logDebugP("Sending S21 sensor command D6");
     
     PayloadBuffer payload;
@@ -1476,9 +1386,7 @@ void DaikinDriver::sendSensorCommand()
 
 void DaikinDriver::sendLedCommand()
 {
-    if (!serial_ || !pending_.activate_led) {
-        return;
-    }
+    if (!serial_ || !pending_.activate_led) { return; }
     logDebugP("Sending S21 LED command D7");
     
     PayloadBuffer payload;
@@ -1495,9 +1403,7 @@ void DaikinDriver::sendLedCommand()
 
 void DaikinDriver::sendStreamerCommand()
 {
-    if (!serial_ || !pending_.activate_streamer) {
-        return;
-    }
+    if (!serial_ || !pending_.activate_streamer) { return;}
     logDebugP("Sending S21 streamer command DA");
     
     PayloadBuffer payload;
@@ -1513,7 +1419,6 @@ void DaikinDriver::sendStreamerCommand()
 }
 
 // === S21 Response Handlers ===
-
 void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
 {
     if (data_size < 4) {
@@ -1539,7 +1444,7 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     logDebugP("F1: raw_byte=0x%02X ('%c'), s21_mode='%c'", 
              data[1], (data[1] >= 32 && data[1] < 127) ? data[1] : '?', mode_char);
     
-    // Direct S21 protocol mode mapping (no Faikin compatibility layer needed)
+    // Direct S21 protocol mode mapping
     switch (mode_char) {
         case '1': state_.mode = daikin::Mode::Auto; break;
         case '2': state_.mode = daikin::Mode::Dry; break;
@@ -1563,7 +1468,6 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     
     // Detect mode changes from remote control
     if (old_mode != state_.mode) {
-        DAIKIN_DEBUG_PRINTLN("Mode changed via remote control");
         changed = true;
     }
     
@@ -1574,7 +1478,6 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
         
         // Detect temperature changes from remote control (with tolerance for float comparison)
         if (abs(old_targetC - state_.targetC) > 0.1f) {
-            DAIKIN_DEBUG_PRINTLN("Temperature changed via remote control");
             changed = true;
         }
     }else if (state_.mode == daikin::Mode::Dry && data[2] == 0x80) {
@@ -1605,7 +1508,6 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
         
         // Detect fan mode changes from remote control
         if (old_fan != state_.fan) {
-            DAIKIN_DEBUG_PRINTLN("Fan mode changed via remote control");
             changed = true;
         }
     }
@@ -1784,7 +1686,6 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
             }
             logInfoP("F5: swing=%d (combined ASCII='%c')", static_cast<int>(swing), swing_char);
         }
-        
         state_.swing = swing;
     }
     
@@ -1912,8 +1813,6 @@ void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
         state_.online = true;
         return;
     }
-    
-    DAIKIN_DEBUG_PRINT("F8: Protocol detection query sent");
 }
 
 void DaikinDriver::handle_f9_response(uint8_t* data, size_t data_size)
@@ -2096,12 +1995,11 @@ void DaikinDriver::handle_fp_response(uint8_t* data, size_t data_size)
         }
         // Multi-byte capability data
         if (data_size >= 4) {
-            DAIKIN_DEBUG_PRINT("FP capability data: %zu bytes", data_size);
             for (size_t i = 0; i < data_size; i++) {
-                DAIKIN_DEBUG_PRINT("  FP[%zu] = 0x%02X", i, data[i]);
+                logInfoP("  FP[%zu] = 0x%02X", i, data[i]);
             }
         } else {
-            DAIKIN_DEBUG_PRINT("FP response: %zu bytes (unexpected size)", data_size);
+            logErrorP("FP response: %zu bytes (unexpected size)", data_size);
         }
         stats_.frames_ok++;
         // Store capability data if needed for future feature detection
@@ -2119,12 +2017,11 @@ void DaikinDriver::handle_fq_response(uint8_t* data, size_t data_size)
         }
         // Multi-byte capability data
         if (data_size >= 4) {
-            DAIKIN_DEBUG_PRINT("FQ capability data: %zu bytes", data_size);
             for (size_t i = 0; i < data_size; i++) {
-                DAIKIN_DEBUG_PRINT("  FQ[%zu] = 0x%02X", i, data[i]);
+                logInfoP("  FQ[%zu] = 0x%02X", i, data[i]);
             }
         } else {
-            DAIKIN_DEBUG_PRINT("FQ response: %zu bytes (unexpected size)", data_size);
+            logErrorP("FQ response: %zu bytes (unexpected size)", data_size);
         }
         stats_.frames_ok++;
         // Store capability data if needed for future feature detection
@@ -2142,12 +2039,11 @@ void DaikinDriver::handle_fs_response(uint8_t* data, size_t data_size)
         }
         // Multi-byte capability data
         if (data_size >= 4) {
-            DAIKIN_DEBUG_PRINT("FS capability data: %zu bytes", data_size);
             for (size_t i = 0; i < data_size; i++) {
-                DAIKIN_DEBUG_PRINT("  FS[%zu] = 0x%02X", i, data[i]);
+                logInfoP("  FS[%zu] = 0x%02X", i, data[i]);
             }
         } else {
-            DAIKIN_DEBUG_PRINT("FS response: %zu bytes (unexpected size)", data_size);
+            logErrorP("FS response: %zu bytes (unexpected size)", data_size);
         }
         stats_.frames_ok++;
         // Store capability data if needed for future feature detection
@@ -2165,12 +2061,11 @@ void DaikinDriver::handle_ft_response(uint8_t* data, size_t data_size)
         }
         // Multi-byte capability data
         if (data_size >= 4) {
-            DAIKIN_DEBUG_PRINT("FT capability data: %zu bytes", data_size);
             for (size_t i = 0; i < data_size; i++) {
-                DAIKIN_DEBUG_PRINT("  FT[%zu] = 0x%02X", i, data[i]);
+                logInfoP("  FT[%zu] = 0x%02X", i, data[i]);
             }
         } else {
-            DAIKIN_DEBUG_PRINT("FT response: %zu bytes (unexpected size)", data_size);
+            logErrorP("FT response: %zu bytes (unexpected size)", data_size);
         }
         stats_.frames_ok++;
         // Store capability data if needed for future feature detection
@@ -2182,7 +2077,7 @@ void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
     // FK capability/feature query - optional features, used by Faikin for feature detection
     if (data_size > 0) { // Single byte ACK
         if (data_size == 1) {
-            DAIKIN_DEBUG_PRINT("FK response: ACK (0x%02X)", data[0]);
+            logInfoP("FK response: ACK (0x%02X)", data[0]);
             stats_.frames_ok++;
             return;
         }
@@ -2197,13 +2092,12 @@ void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
             
             logInfoP("FK capabilities: sensor_hardware=%d (byte1=0x%02X, bit3=%d)", 
                      sensor_hardware_available, data[1], (data[1] & 0x08) ? 1 : 0);
-            
-            DAIKIN_DEBUG_PRINT("FK capability data: %zu bytes", data_size);
+        
             for (size_t i = 0; i < data_size; i++) {
-                DAIKIN_DEBUG_PRINT("  FK[%zu] = 0x%02X", i, data[i]);
+                //logInfoP("  FK[%zu] = 0x%02X", i, data[i]);
             }
         } else {
-            DAIKIN_DEBUG_PRINT("FK response: %zu bytes (unexpected size)", data_size);
+            logErrorP("FK response: %zu bytes (unexpected size)", data_size);
             stats_.frames_ok++;
         }
         // Store capability data if needed for future feature detection
@@ -2371,7 +2265,6 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
         return;
     }
     if (data_size == 1) { // Single-byte response is always ACK
-        DAIKIN_DEBUG_PRINT("Ra: Single-byte ACK received (0x%02X) - no outside temperature data", data[0]);
         return; 
     }
     // Ra/Sa response: expect 4-byte sensor response (Sa case)
@@ -2544,7 +2437,6 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
     switch (result) {
             case daikin::DaikinSerial::Result::Ack:
                 markOnline(millis());  // Mark device online on ACK
-                DAIKIN_DEBUG_PRINT("S21: ACK for %.*s", static_cast<int>(query.command.size()), query.command.data());
                 stats_.acks++;
                 query.acked = true;
                 query.naks = 0;
@@ -2578,7 +2470,6 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                             // Special case: F6 may reply as G6 (new) or G3 (old)
                             else if (expected_cmd == "F6" && response_header == "G3") {
                                 is_valid_response = true;
-                                DAIKIN_DEBUG_PRINT("S21: F6 got G3 response (old AC unit behavior)");
                             }
                         } else if (expected_cmd[0] == 'R') {
                             // R* queries expect S* responses (R->S mapping per S21 protocol)
@@ -2605,9 +2496,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                             if (query.handler) query.handler(payload, payload_len);
                         }
                         stats_.frames_ok++;
-                        DAIKIN_DEBUG_PRINT("S21: Valid response for %.*s (%zu bytes payload)", 
-                                  static_cast<int>(query.command.size()), query.command.data(), payload_len);
-                        
+                       
                         // Clear post-write F1 flag if this was the first F1 after write (v0 stability)
                         if (query.command == StateQuery::Basic && post_write_first_f1_pending_) {
                             post_write_first_f1_pending_ = false;
@@ -2626,7 +2515,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 state_start_time_ = millis();
                 break;
             case daikin::DaikinSerial::Result::Nak:
-                DAIKIN_DEBUG_PRINT("S21: NAK for %.*s", static_cast<int>(query.command.size()), query.command.data());
+                //logInfoP("S21: NAK for %.*s", static_cast<int>(query.command.size()), query.command.data());
                 query.naks++;
                 stats_.frames_nak++;
                 
@@ -2636,29 +2525,22 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                         // FY00 NAK with unknown protocol = v2.0 (per wiki: "v2 protocol units respond with NAK")
                         protocol_version_ = {2, 0};
                         old_protocol_detected_ = false;
-                        DAIKIN_DEBUG_PRINT("S21: FY00 NAK during detection - protocol v2.0 detected");
                     } else if (protocol_version_.major == 0 && protocol_version_.minor == 0) {
                         // FY00 NAK with preliminary v0.0 from F8 = confirms v0.0 (old protocol)
                         old_protocol_detected_ = true;
                         logInfoP("FY00: NAK confirms F8's v0.0 detection - old protocol confirmed");
                     } else {
-                        DAIKIN_DEBUG_PRINT("S21: FY00 NAK with known protocol v%d.%d - expected behavior", 
+                        logInfoP("S21: FY00 NAK with known protocol v%d.%d - expected behavior", 
                                   protocol_version_.major, protocol_version_.minor);
                     }
                 }
-                
                 // Smart NAK tracking with overflow protection
                 query.naks++;
                 if (!query.naks) {  // Overflow protection (255 -> 0 wraparound)
                     query.bad = true;
-                    DAIKIN_DEBUG_PRINT("S21: Query %.*s marked as permanently bad (NAK overflow)", 
-                             static_cast<int>(query.command.size()), query.command.data());
                 } else if (query.naks >= 3) {
                     query.bad = true;
-                    DAIKIN_DEBUG_PRINT("S21: Query %.*s marked as bad after %d NAKs", 
-                             static_cast<int>(query.command.size()), query.command.data(), query.naks);
                     failed_queries_.push_back(query.command);
-                    
                     // Check if F6 failed and switch to F3 fallback
                     if (query.command == StateQuery::SpecialModes) {
                         checkF6ToF3Fallback();
@@ -2677,24 +2559,16 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                         old_protocol_detected_ = true;
                         logInfoP("FY00: Timeout confirms F8's v0.0 detection - old protocol confirmed");
                     }
-                    DAIKIN_DEBUG_PRINT("S21: Protocol detection timeout for %.*s - trying next query", 
-                             static_cast<int>(query.command.size()), query.command.data());
                 } else {
-                    DAIKIN_DEBUG_PRINT("S21: Timeout waiting for %.*s", static_cast<int>(query.command.size()), query.command.data());
+                    //logInfoP("S21: Timeout waiting for %.*s", static_cast<int>(query.command.size()), query.command.data());
                 }
-                
                 // Timeouts also count as NAKs for bad query detection
                 query.naks++;
                 if (!query.naks) {  // Overflow protection (255 -> 0 wraparound)
                     query.bad = true;
-                    DAIKIN_DEBUG_PRINT("S21: Query %.*s marked as permanently bad (timeout overflow)", 
-                             static_cast<int>(query.command.size()), query.command.data());
                 } else if (query.naks >= 3) {
                     query.bad = true;
-                    DAIKIN_DEBUG_PRINT("S21: Query %.*s marked as bad after %d timeouts", 
-                             static_cast<int>(query.command.size()), query.command.data(), query.naks);
                     failed_queries_.push_back(query.command);
-                    
                     // Check if F6 failed and switch to F3 fallback
                     if (query.command == StateQuery::SpecialModes) {
                         checkF6ToF3Fallback();
@@ -2723,14 +2597,12 @@ void DaikinDriver::handle_serial_idle()
 }
 
 // === State Management ===
-
 void DaikinDriver::publishState()
 {
     // Update the OpenKNX status feedback with current S21 state
     logDebugP("Publishing S21 state to OpenKNX");
     
-    // Gating: erst publizieren, wenn alle Werte einmal empfangen wurden,
-    // oder Gate per Timeout fallen lassen
+    // Gating: erst publizieren, wenn alle Werte einmal empfangen wurden oder Gate per Timeout fallen lassen
     if (gate_publish_until_full_sample_ &&
         (sample_seen_mask_ & (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) != (SEEN_F1|SEEN_RH|SEEN_RX|SEEN_RA)) {
         uint32_t now = millis();
@@ -2794,13 +2666,11 @@ void DaikinDriver::publishState()
         statusFeedback.updatePower(state_.power);
         last_power = state_.power;
     }
-    
     AirConditionMode current_mode = daikin_to_openknx_mode(state_.mode);
     if (current_mode != last_mode) {
         statusFeedback.updateMode(current_mode);
         last_mode = current_mode;
     }
-    
     // Calculate and update action based on mode, AutoBias, and compressor state
     daikin::Action current_action = calculateCurrentAction();
     if (current_action != last_action) {
@@ -2830,35 +2700,29 @@ void DaikinDriver::publishState()
         statusFeedback.updateTargetTemperature(state_.targetC);
         last_target_temp = state_.targetC;
     }
-    
     if (abs(state_.homeC - last_current_temp) > 0.1f) {
         statusFeedback.updateCurrentTemperature(state_.homeC);
         last_current_temp = state_.homeC;
     }
-    
     if (abs(state_.outsideC - last_outdoor_temp) > 0.1f) {
         statusFeedback.updateOutdoorTemperature(state_.outsideC);
         last_outdoor_temp = state_.outsideC;
     }
-    
     unsigned int current_fan_speed = daikin_to_openknx_fan(state_.fan);
     if (current_fan_speed != last_fan_speed) {
         statusFeedback.updateFanSpeed(current_fan_speed);
         last_fan_speed = current_fan_speed;
     }
-    
     bool current_swing_h = (state_.swing == daikin::Swing::Horizontal || state_.swing == daikin::Swing::Both);
     if (current_swing_h != last_swing_h) {
         statusFeedback.updateSwingHorizontal(current_swing_h);
         last_swing_h = current_swing_h;
     }
-    
     bool current_swing_v = (state_.swing == daikin::Swing::Vertical || state_.swing == daikin::Swing::Both);
     if (current_swing_v != last_swing_v) {
         statusFeedback.updateSwingVertical(current_swing_v);
         last_swing_v = current_swing_v;
     }
-    
     // Device modes
     AirConditionDeviceMode current_device_mode;
     if (state_.powerful) {
@@ -2870,39 +2734,32 @@ void DaikinDriver::publishState()
     } else {
         current_device_mode = AirConditionDeviceMode::AirConditionDeviceModeStandard;
     }
-    
     if (current_device_mode != last_device_mode) {
         statusFeedback.updateDeviceMode(current_device_mode);
         last_device_mode = current_device_mode;
     }
-    
     // Extended features - only update if changed
     if (state_.streamer != last_air_purification) {
         statusFeedback.updateAirPurification(state_.streamer);
         last_air_purification = state_.streamer;
     }
-    
     if (state_.led != last_wifi_led) {
         statusFeedback.updateWifiLed(state_.led);
         last_wifi_led = state_.led;
     }
-    
     if (state_.humidity != last_humidity) {
         statusFeedback.updateHumidity(state_.humidity);
         last_humidity = state_.humidity;
     }
-
     uint8_t current_humidity_mode = static_cast<uint8_t>(state_.humidityMode);
     if (current_humidity_mode != last_humidity_mode) {
         statusFeedback.updateHumidityMode(current_humidity_mode);
         last_humidity_mode = current_humidity_mode;
     }
-
     if (state_.totalEnergyWh != last_total_energy) {
         statusFeedback.updateTotalEnergyConsumption(state_.totalEnergyWh);
         last_total_energy = state_.totalEnergyWh;
     }
-
     if (state_.online != last_online) {
         statusFeedback.updateOnlineStatus(state_.online);
         last_online = state_.online;
@@ -2928,7 +2785,6 @@ void DaikinDriver::updateOnlineStatus()
 }
 
 // === Conversion Utilities ===
-
 uint8_t DaikinDriver::mode_to_daikin(daikin::Mode mode) const
 {
     switch (mode) {
@@ -2972,7 +2828,6 @@ daikin::Action DaikinDriver::calculateCurrentAction() const
     if (!state_.power || !state_.online) {
         return daikin::Action::Off;
     }
-    
     // Handle modes directly based on mode setting
     switch (state_.mode) {
         case daikin::Mode::Cool:
@@ -3046,7 +2901,6 @@ daikin::DaikinFanMode DaikinDriver::daikin_to_fan_mode(uint8_t fan) const
 }
 
 // === OpenKNX to Daikin Conversions ===
-
 daikin::Mode DaikinDriver::openknx_to_daikin_mode(AirConditionMode mode) const
 {
     switch (mode) {
@@ -3113,7 +2967,7 @@ unsigned int DaikinDriver::daikin_to_openknx_fan(daikin::DaikinFanMode fan) cons
 
 // === Smart NAK Tracking ===
 void DaikinDriver::resetQueryNakTracking() {
-    // Reset NAK counters and bad flags for all queries (like Faikin does when daikin.talking is false)
+    // Reset NAK counters and bad flags for all queries
     for (auto& query : queries_) {
         query.acked = false;
         query.naks = 0;
@@ -3154,18 +3008,16 @@ void DaikinDriver::markOnline(uint32_t now) {
         sample_seen_mask_ = 0;
         gate_publish_until_full_sample_ = true;
         seed_kos_pending_ = true;   // Seed all KOs after first complete sample
-        online_since_ms_ = now;      // start gate timeout window
+        online_since_ms_ = now;     // start gate timeout window
 
         // Nach Reconnect: statische Capability-Frames (F2/FN/FP/FQ/FS/FT/FK) einmalig neu erlauben
         for (auto& q : queries_) {
             if (q.is_static) q.acked = false;
         }
-
         logInfoP("S21 online status changed: Online");
         statusFeedback.updateOnlineStatus(true);  // → KO463 = 1
     }
 }
-
 
 void DaikinDriver::checkOnlineTimeout() {
     static constexpr uint32_t OFFLINE_MS = 15000; // 15s timeout for offline detection

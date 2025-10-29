@@ -1,22 +1,13 @@
 #pragma once
 
 #include <cstdint>
-#include <span>
 #include <string_view>
 #include <vector>
 #include <functional>
+#include <memory>
 #include <Arduino.h>
 #include "daikin_s21_openknx_types.h"
-#include "driver/uart.h"
-
-// Conditional compilation for Daikin S21 debug output
-#ifdef DAIKIN_SERIAL_DEBUG
-  #define DAIKIN_DEBUG_PRINT(fmt, ...) Serial.printf(fmt, ##__VA_ARGS__)
-  #define DAIKIN_DEBUG_PRINTLN(str) Serial.println(str)
-#else
-  #define DAIKIN_DEBUG_PRINT(fmt, ...) do {} while(0)
-  #define DAIKIN_DEBUG_PRINTLN(str) do {} while(0)
-#endif
+#include "hal/SerialHAL.h"
 
 namespace daikin {
 
@@ -66,8 +57,6 @@ class DaikinSerial {
 protected:
   // Timing (will be tuned to spec / wiki guidance)
   static constexpr uint32_t ack_delay_period_ms{45};        // Delay before ACK normally appears
-  static constexpr uint32_t next_tx_delay_period_ms{35};    // Inter-command delay
-  static constexpr uint32_t error_delay_period_ms{3000};    // Cooldown after error
   static constexpr uint32_t rx_timeout_period_ms{900};      // Generous window for framed reply (ACK may precede data)
 
   // Framing per S21 wiki - no escaping, simple STX + payload + SUM + ETX
@@ -92,25 +81,18 @@ protected:
     UnframedSum    // Legacy fallback: raw command+payload+SUM checksum, expect simple ACK or raw bytes
   };
 
-  void set_ack_timeout(int bytes_received);
   void ack_timeout_handler();
   void set_busy_timeout(uint32_t delay_ms);
   void busy_timeout_handler();
   void rx_timeout_handler();
   
-  uint8_t calculate_checksum(std::span<const uint8_t> data); // SUM checksum
+  uint8_t calculate_checksum(const uint8_t* data, size_t size); // SUM checksum
   void start_rx_timeout(uint32_t dur_ms, TimeoutType type);
   void maybe_switch_mode_on_timeout();
-  void record_rx_byte();
 
   void finalize_frame();
 
-  HardwareSerial &uart;
-  int rx_pin;
-  int tx_pin;
-  bool rx_inverted;
-  bool tx_inverted;
-  uart_port_t port_{UART_NUM_1}; // Cached port number
+  std::unique_ptr<hal::SerialHAL> serial_hal_;
   ResultCallback result_callback;
   IdleCallback idle_callback;
   CommState comm_state{};
@@ -126,6 +108,7 @@ protected:
   uint16_t consecutive_timeouts_{0};
   bool rx_any_since_tx_{false};
   uint32_t last_force_fallback_ms_{0};
+  uint32_t last_rx_timestamp_ms{0};
 
 };
 

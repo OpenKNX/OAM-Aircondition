@@ -77,11 +77,11 @@ public:
     bool bad{false};  // permanently mark unsupported queries
     std::vector<uint8_t> response_data{};
     
-    void set_response(std::span<const uint8_t> data) {
-        response_data.assign(data.begin(), data.end());
+    void set_response(const uint8_t* data, size_t size) {
+        response_data.assign(data, data + size);
     }
     
-    std::span<const uint8_t> get_response() const {
+    const std::vector<uint8_t>& get_response() const {
         return response_data;
     }
 };
