@@ -38,11 +38,9 @@ if (!$?) { exit 1 }
 # ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_REG1_ETH SmartHomeBridge-Eth uf2
 # if (!$?) { exit 1 }
 
-# ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_REG1_LAN_TP_BASE firmware-Aircondition-REG1-LAN-TP-Base esp32
-# if (!$?) { exit 1 }
 
-# ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_REG1_LAN_BASE firmware-Aircondition-REG1-LAN-Base esp32
-# if (!$?) { exit 1 }
+../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_OpenKNX_UP1_GW_2XUART firmware-Aircondition-OpenKNX-UP1-GW-2xUART uf2
+if (!$?) { exit 1 }
 
  ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_TP firmware-Aircondition-Adafruit_Feather_ESP32_V2_TP esp32
  if (!$?) { exit 1 }

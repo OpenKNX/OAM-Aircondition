@@ -169,7 +169,9 @@ void AirconditionModule::loop()
             switch (ParamAIR_WifiLED)
             {
                 case 0: // WLAN Status
+#if defined(KNX_IP_WIFI) || defined(KNX_IP_LAN)
                     on = openknxNetwork.connected();
+#endif
                     needDebounce = true;
                     break;
                 case 1: // Always off
@@ -275,7 +277,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_Power);
         return true;
     }
-    else if (cmd.starts_with("temp "))
+    else if (cmd.rfind("temp ") == 0)
     {
          std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
@@ -283,7 +285,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_SetTemperature);
         return true;
     }
-    else if (cmd.starts_with("room "))
+    else if (cmd.rfind("room ") == 0)
     {
         std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
@@ -291,7 +293,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_RoomTemperatureInput);
         return true;
     }
-    else if (cmd.starts_with("fan "))
+    else if (cmd.rfind("fan ") == 0)
     {
         // Extract the fan speed value from the command
         std::string fanStr = cmd.substr(4);
