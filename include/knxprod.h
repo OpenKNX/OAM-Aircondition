@@ -295,6 +295,10 @@
 #define AIR_SCASceneAirPurification             257      // 8 Bits, Bit 7-0
 #define AIR_SCAOperationModeDaikin              250      // 8 Bits, Bit 7-0
 #define AIR_SCASceneTemperatureDaikin           251      // 8 Bits, Bit 7-0
+#define AIR_SCASceneFanDaikin                   252      // 8 Bits, Bit 7-0
+#define AIR_SCASceneSwingDaikin                 253      // 8 Bits, Bit 7-0
+#define AIR_SCASceneDeviceModeDaikin            256      // 8 Bits, Bit 7-0
+#define AIR_SCASceneAirPurificationDaikin       257      // 8 Bits, Bit 7-0
 #define AIR_SCBActive                           265      // 1 Bit, Bit 7
 #define     AIR_SCBActiveMask 0x80
 #define     AIR_SCBActiveShift 7
@@ -312,6 +316,10 @@
 #define AIR_SCBSceneAirPurification             277      // 8 Bits, Bit 7-0
 #define AIR_SCBOperationModeDaikin              270      // 8 Bits, Bit 7-0
 #define AIR_SCBSceneTemperatureDaikin           271      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneFanDaikin                   272      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneSwingDaikin                 273      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneDeviceModeDaikin            276      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneAirPurificationDaikin       277      // 8 Bits, Bit 7-0
 #define AIR_SCCActive                           285      // 1 Bit, Bit 7
 #define     AIR_SCCActiveMask 0x80
 #define     AIR_SCCActiveShift 7
@@ -329,6 +337,10 @@
 #define AIR_SCCSceneAirPurification             297      // 8 Bits, Bit 7-0
 #define AIR_SCCOperationModeDaikin              290      // 8 Bits, Bit 7-0
 #define AIR_SCCSceneTemperatureDaikin           291      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneFanDaikin                   292      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneSwingDaikin                 293      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneDeviceModeDaikin            296      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneAirPurificationDaikin       297      // 8 Bits, Bit 7-0
 #define AIR_SCDActive                           305      // 1 Bit, Bit 7
 #define     AIR_SCDActiveMask 0x80
 #define     AIR_SCDActiveShift 7
@@ -346,6 +358,10 @@
 #define AIR_SCDSceneAirPurification             317      // 8 Bits, Bit 7-0
 #define AIR_SCDOperationModeDaikin              310      // 8 Bits, Bit 7-0
 #define AIR_SCDSceneTemperatureDaikin           311      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneFanDaikin                   312      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneSwingDaikin                 313      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneDeviceModeDaikin            316      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneAirPurificationDaikin       317      // 8 Bits, Bit 7-0
 #define AIR_SCEActive                           325      // 1 Bit, Bit 7
 #define     AIR_SCEActiveMask 0x80
 #define     AIR_SCEActiveShift 7
@@ -363,6 +379,10 @@
 #define AIR_SCESceneAirPurification             337      // 8 Bits, Bit 7-0
 #define AIR_SCEOperationModeDaikin              330      // 8 Bits, Bit 7-0
 #define AIR_SCESceneTemperatureDaikin           331      // 8 Bits, Bit 7-0
+#define AIR_SCESceneFanDaikin                   332      // 8 Bits, Bit 7-0
+#define AIR_SCESceneSwingDaikin                 333      // 8 Bits, Bit 7-0
+#define AIR_SCESceneDeviceModeDaikin            336      // 8 Bits, Bit 7-0
+#define AIR_SCESceneAirPurificationDaikin       337      // 8 Bits, Bit 7-0
 #define AIR_SCFActive                           345      // 1 Bit, Bit 7
 #define     AIR_SCFActiveMask 0x80
 #define     AIR_SCFActiveShift 7
@@ -380,6 +400,10 @@
 #define AIR_SCFSceneAirPurification             357      // 8 Bits, Bit 7-0
 #define AIR_SCFOperationModeDaikin              350      // 8 Bits, Bit 7-0
 #define AIR_SCFSceneTemperatureDaikin           351      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneFanDaikin                   352      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneSwingDaikin                 353      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneDeviceModeDaikin            356      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneAirPurificationDaikin       357      // 8 Bits, Bit 7-0
 #define AIR_SCGActive                           365      // 1 Bit, Bit 7
 #define     AIR_SCGActiveMask 0x80
 #define     AIR_SCGActiveShift 7
@@ -397,6 +421,10 @@
 #define AIR_SCGSceneAirPurification             377      // 8 Bits, Bit 7-0
 #define AIR_SCGOperationModeDaikin              370      // 8 Bits, Bit 7-0
 #define AIR_SCGSceneTemperatureDaikin           371      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneFanDaikin                   372      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneSwingDaikin                 373      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneDeviceModeDaikin            376      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneAirPurificationDaikin       377      // 8 Bits, Bit 7-0
 #define AIR_SCHActive                           385      // 1 Bit, Bit 7
 #define     AIR_SCHActiveMask 0x80
 #define     AIR_SCHActiveShift 7
@@ -414,6 +442,10 @@
 #define AIR_SCHSceneAirPurification             397      // 8 Bits, Bit 7-0
 #define AIR_SCHOperationModeDaikin              390      // 8 Bits, Bit 7-0
 #define AIR_SCHSceneTemperatureDaikin           391      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneFanDaikin                   392      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneSwingDaikin                 393      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneDeviceModeDaikin            396      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneAirPurificationDaikin       397      // 8 Bits, Bit 7-0
 #define AIR_SCIActive                           405      // 1 Bit, Bit 7
 #define     AIR_SCIActiveMask 0x80
 #define     AIR_SCIActiveShift 7
@@ -431,6 +463,10 @@
 #define AIR_SCISceneAirPurification             417      // 8 Bits, Bit 7-0
 #define AIR_SCIOperationModeDaikin              410      // 8 Bits, Bit 7-0
 #define AIR_SCISceneTemperatureDaikin           411      // 8 Bits, Bit 7-0
+#define AIR_SCISceneFanDaikin                   412      // 8 Bits, Bit 7-0
+#define AIR_SCISceneSwingDaikin                 413      // 8 Bits, Bit 7-0
+#define AIR_SCISceneDeviceModeDaikin            416      // 8 Bits, Bit 7-0
+#define AIR_SCISceneAirPurificationDaikin       417      // 8 Bits, Bit 7-0
 #define AIR_SCJActive                           425      // 1 Bit, Bit 7
 #define     AIR_SCJActiveMask 0x80
 #define     AIR_SCJActiveShift 7
@@ -448,6 +484,10 @@
 #define AIR_SCJSceneAirPurification             437      // 8 Bits, Bit 7-0
 #define AIR_SCJOperationModeDaikin              430      // 8 Bits, Bit 7-0
 #define AIR_SCJSceneTemperatureDaikin           431      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneFanDaikin                   432      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneSwingDaikin                 433      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneDeviceModeDaikin            436      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneAirPurificationDaikin       437      // 8 Bits, Bit 7-0
 
 // Hersteller
 #define ParamAIR_DeviceType                          ((knx.paramByte(AIR_DeviceType) & AIR_DeviceTypeMask) >> AIR_DeviceTypeShift)
@@ -505,6 +545,14 @@
 #define ParamAIR_SCAOperationModeDaikin              (knx.paramByte(AIR_SCAOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCASceneTemperatureDaikin           (knx.paramByte(AIR_SCASceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCASceneFanDaikin                   (knx.paramByte(AIR_SCASceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCASceneSwingDaikin                 (knx.paramByte(AIR_SCASceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCASceneDeviceModeDaikin            (knx.paramByte(AIR_SCASceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCASceneAirPurificationDaikin       (knx.paramByte(AIR_SCASceneAirPurificationDaikin))
 // Szene B
 #define ParamAIR_SCBActive                           ((bool)(knx.paramByte(AIR_SCBActive) & AIR_SCBActiveMask))
 // Szenennummer
@@ -531,6 +579,14 @@
 #define ParamAIR_SCBOperationModeDaikin              (knx.paramByte(AIR_SCBOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCBSceneTemperatureDaikin           (knx.paramByte(AIR_SCBSceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCBSceneFanDaikin                   (knx.paramByte(AIR_SCBSceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCBSceneSwingDaikin                 (knx.paramByte(AIR_SCBSceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCBSceneDeviceModeDaikin            (knx.paramByte(AIR_SCBSceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCBSceneAirPurificationDaikin       (knx.paramByte(AIR_SCBSceneAirPurificationDaikin))
 // Szene C
 #define ParamAIR_SCCActive                           ((bool)(knx.paramByte(AIR_SCCActive) & AIR_SCCActiveMask))
 // Szenennummer
@@ -557,6 +613,14 @@
 #define ParamAIR_SCCOperationModeDaikin              (knx.paramByte(AIR_SCCOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCCSceneTemperatureDaikin           (knx.paramByte(AIR_SCCSceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCCSceneFanDaikin                   (knx.paramByte(AIR_SCCSceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCCSceneSwingDaikin                 (knx.paramByte(AIR_SCCSceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCCSceneDeviceModeDaikin            (knx.paramByte(AIR_SCCSceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCCSceneAirPurificationDaikin       (knx.paramByte(AIR_SCCSceneAirPurificationDaikin))
 // Szene D
 #define ParamAIR_SCDActive                           ((bool)(knx.paramByte(AIR_SCDActive) & AIR_SCDActiveMask))
 // Szenennummer
@@ -583,6 +647,14 @@
 #define ParamAIR_SCDOperationModeDaikin              (knx.paramByte(AIR_SCDOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCDSceneTemperatureDaikin           (knx.paramByte(AIR_SCDSceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCDSceneFanDaikin                   (knx.paramByte(AIR_SCDSceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCDSceneSwingDaikin                 (knx.paramByte(AIR_SCDSceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCDSceneDeviceModeDaikin            (knx.paramByte(AIR_SCDSceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCDSceneAirPurificationDaikin       (knx.paramByte(AIR_SCDSceneAirPurificationDaikin))
 // Szene E
 #define ParamAIR_SCEActive                           ((bool)(knx.paramByte(AIR_SCEActive) & AIR_SCEActiveMask))
 // Szenennummer
@@ -609,6 +681,14 @@
 #define ParamAIR_SCEOperationModeDaikin              (knx.paramByte(AIR_SCEOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCESceneTemperatureDaikin           (knx.paramByte(AIR_SCESceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCESceneFanDaikin                   (knx.paramByte(AIR_SCESceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCESceneSwingDaikin                 (knx.paramByte(AIR_SCESceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCESceneDeviceModeDaikin            (knx.paramByte(AIR_SCESceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCESceneAirPurificationDaikin       (knx.paramByte(AIR_SCESceneAirPurificationDaikin))
 // Szene F
 #define ParamAIR_SCFActive                           ((bool)(knx.paramByte(AIR_SCFActive) & AIR_SCFActiveMask))
 // Szenennummer
@@ -635,6 +715,14 @@
 #define ParamAIR_SCFOperationModeDaikin              (knx.paramByte(AIR_SCFOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCFSceneTemperatureDaikin           (knx.paramByte(AIR_SCFSceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCFSceneFanDaikin                   (knx.paramByte(AIR_SCFSceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCFSceneSwingDaikin                 (knx.paramByte(AIR_SCFSceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCFSceneDeviceModeDaikin            (knx.paramByte(AIR_SCFSceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCFSceneAirPurificationDaikin       (knx.paramByte(AIR_SCFSceneAirPurificationDaikin))
 // Szene G
 #define ParamAIR_SCGActive                           ((bool)(knx.paramByte(AIR_SCGActive) & AIR_SCGActiveMask))
 // Szenennummer
@@ -661,6 +749,14 @@
 #define ParamAIR_SCGOperationModeDaikin              (knx.paramByte(AIR_SCGOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCGSceneTemperatureDaikin           (knx.paramByte(AIR_SCGSceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCGSceneFanDaikin                   (knx.paramByte(AIR_SCGSceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCGSceneSwingDaikin                 (knx.paramByte(AIR_SCGSceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCGSceneDeviceModeDaikin            (knx.paramByte(AIR_SCGSceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCGSceneAirPurificationDaikin       (knx.paramByte(AIR_SCGSceneAirPurificationDaikin))
 // Szene H
 #define ParamAIR_SCHActive                           ((bool)(knx.paramByte(AIR_SCHActive) & AIR_SCHActiveMask))
 // Szenennummer
@@ -687,6 +783,14 @@
 #define ParamAIR_SCHOperationModeDaikin              (knx.paramByte(AIR_SCHOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCHSceneTemperatureDaikin           (knx.paramByte(AIR_SCHSceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCHSceneFanDaikin                   (knx.paramByte(AIR_SCHSceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCHSceneSwingDaikin                 (knx.paramByte(AIR_SCHSceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCHSceneDeviceModeDaikin            (knx.paramByte(AIR_SCHSceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCHSceneAirPurificationDaikin       (knx.paramByte(AIR_SCHSceneAirPurificationDaikin))
 // Szene I
 #define ParamAIR_SCIActive                           ((bool)(knx.paramByte(AIR_SCIActive) & AIR_SCIActiveMask))
 // Szenennummer
@@ -713,6 +817,14 @@
 #define ParamAIR_SCIOperationModeDaikin              (knx.paramByte(AIR_SCIOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCISceneTemperatureDaikin           (knx.paramByte(AIR_SCISceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCISceneFanDaikin                   (knx.paramByte(AIR_SCISceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCISceneSwingDaikin                 (knx.paramByte(AIR_SCISceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCISceneDeviceModeDaikin            (knx.paramByte(AIR_SCISceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCISceneAirPurificationDaikin       (knx.paramByte(AIR_SCISceneAirPurificationDaikin))
 // Szene J
 #define ParamAIR_SCJActive                           ((bool)(knx.paramByte(AIR_SCJActive) & AIR_SCJActiveMask))
 // Szenennummer
@@ -739,6 +851,14 @@
 #define ParamAIR_SCJOperationModeDaikin              (knx.paramByte(AIR_SCJOperationModeDaikin))
 // Solltemperatur
 #define ParamAIR_SCJSceneTemperatureDaikin           (knx.paramByte(AIR_SCJSceneTemperatureDaikin))
+// Lüfter
+#define ParamAIR_SCJSceneFanDaikin                   (knx.paramByte(AIR_SCJSceneFanDaikin))
+// Lamellenbewegung
+#define ParamAIR_SCJSceneSwingDaikin                 (knx.paramByte(AIR_SCJSceneSwingDaikin))
+// Gerätemodus
+#define ParamAIR_SCJSceneDeviceModeDaikin            (knx.paramByte(AIR_SCJSceneDeviceModeDaikin))
+// Luftreinigung/Streamer
+#define ParamAIR_SCJSceneAirPurificationDaikin       (knx.paramByte(AIR_SCJSceneAirPurificationDaikin))
 
 #define AIR_KoPower 400
 #define AIR_KoPowerState 401

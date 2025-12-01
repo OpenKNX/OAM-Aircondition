@@ -550,7 +550,6 @@ void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
             break;
             
         case AirConditionDeviceMode::AirConditionDeviceModeSilent1:
-        case AirConditionDeviceMode::AirConditionDeviceModeSilent2:
             pending_.climate.powerful = false;
             pending_.climate.econo = false;
             pending_.climate.quiet = true;

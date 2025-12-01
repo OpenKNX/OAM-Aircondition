@@ -69,10 +69,10 @@
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+12%" Offset="1" BitOffset="0" Name="SC%SN%SceneTemperatureDaikin" ParameterType="%AID%_PT-AIRSceneTemperatureDaikin" Text="Solltemperatur" Value="255"  />
 
                                 <!-- Szene Function Fan -->
-                                <!-- <Parameter Id="%AID%_UP-%TT%00%PPP+??%" Offset="2" BitOffset="0" Name="SC%SN%SceneFan" ParameterType="%AID%_PT-AIRSceneFanDaikin" Text="Lüfter" Value="255" /> -->
+                                 <Parameter Id="%AID%_UP-%TT%00%PPP+13%" Offset="2" BitOffset="0" Name="SC%SN%SceneFanDaikin" ParameterType="%AID%_PT-AIRSceneFanDaikin" Text="Lüfter" Value="255" /> 
 
                                 <!-- Szene Function Swing -->
-                                <!-- <Parameter Id="%AID%_UP-%TT%00%PPP+??%" Offset="3" BitOffset="0" Name="SC%SN%SceneSwing" ParameterType="%AID%_PT-AIRSceneSwingDaikin" Text="Lamellenbewegung" Value="255" /> -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+14%" Offset="3" BitOffset="0" Name="SC%SN%SceneSwingDaikin" ParameterType="%AID%_PT-AIRSceneSwingDaikin" Text="Lamellenbewegung" Value="255" /> 
 
                                 <!-- Szene Function Veritcal Position -->
                                 <!-- <Parameter Id="%AID%_UP-%TT%00%PPP+??%" Offset="4" BitOffset="0" Name="SC%SN%ScenePosition" ParameterType="%AID%_PT-AIRSceneHorizontalPositionDaikin" Text="Vertikale Lamellenstellung" Value="255" /> -->
@@ -82,15 +82,14 @@
                                 <!-- <Parameter Id="%AID%_UP-%TT%00%PPP+??%" Offset="5" BitOffset="0" Name="SC%SN%ScenePowerLimit" ParameterType="%AID%_PT-AIRScenePowerLimitDaikin" Text="Leistungsbegrenzung" Value="255" /> -->
                                
                                 <!-- Szene Gerätemodus -->
-                                <!-- <Parameter Id="%AID%_UP-%TT%00%PPP+??%" Offset="6" BitOffset="0" Name="SC%SN%SceneDeviceMode" ParameterType="%AID%_PT-AIRSceneDeviceModeDaikin" Text="Gerätemodus" Value="255" /> -->
+                                 <Parameter Id="%AID%_UP-%TT%00%PPP+15%" Offset="6" BitOffset="0" Name="SC%SN%SceneDeviceModeDaikin" ParameterType="%AID%_PT-AIRSceneDeviceModeDaikin" Text="Gerätemodus" Value="255" />
 
                                 <!-- Szene Luftreinigung -->
-                                <!-- <Parameter Id="%AID%_UP-%TT%00%PPP+??%" Offset="7" BitOffset="0" Name="SC%SN%SceneAirPurification" ParameterType="%AID%_PT-AIRSceneAirPurificationDaikin" Text="Luftreinigung" Value="255" /> -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+16%" Offset="7" BitOffset="0" Name="SC%SN%SceneAirPurificationDaikin" ParameterType="%AID%_PT-AIRSceneAirPurificationDaikin" Text="Luftreinigung/Streamer" Value="255" />
 
                                 <!-- 7 Bytes free  -->  
                             </Union>
 
-                            <!-- Next Id %AID%_UP-%TT%00%PPP+13%-->
 
                         </Parameters>
                         <ParameterRefs>
@@ -102,11 +101,19 @@
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+2%_R-%TT%00%PPP+2%01" RefId="%AID%_UP-%TT%00%PPP+2%" />
 
                             <!-- *** Daikin *** -->
-
                             <!-- Szene Function Operation Mode -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+11%_R-%TT%00%PPP+11%01" RefId="%AID%_UP-%TT%00%PPP+11%" />
                             <!-- Szene Function Temperature -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+12%_R-%TT%00%PPP+12%01" RefId="%AID%_UP-%TT%00%PPP+12%" />
+                            <!--  Szene Function Fan -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+13%_R-%TT%00%PPP+13%01" RefId="%AID%_UP-%TT%00%PPP+13%" />
+                            <!-- Szene Function Swing -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+14%_R-%TT%00%PPP+14%01" RefId="%AID%_UP-%TT%00%PPP+14%" />
+                            <!-- Szene Gerätemodus -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+15%_R-%TT%00%PPP+15%01" RefId="%AID%_UP-%TT%00%PPP+15%" />
+                             <!-- Szene Luftreinigung/Streamer -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+16%_R-%TT%00%PPP+16%01" RefId="%AID%_UP-%TT%00%PPP+16%" />
+
 
 
                             <!-- *** Toshiba *** -->
@@ -157,6 +164,14 @@
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+11%_R-%TT%00%PPP+11%01" IndentLevel="2" HelpContext="%DOC%" />
                                                 <!-- Solltemperatur -->
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+12%_R-%TT%00%PPP+12%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Lüfter -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+13%_R-%TT%00%PPP+13%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Swing -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+14%_R-%TT%00%PPP+14%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Gerätemodus -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+15%_R-%TT%00%PPP+15%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Luftreinigung/Streamer -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+16%_R-%TT%00%PPP+16%01" IndentLevel="2" HelpContext="%DOC%" />
                                             </when>
                                             <when test="2"><!-- Midea -->
                                             </when>
@@ -171,7 +186,7 @@
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+5%_R-%TT%00%PPP+5%01" IndentLevel="2" HelpContext="%DOC%" />
                                                 <!-- Lamellen Bewegung -->
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01" IndentLevel="2" HelpContext="%DOC%" />
-                                                <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                                               <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                                                     <when test="2 3 4">
                                                         <choose ParamRefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01">                              
                                                             <when test="255 0">

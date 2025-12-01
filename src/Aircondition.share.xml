@@ -256,6 +256,18 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRSceneFanDaikin" Name="AIRSceneFanDaikin">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Stufe 1" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Stufe 2" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Stufe 3" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Stufe 4" Value="5" Id="%ENID%" />
+                  <Enumeration Text="Stufe 5" Value="6" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
 
               <!-- Template Swing
                 If a specifc device needs more entries, add the here    
@@ -280,6 +292,15 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRSceneSwingDaikin" Name="AIRSceneSwingDaikin">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Aus" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Vertikal" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Horizontal" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Vertikal und Horizontal" Value="3" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
 
               <!-- Template Horizontal Position
                 If a specifc device needs more entries, add the here
@@ -348,11 +369,20 @@
                   <Enumeration Text="Standard" Value="1" Id="%ENID%" />
                   <Enumeration Text="Hi-Power" Value="2" Id="%ENID%" />
                   <Enumeration Text="ECO" Value="3" Id="%ENID%" />
-                  <Enumeration Text="Geräuscharm 1 (Außengerät)" Value="4" Id="%ENID%" />
-                  <Enumeration Text="Geräuscharm 2 (Außengerät)" Value="5" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm 1" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm 2" Value="5" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRSceneDeviceModeDaikin" Name="AIRSceneDeviceModeDaikin">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Standard" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Hi-Power" Value="2" Id="%ENID%" />
+                  <Enumeration Text="ECO" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm (Außengerät)" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
 
                <!-- Template Device Mode
                 If a specifc device needs more entries, add the here
@@ -366,6 +396,14 @@
               -->
 
                  <ParameterType Id="%AID%_PT-AIRSceneAirPurificationToshiba" Name="AIRSceneAirPurificationToshiba">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Aus" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Ein" Value="1" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneAirPurificationDaikin" Name="AIRSceneAirPurificationDaikin">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="Aus" Value="0" Id="%ENID%" />
