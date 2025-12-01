@@ -100,70 +100,12 @@ void ToshibaDriver::requestAllData()
 
 void ToshibaDriver::setup()
 {
-<<<<<<< HEAD
-#if defined(ARDUINO_ARCH_RP2040)
-    const int RX = OPENKNX_AIR_CONDITION_SERIAL_RX;
-    const int TX = OPENKNX_AIR_CONDITION_SERIAL_TX;
-
-    // --- Validate pin selection for the UART ---
-    int uart_idx = -1;
-    if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial1) uart_idx = 0;
-    else if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial2) uart_idx = 1;
-    else {
-        Serial.println("[RP2040] Toshiba driver requires Serial1 (UART0) or Serial2 (UART1).");
-        return;
-    }
-
-    auto valid_tx = uart_idx == 0
-        ? (TX==0 || TX==12 || TX==16 || TX==28)
-        : (TX==4 || TX==8  || TX==20 || TX==24);
-
-    auto valid_rx = uart_idx == 0
-        ? (RX==1 || RX==13 || RX==17 || RX==29)
-        : (RX==5 || RX==9  || RX==21 || RX==25);
-
-    if (!valid_tx || !valid_rx) {
-        Serial.println("[RP2040] Invalid Toshiba UART pin choice. Check mapping: "
-                       "UART0 TX={0,12,16,28} RX={1,13,17,29}; "
-                       "UART1 TX={4,8,20,24} RX={5,9,21,25}");
-        return;
-    }
-
-    // --- Map pins to UART (do this BEFORE begin()) ---
-    // Prefer Earle helpers when available:
-    #if defined(ARDUINO_PICO_VERSION_STR) || defined(ARDUINO_PICO_MAJOR)
-        // If OPENKNX_AIR_CONDITION_SERIAL is Serial1 or Serial2, this binds pins correctly.
-        if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial1) {
-            Serial1.setRX(RX);
-            Serial1.setTX(TX);
-        } else if (&OPENKNX_AIR_CONDITION_SERIAL == &Serial2) {
-            Serial2.setRX(RX);
-            Serial2.setTX(TX);
-        } else {
-            Serial.println("[RP2040] Use Serial1 (UART0) or Serial2 (UART1) for the Toshiba UART.");
-        }
-    #endif
-
-    // Always keep a safe fallback using Pico SDK pinmux
-    gpio_set_function(RX, GPIO_FUNC_UART);
-    gpio_set_function(TX, GPIO_FUNC_UART);
-
-    // --- Bias + hysteresis on RX for low-baud stability (idle high) ---
-    gpio_pull_up(RX);
-    gpio_set_input_hysteresis_enabled(RX, true);
-
-    // --- Finally configure the port (Toshiba = 9600 8E1) ---
-    OPENKNX_AIR_CONDITION_SERIAL.begin(9600, SERIAL_8E1);
-#else
-    OPENKNX_AIR_CONDITION_SERIAL.begin(9600, SERIAL_8E1, OPENKNX_AIR_CONDITION_SERIAL_RX, OPENKNX_AIR_CONDITION_SERIAL_TX);
-=======
 #if ARDUINO_ARCH_ESP32
     OPENKNX_AIR_CONDITION_SERIAL.begin(9600UL, SERIAL_8E1, OPENKNX_AIR_CONDITION_SERIAL_RX, OPENKNX_AIR_CONDITION_SERIAL_TX);
 #else
     OPENKNX_AIR_CONDITION_SERIAL.setRX(OPENKNX_AIR_CONDITION_SERIAL_RX);
     OPENKNX_AIR_CONDITION_SERIAL.setTX(OPENKNX_AIR_CONDITION_SERIAL_TX);
     OPENKNX_AIR_CONDITION_SERIAL.begin(9600UL, SERIAL_8E1);
->>>>>>> v1dev
 #endif
 }
 

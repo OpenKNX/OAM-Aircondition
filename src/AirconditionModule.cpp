@@ -278,11 +278,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_Power);
         return true;
     }
-<<<<<<< HEAD
     else if (cmd.length() >= 5 && cmd.substr(0, 5) == "temp ")
-=======
-    else if (cmd.rfind("temp ") == 0)
->>>>>>> v1dev
     {
          std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
@@ -290,11 +286,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_SetTemperature);
         return true;
     }
-<<<<<<< HEAD
     else if (cmd.length() >= 5 && cmd.substr(0, 5) == "room ")
-=======
-    else if (cmd.rfind("room ") == 0)
->>>>>>> v1dev
     {
         std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
@@ -302,11 +294,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_RoomTemperatureInput);
         return true;
     }
-<<<<<<< HEAD
     else if (cmd.length() >= 4 && cmd.substr(0, 4) == "fan ")
-=======
-    else if (cmd.rfind("fan ") == 0)
->>>>>>> v1dev
     {
         // Extract the fan speed value from the command
         std::string fanStr = cmd.substr(4);

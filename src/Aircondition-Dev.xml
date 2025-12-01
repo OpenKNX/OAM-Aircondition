@@ -6,14 +6,9 @@
   <op:ETS
     OpenKnxId="0xAE"
     ApplicationNumber="0x35"
-<<<<<<< HEAD
-    ApplicationVersion="0.8"
-    ReplacesVersions="0.7 0.6 0.5 0.4 0.3 0.2 0.1 0.0"
-=======
     ApplicationVersion="0.6.0"
     ReplacesVersions="0.5 0.4 0.3 0.2 0.1 0.0"
     UpdateLibraryJson="false"
->>>>>>> v1dev
     ApplicationRevision="0"
     ProductName="Klimaanlagen KNX Adapter"
     BusCurrent="30"
