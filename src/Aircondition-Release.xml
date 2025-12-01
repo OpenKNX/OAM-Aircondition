@@ -8,6 +8,7 @@
     ApplicationNumber="0x36"
     ApplicationVersion="%ReleaseApplicationVersion%"
     ReplacesVersions="%ReleaseReplacesVersions%"
+    UpdateLibraryJson="true"
     ApplicationRevision="0"
     ProductName="Klimaanlagen KNX Adapter"
     BusCurrent="30"
@@ -34,7 +35,6 @@
   <op:define prefix="AIR" ModuleType="20"
     share="../src/Aircondition.share.xml"
     KoSingleOffset="400">
-    <op:verify File="../library.json" ModuleVersion="%AIR_VerifyVersion%" />
   </op:define>
 
   <op:define prefix="LOG" ModuleType="10"
