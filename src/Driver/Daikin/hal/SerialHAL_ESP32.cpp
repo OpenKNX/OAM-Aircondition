@@ -15,9 +15,12 @@ const char* SerialHAL_ESP32::TAG = "daikin_hal_esp32";
 
 uart_port_t SerialHAL_ESP32::get_uart_port() {
     // Map HardwareSerial reference to UART port number based on constructor parameter
-    if (&uart_ref_ == &Serial)  return UART_NUM_0;
+    // Note: Serial (UART0) is typically used for USB/debug, avoid comparison due to HWCDC type issues on ESP32-S3
     if (&uart_ref_ == &Serial1) return UART_NUM_1;
     if (&uart_ref_ == &Serial2) return UART_NUM_2;
+    
+    // For air conditioning communication, we should only use Serial1 or Serial2
+    ESP_LOGW(TAG, "Unknown HardwareSerial reference, defaulting to UART_NUM_1");
     return UART_NUM_1; // Default fallback
 }
 
