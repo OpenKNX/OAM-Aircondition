@@ -182,24 +182,9 @@ void SceneHandler::applyParameters(int index)
     logDebugP("Applying parameters for scene %c", index + 65);
     SceneParameters params = getSceneParameters(index);
     
-    // <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
-    // <Enumeration Text="Ausschalten" Value="0" Id="%ENID%" />
-    // <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
-    switch (params.onOff)
-    {
-        case 255:
-            break; // No change
-        case 0:
-            logDebugP("Turning off air conditioner");
-            _airConditionDriver.setPower(false);
-            break;
-        case 1:
-            logDebugP("Turning on air conditioner");
-            _airConditionDriver.setPower(true);
-            break;
-        default:
-            logErrorP("Invalid on/off value %d", params.onOff);
-    }
+    // Apply mode, temperature, and fan settings FIRST before turning on power
+    // This ensures the pending state is set correctly before the D1 command is sent
+    
     // <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
     // <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
     // <Enumeration Text="Kühlen" Value="1" Id="%ENID%" />
@@ -370,5 +355,26 @@ void SceneHandler::applyParameters(int index)
             logDebugP("Setting device mode to %d", params.deviceMode);
             _airConditionDriver.setDeviceMode((AirConditionDeviceMode) params.deviceMode);
             break;
+    }
+    
+    // Apply power state LAST after all parameters are set
+    // This ensures the D1 command uses the correct pending state
+    // <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+    // <Enumeration Text="Ausschalten" Value="0" Id="%ENID%" />
+    // <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
+    switch (params.onOff)
+    {
+        case 255:
+            break; // No change
+        case 0:
+            logDebugP("Turning off air conditioner");
+            _airConditionDriver.setPower(false);
+            break;
+        case 1:
+            logDebugP("Turning on air conditioner");
+            _airConditionDriver.setPower(true);
+            break;
+        default:
+            logErrorP("Invalid on/off value %d", params.onOff);
     }
 }
