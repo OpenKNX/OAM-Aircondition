@@ -39,11 +39,11 @@ if (!$?) { exit 1 }
 # if (!$?) { exit 1 }
 
 
-../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_OpenKNX_UP1_GW_2XUART firmware-Aircondition-OpenKNX-UP1-GW-2xUART uf2
+../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_OpenKNX_UP1_GW_UART firmware-Aircondition-OpenKNX-UP1-GW-UART uf2
 if (!$?) { exit 1 }
 
-../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_OpenKNX_UP1_WLAN_2XUART firmware-Aircondition-OpenKNX-UP1-WLAN-2xUART esp32
-if (!$?) { exit 1 }
+#../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_OpenKNX_UP1_WLAN_2XUART firmware-Aircondition-OpenKNX-UP1-WLAN-2xUART esp32
+#if (!$?) { exit 1 }
 
  #../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_TP firmware-Aircondition-Adafruit_Feather_ESP32_V2_TP esp32
  #if (!$?) { exit 1 }
