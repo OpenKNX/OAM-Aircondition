@@ -2034,13 +2034,17 @@ void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
     }
     stats_.frames_ok++;
 
-    if (data[0] != '1')
+    // Demand encoding per S21 wiki:
+    // '1' => 100%, '2' => 90%, ... '9' => 20%
+    if (data[0] >= '1' && data[0] <= '9')
     {
-        uint8_t demand_raw = data[0] - '0'; // Demand percentage calculation (as per S21 wiki)
-        if (demand_raw <= 9)
-        { // Sanity check for ASCII digit
-            state_.demand_percentage = 100 - demand_raw;
-        }
+        uint8_t demand_step = static_cast<uint8_t>(data[0] - '0');
+        state_.demand_percentage = static_cast<uint8_t>(110 - (demand_step * 10));
+    }
+    else
+    {
+        logDebugP("F7: unsupported demand byte 0x%02X, keeping previous demand=%u%%",
+                  data[0], state_.demand_percentage);
     }
     state_.econo = (data[1] & 0x02) != 0; // econo: payload[1] & 0x02 (as per S21 wiki)
 
