@@ -1514,7 +1514,7 @@ void DaikinDriver::sendPowerfulCommand()
     {
         return;
     }
-    logDebugP("Sending S21 powerful command D6");
+    logDebugP("Sending S21 powerful command D7");
 
     PayloadBuffer payload;
     payload[0] = pending_.climate.powerful ? 0x01 : 0x00;
@@ -1574,7 +1574,7 @@ void DaikinDriver::sendSensorCommand()
     {
         return;
     }
-    logDebugP("Sending S21 sensor command D6");
+    logDebugP("Sending S21 sensor command D8");
 
     PayloadBuffer payload;
     payload[0] = static_cast<uint8_t>(pending_.climate.sensor_temp * 2); // 0.5°C steps

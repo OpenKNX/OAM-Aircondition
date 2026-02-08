@@ -84,8 +84,9 @@ namespace EnvironmentQuery {
 namespace StateCommand {
   inline constexpr std::string_view PowerModeTempFan{"D1"};
   inline constexpr std::string_view LouvreSwingMode{"D5"};
-  inline constexpr std::string_view Powerful{"D6"};
-  inline constexpr std::string_view Econo{"D7"};
+  inline constexpr std::string_view Comfort{"D6"};
+  inline constexpr std::string_view Powerful{"D7"};
+  inline constexpr std::string_view Econo{"D3"};
   inline constexpr std::string_view Quiet{"D4"};
   inline constexpr std::string_view Sensor{"D8"};
   inline constexpr std::string_view Led{"D9"};
