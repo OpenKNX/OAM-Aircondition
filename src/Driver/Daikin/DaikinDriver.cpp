@@ -3114,7 +3114,6 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 }
             }
             // Smart NAK tracking with overflow protection
-            query.naks++;
             if (!query.naks)
             { // Overflow protection (255 -> 0 wraparound)
                 query.bad = true;
