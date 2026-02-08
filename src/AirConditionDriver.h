@@ -76,6 +76,16 @@ public:
     virtual void updateHumidity(uint8_t humidity) = 0;
     virtual void updateHumidityMode(uint8_t step) = 0;     
     virtual void updateTotalEnergyConsumption(uint32_t totalEnergyWh) = 0;
+
+    // Optional vendor-specific extension telemetry.
+    // Default no-op so existing modules/drivers do not need to implement it.
+    virtual void updateDaikinExtensionTelemetry(bool fu04Valid,
+                                                uint32_t fu04CoolingWh10,
+                                                uint32_t fu04HeatingWh10,
+                                                bool fx60Valid,
+                                                uint32_t fx60Value10)
+    {
+    }
 };
 
 class AirConditionDriver 

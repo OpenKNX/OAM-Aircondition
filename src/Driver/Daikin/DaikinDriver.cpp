@@ -741,6 +741,48 @@ void DaikinDriver::initializeQueries()
         }
     }
 
+    // v3.20+ extension fields (FU** / FX**) from S21 protocol wiki
+    if (major > 3 || (major == 3 && minor >= 20))
+    {
+        // FU**: keep FU00 as static capabilities; poll FU02/FU04 each cycle
+        queries_.emplace_back(StateQuery::ExtensionFU00, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU00, data, data_size); }, true);
+        queries_.emplace_back(StateQuery::ExtensionFU02, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU02, data, data_size); });
+        queries_.emplace_back(StateQuery::ExtensionFU04, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU04, data, data_size); });
+
+        // FX** baseline extension pages (read once)
+        constexpr std::array<std::string_view, 13> fx_v320 = {
+            StateQuery::ExtensionFX00, StateQuery::ExtensionFX10, StateQuery::ExtensionFX20, StateQuery::ExtensionFX30,
+            StateQuery::ExtensionFX40, StateQuery::ExtensionFX50, StateQuery::ExtensionFX60, StateQuery::ExtensionFX70,
+            StateQuery::ExtensionFX80, StateQuery::ExtensionFX90, StateQuery::ExtensionFXA0, StateQuery::ExtensionFXB0,
+            StateQuery::ExtensionFXC0};
+
+        for (const auto cmd : fx_v320)
+        {
+            queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, true);
+        }
+
+        // v3.40+ additional extension pages (read once)
+        if (major > 3 || (major == 3 && minor >= 40))
+        {
+            constexpr std::array<std::string_view, 5> fu_v340 = {
+                StateQuery::ExtensionFU05, StateQuery::ExtensionFU15, StateQuery::ExtensionFU25, StateQuery::ExtensionFU35, StateQuery::ExtensionFU45};
+
+            constexpr std::array<std::string_view, 12> fx_v340 = {
+                StateQuery::ExtensionFXD0, StateQuery::ExtensionFXE0, StateQuery::ExtensionFXF0, StateQuery::ExtensionFX01,
+                StateQuery::ExtensionFX11, StateQuery::ExtensionFX21, StateQuery::ExtensionFX31, StateQuery::ExtensionFX41,
+                StateQuery::ExtensionFX51, StateQuery::ExtensionFX61, StateQuery::ExtensionFX71, StateQuery::ExtensionFX81};
+
+            for (const auto cmd : fu_v340)
+            {
+                queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, true);
+            }
+            for (const auto cmd : fx_v340)
+            {
+                queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, true);
+            }
+        }
+    }
+
     // Environment queries (most are supported across protocols)
     queries_.emplace_back(EnvironmentQuery::InsideTemperature, [this](uint8_t* data, size_t data_size) { handle_rh_response(data, data_size); });
     queries_.emplace_back(EnvironmentQuery::TargetTemperature, [this](uint8_t* data, size_t data_size) { handle_rx_response(data, data_size); });
@@ -1141,6 +1183,25 @@ bool DaikinDriver::isQuerySupported(std::string_view command) const
         if (command.size() > 3 && command.substr(0, 3) == "FU0")
         { // FU02, FU04, etc.
             logDebugP("Skipping v3.20+ query %.*s - protocol v%d.%d too old",
+                      static_cast<int>(command.size()), command.data(), major, minor);
+            return false;
+        }
+    }
+
+    // Additional FU/FX pages are only available from v3.40+
+    if (major < 3 || (major == 3 && minor < 40))
+    {
+        if (command == StateQuery::ExtensionFU05 || command == StateQuery::ExtensionFU15 ||
+            command == StateQuery::ExtensionFU25 || command == StateQuery::ExtensionFU35 ||
+            command == StateQuery::ExtensionFU45 || command == StateQuery::ExtensionFXD0 ||
+            command == StateQuery::ExtensionFXE0 || command == StateQuery::ExtensionFXF0 ||
+            command == StateQuery::ExtensionFX01 || command == StateQuery::ExtensionFX11 ||
+            command == StateQuery::ExtensionFX21 || command == StateQuery::ExtensionFX31 ||
+            command == StateQuery::ExtensionFX41 || command == StateQuery::ExtensionFX51 ||
+            command == StateQuery::ExtensionFX61 || command == StateQuery::ExtensionFX71 ||
+            command == StateQuery::ExtensionFX81)
+        {
+            logDebugP("Skipping v3.40+ query %.*s - protocol v%d.%d too old",
                       static_cast<int>(command.size()), command.data(), major, minor);
             return false;
         }
@@ -2355,6 +2416,109 @@ void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
     }
 }
 
+void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data, size_t data_size)
+{
+    if (data_size < 1)
+    {
+        logErrorP("%.*s response empty", static_cast<int>(command.size()), command.data());
+        return;
+    }
+    if (data_size == 1)
+    {
+        logDebugP("%.*s: ACK only (0x%02X)", static_cast<int>(command.size()), command.data(), data[0]);
+        return;
+    }
+    stats_.frames_ok++;
+
+    auto hex_nibble = [](uint8_t c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
+        if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
+        return -1;
+    };
+
+    auto parse_reversed_ascii_hex = [&](const uint8_t* src, size_t len, uint32_t& out) -> bool {
+        if (len == 0 || len > 8) return false;
+        uint32_t value = 0;
+        for (size_t i = 0; i < len; i++)
+        {
+            int n = hex_nibble(src[len - 1 - i]);
+            if (n < 0) return false;
+            value = (value << 4) | static_cast<uint32_t>(n);
+        }
+        out = value;
+        return true;
+    };
+
+    if (command == StateQuery::ExtensionFU00 && data_size >= 6)
+    {
+        const bool has_fu05 = (data[0] == '3');
+        const bool has_fu15 = (data[1] == '3');
+        const bool has_fu25 = (data[2] == '3');
+        const bool has_fu35 = (data[3] == '3');
+        const bool has_fu45 = (data[4] == '3');
+        const bool has_fx40 = (data[5] == '3');
+
+        logInfoP("FU00: availability FU05=%d FU15=%d FU25=%d FU35=%d FU45=%d FX40=%d",
+                 has_fu05, has_fu15, has_fu25, has_fu35, has_fu45, has_fx40);
+        return;
+    }
+
+    if (command == StateQuery::ExtensionFU02 && data_size >= 3)
+    {
+        logInfoP("FU02: limits/status bytes [%02X %02X %02X]",
+                 data[0], data[1], data[2]);
+        return;
+    }
+
+    if (command == StateQuery::ExtensionFU04 && data_size >= 16)
+    {
+        uint32_t cool_wh10 = 0;
+        uint32_t heat_wh10 = 0;
+        const bool cool_ok = parse_reversed_ascii_hex(data, 8, cool_wh10);
+        const bool heat_ok = parse_reversed_ascii_hex(data + 8, 8, heat_wh10);
+        if (cool_ok && heat_ok)
+        {
+            state_.fu04_valid = true;
+            state_.fu04_cooling_wh10 = cool_wh10;
+            state_.fu04_heating_wh10 = heat_wh10;
+
+            logInfoP("FU04: cooling=%.1fWh heating=%.1fWh (reversed ASCII hex)",
+                     cool_wh10 / 10.0f, heat_wh10 / 10.0f);
+            return;
+        }
+    }
+
+    if (command == StateQuery::ExtensionFX60 && data_size >= 4)
+    {
+        uint32_t value = 0;
+        if (parse_reversed_ascii_hex(data, 4, value))
+        {
+            state_.fx60_valid = true;
+            state_.fx60_value10 = value;
+
+            logInfoP("FX60: power-like value=%.1f (raw 0x%04X)", value / 10.0f, static_cast<unsigned>(value));
+            return;
+        }
+    }
+
+    constexpr size_t preview_max = 12;
+    char preview[(preview_max * 2) + 1];
+    size_t pos = 0;
+    const size_t show = std::min(preview_max, data_size);
+    for (size_t i = 0; i < show && (pos + 2) < sizeof(preview); i++)
+    {
+        int written = snprintf(preview + pos, sizeof(preview) - pos, "%02X", data[i]);
+        if (written <= 0) break;
+        pos += static_cast<size_t>(written);
+    }
+    preview[std::min(pos, sizeof(preview) - 1)] = '\0';
+
+    logInfoP("%.*s: payload %zu bytes (head=%s%s)",
+             static_cast<int>(command.size()), command.data(),
+             data_size, preview, data_size > show ? "..." : "");
+}
+
 void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
 {
     if (data_size < 1)
@@ -2812,6 +2976,24 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                         {
                             is_valid_response = true;
                         }
+                        // FU/FX extension pages can return alternate GU/GX page headers.
+                        // We accept the family prefix while requests are serialized.
+                        else if (expected_cmd.size() == 4 &&
+                                 response_header.size() == 4 &&
+                                 expected_cmd[1] == 'U' &&
+                                 response_header[0] == 'G' &&
+                                 response_header[1] == 'U')
+                        {
+                            is_valid_response = true;
+                        }
+                        else if (expected_cmd.size() == 4 &&
+                                 response_header.size() == 4 &&
+                                 expected_cmd[1] == 'X' &&
+                                 response_header[0] == 'G' &&
+                                 response_header[1] == 'X')
+                        {
+                            is_valid_response = true;
+                        }
                     }
                     else if (expected_cmd[0] == 'R')
                     {
@@ -3009,6 +3191,11 @@ void DaikinDriver::publishState()
     static uint8_t last_humidity_mode = 0;
     static uint32_t last_total_energy = 0;
     static bool last_online = false;
+    static bool last_fu04_valid = false;
+    static uint32_t last_fu04_cooling_wh10 = 0;
+    static uint32_t last_fu04_heating_wh10 = 0;
+    static bool last_fx60_valid = false;
+    static uint32_t last_fx60_value10 = 0;
 
     // KO Seeding: Initialize all KOs after first complete sample to fix missing states after KNX restart
     if (seed_kos_pending_)
@@ -3162,6 +3349,26 @@ void DaikinDriver::publishState()
     {
         statusFeedback.updateOnlineStatus(state_.online);
         last_online = state_.online;
+    }
+
+    if (state_.fu04_valid != last_fu04_valid ||
+        state_.fu04_cooling_wh10 != last_fu04_cooling_wh10 ||
+        state_.fu04_heating_wh10 != last_fu04_heating_wh10 ||
+        state_.fx60_valid != last_fx60_valid ||
+        state_.fx60_value10 != last_fx60_value10)
+    {
+        statusFeedback.updateDaikinExtensionTelemetry(
+            state_.fu04_valid,
+            state_.fu04_cooling_wh10,
+            state_.fu04_heating_wh10,
+            state_.fx60_valid,
+            state_.fx60_value10);
+
+        last_fu04_valid = state_.fu04_valid;
+        last_fu04_cooling_wh10 = state_.fu04_cooling_wh10;
+        last_fu04_heating_wh10 = state_.fu04_heating_wh10;
+        last_fx60_valid = state_.fx60_valid;
+        last_fx60_value10 = state_.fx60_value10;
     }
 }
 

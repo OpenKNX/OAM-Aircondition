@@ -16,6 +16,11 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     bool _waitingForDehumidification = false;
     bool _waitingForAuto = false;
     unsigned long _waitingForModeChange = 0;
+    bool _daikinFu04Valid = false;
+    uint32_t _daikinFu04CoolingWh10 = 0;
+    uint32_t _daikinFu04HeatingWh10 = 0;
+    bool _daikinFx60Valid = false;
+    uint32_t _daikinFx60Value10 = 0;
 
     AirConditionDriver* _airConditionDriver = nullptr;
     SceneHandler* _sceneHandler = nullptr;
@@ -73,6 +78,11 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     void updateHumidity(uint8_t humidity) override;
     void updateHumidityMode(uint8_t step) override;
     void updateTotalEnergyConsumption(uint32_t totalEnergyWh) override;
+    void updateDaikinExtensionTelemetry(bool fu04Valid,
+                                        uint32_t fu04CoolingWh10,
+                                        uint32_t fu04HeatingWh10,
+                                        bool fx60Valid,
+                                        uint32_t fx60Value10) override;
 };
 
 extern AirconditionModule openknxAircondition;

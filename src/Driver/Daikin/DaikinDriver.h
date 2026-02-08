@@ -30,6 +30,43 @@ namespace StateQuery {
   inline constexpr std::string_view CapabilityT{"FT"};
   inline constexpr std::string_view CapabilityK{"FK"}; 
   inline constexpr std::string_view NewProtocol{"FY00"};
+  // v3.20+ extension field queries (U-family)
+  inline constexpr std::string_view ExtensionFU00{"FU00"};
+  inline constexpr std::string_view ExtensionFU02{"FU02"};
+  inline constexpr std::string_view ExtensionFU04{"FU04"};
+  // v3.40+ extension field queries (U-family)
+  inline constexpr std::string_view ExtensionFU05{"FU05"};
+  inline constexpr std::string_view ExtensionFU15{"FU15"};
+  inline constexpr std::string_view ExtensionFU25{"FU25"};
+  inline constexpr std::string_view ExtensionFU35{"FU35"};
+  inline constexpr std::string_view ExtensionFU45{"FU45"};
+  // v3.20+ extension field queries (X-family)
+  inline constexpr std::string_view ExtensionFX00{"FX00"};
+  inline constexpr std::string_view ExtensionFX10{"FX10"};
+  inline constexpr std::string_view ExtensionFX20{"FX20"};
+  inline constexpr std::string_view ExtensionFX30{"FX30"};
+  inline constexpr std::string_view ExtensionFX40{"FX40"};
+  inline constexpr std::string_view ExtensionFX50{"FX50"};
+  inline constexpr std::string_view ExtensionFX60{"FX60"};
+  inline constexpr std::string_view ExtensionFX70{"FX70"};
+  inline constexpr std::string_view ExtensionFX80{"FX80"};
+  inline constexpr std::string_view ExtensionFX90{"FX90"};
+  inline constexpr std::string_view ExtensionFXA0{"FXA0"};
+  inline constexpr std::string_view ExtensionFXB0{"FXB0"};
+  inline constexpr std::string_view ExtensionFXC0{"FXC0"};
+  // v3.40+ extension field queries (X-family)
+  inline constexpr std::string_view ExtensionFXD0{"FXD0"};
+  inline constexpr std::string_view ExtensionFXE0{"FXE0"};
+  inline constexpr std::string_view ExtensionFXF0{"FXF0"};
+  inline constexpr std::string_view ExtensionFX01{"FX01"};
+  inline constexpr std::string_view ExtensionFX11{"FX11"};
+  inline constexpr std::string_view ExtensionFX21{"FX21"};
+  inline constexpr std::string_view ExtensionFX31{"FX31"};
+  inline constexpr std::string_view ExtensionFX41{"FX41"};
+  inline constexpr std::string_view ExtensionFX51{"FX51"};
+  inline constexpr std::string_view ExtensionFX61{"FX61"};
+  inline constexpr std::string_view ExtensionFX71{"FX71"};
+  inline constexpr std::string_view ExtensionFX81{"FX81"};
 }
 
 namespace EnvironmentQuery {
@@ -364,6 +401,7 @@ private:
     void handle_fs_response(uint8_t* data, size_t data_size);
     void handle_ft_response(uint8_t* data, size_t data_size);
     void handle_fk_response(uint8_t* data, size_t data_size);
+    void handle_fu_fx_response(std::string_view command, uint8_t* data, size_t data_size);
     void handle_ra_response(uint8_t* data, size_t data_size);
     void handle_rd_response(uint8_t* data, size_t data_size);
     void handle_re_response(uint8_t* data, size_t data_size);

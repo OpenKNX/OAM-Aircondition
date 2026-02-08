@@ -220,6 +220,15 @@ void AirconditionModule::showInformations()
         logInfoP("Maximum Horizontal Fix Position: %u", _airConditionDriver->getMaximumHorizontalFixPosition());
         logInfoP("Maximum Vertical Fix Position: %u", _airConditionDriver->getMaximumVerticalFixPosition());
         logInfoP("Current Driver State: %d", _driverState);
+        if (_daikinFu04Valid)
+        {
+            logInfoP("Daikin Extension FU04: cooling=%.1fWh heating=%.1fWh",
+                     _daikinFu04CoolingWh10 / 10.0f, _daikinFu04HeatingWh10 / 10.0f);
+        }
+        if (_daikinFx60Valid)
+        {
+            logInfoP("Daikin Extension FX60: value=%.1f", _daikinFx60Value10 / 10.0f);
+        }
         _airConditionDriver->showInformations();
     }
     else
@@ -965,5 +974,21 @@ void AirconditionModule::updateHumidityMode(uint8_t step) {
 
 void AirconditionModule::updateTotalEnergyConsumption(uint32_t totalEnergyWh) {
     KoAIR_TotalEnergy.valueCompare(totalEnergyWh / 1000.0f, DPT_ActiveEnergy_kWh);
+}
+
+void AirconditionModule::updateDaikinExtensionTelemetry(bool fu04Valid,
+                                                        uint32_t fu04CoolingWh10,
+                                                        uint32_t fu04HeatingWh10,
+                                                        bool fx60Valid,
+                                                        uint32_t fx60Value10) {
+    _daikinFu04Valid = fu04Valid;
+    _daikinFu04CoolingWh10 = fu04CoolingWh10;
+    _daikinFu04HeatingWh10 = fu04HeatingWh10;
+    _daikinFx60Valid = fx60Valid;
+    _daikinFx60Value10 = fx60Value10;
+
+    // TODO: Map FU04/FX60 extension telemetry to dedicated KOs once DPT/object definitions are finalized.
+    logDebugP("Daikin extension telemetry updated (FU04 valid=%d, FX60 valid=%d)",
+              fu04Valid ? 1 : 0, fx60Valid ? 1 : 0);
 }
 
