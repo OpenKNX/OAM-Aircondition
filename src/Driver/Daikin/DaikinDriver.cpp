@@ -2079,10 +2079,11 @@ void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
             logInfoP("F8: Protocol v2+ detected (G8 '0' '2') - sending FY00 to distinguish v2 vs v3");
             // Don't set protocol_version_ yet - wait for FY00 response
         }
-        else if (data[0] == 0x02 && data[1] == 0x00)
+        else if ((data[0] == 0x02 && data[1] == 0x00) ||
+                 (data[0] == '0' && data[1] == '2' && data[2] == '0' && data[3] == '0'))
         {
-            // Protocol v3.1+ format "G8 0200"
-            logInfoP("F8: Protocol v3.1+ detected (G8 0200) - sending FY00 for exact version");
+            // Protocol v3.1+ style "G8 0200" (binary or ASCII 0x30 0x32 0x30 0x30)
+            logInfoP("F8: Protocol v3.1+ style detected (G8 0200 / 30323030) - sending FY00 for exact version");
             // Don't set protocol_version_ yet - wait for FY00 response
         }
         else
