@@ -1516,11 +1516,16 @@ void DaikinDriver::sendPowerfulCommand()
     }
     logDebugP("Sending S21 powerful command D7");
 
-    PayloadBuffer payload;
-    payload[0] = pending_.climate.powerful ? 0x01 : 0x00;
+    PayloadBuffer payload{};
+    // 4-byte structured payload; byte 0 bit 1 carries powerful flag
+    payload[0] = 0x30; // shielded zero base
+    payload[1] = 0x30;
+    payload[2] = 0x30;
+    payload[3] = 0x30;
+    if (pending_.climate.powerful) payload[0] |= 0x02;
 
     std::string cmd(StateCommand::Powerful);
-    serial_->send_frame(cmd, payload.data(), 1);
+    serial_->send_frame(cmd, payload.data(), 4);
 
     // v0 stability: Enter post-write settle for D-type commands
     handleWriteCommandSent(LastWriteCommand::Other);
@@ -1536,11 +1541,16 @@ void DaikinDriver::sendEconoCommand()
     }
     logDebugP("Sending S21 econo command D3");
 
-    PayloadBuffer payload;
-    payload[0] = pending_.climate.econo ? 0x01 : 0x00;
+    PayloadBuffer payload{};
+    // 4-byte structured payload; byte 1 bit 1 carries econo flag
+    payload[0] = 0x30;
+    payload[1] = 0x30;
+    payload[2] = 0x30;
+    payload[3] = 0x30;
+    if (pending_.climate.econo) payload[1] |= 0x02;
 
     std::string cmd(StateCommand::Econo);
-    serial_->send_frame(cmd, payload.data(), 1);
+    serial_->send_frame(cmd, payload.data(), 4);
 
     // v0 stability: Enter post-write settle for D-type commands
     handleWriteCommandSent(LastWriteCommand::Other);
@@ -1556,11 +1566,16 @@ void DaikinDriver::sendQuietCommand()
     }
     logDebugP("Sending S21 quiet command D4");
 
-    PayloadBuffer payload;
-    payload[0] = pending_.climate.quiet ? 0x01 : 0x00;
+    PayloadBuffer payload{};
+    // 4-byte structured payload; byte 0 bit 7 carries quiet flag
+    payload[0] = 0x30;
+    payload[1] = 0x30;
+    payload[2] = 0x30;
+    payload[3] = 0x30;
+    if (pending_.climate.quiet) payload[0] |= 0x80;
 
     std::string cmd(StateCommand::Quiet);
-    serial_->send_frame(cmd, payload.data(), 1);
+    serial_->send_frame(cmd, payload.data(), 4);
 
     // v0 stability: Enter post-write settle for D-type commands
     handleWriteCommandSent(LastWriteCommand::Other);
@@ -1576,11 +1591,15 @@ void DaikinDriver::sendSensorCommand()
     }
     logDebugP("Sending S21 sensor command D8");
 
-    PayloadBuffer payload;
+    PayloadBuffer payload{};
+    // 4-byte structured payload; preserve existing external-sensor setpoint encoding in byte 0
     payload[0] = static_cast<uint8_t>(pending_.climate.sensor_temp * 2); // 0.5°C steps
+    payload[1] = 0x30;
+    payload[2] = 0x30;
+    payload[3] = 0x30;
 
     std::string cmd(StateCommand::Sensor);
-    serial_->send_frame(cmd, payload.data(), 1);
+    serial_->send_frame(cmd, payload.data(), 4);
 
     // v0 stability: Enter post-write settle for D-type commands
     handleWriteCommandSent(LastWriteCommand::Other);
@@ -1594,13 +1613,19 @@ void DaikinDriver::sendLedCommand()
     {
         return;
     }
-    logDebugP("Sending S21 LED command D7");
+    logDebugP("Sending S21 LED command D9");
 
-    PayloadBuffer payload;
-    payload[0] = pending_.climate.led ? 0x01 : 0x00;
+    PayloadBuffer payload{};
+    // 4-byte structured payload; byte 3 controls LED state
+    // ON:  bit2 set, bit3 clear (0x04)
+    // OFF: bit2+bit3 set (0x0C)
+    payload[0] = 0x30;
+    payload[1] = 0x30;
+    payload[2] = 0x30;
+    payload[3] = pending_.climate.led ? 0x34 : 0x3C;
 
     std::string cmd(StateCommand::Led);
-    serial_->send_frame(cmd, payload.data(), 1);
+    serial_->send_frame(cmd, payload.data(), 4);
 
     // v0 stability: Enter post-write settle for D-type commands
     handleWriteCommandSent(LastWriteCommand::Other);
@@ -1616,11 +1641,16 @@ void DaikinDriver::sendStreamerCommand()
     }
     logDebugP("Sending S21 streamer command DA");
 
-    PayloadBuffer payload;
-    payload[0] = pending_.climate.streamer ? 0x01 : 0x00;
+    PayloadBuffer payload{};
+    // 4-byte structured payload; byte 1 bit 7 carries streamer flag
+    payload[0] = 0x30;
+    payload[1] = 0x30;
+    payload[2] = 0x30;
+    payload[3] = 0x30;
+    if (pending_.climate.streamer) payload[1] |= 0x80;
 
     std::string cmd(StateCommand::Streamer);
-    serial_->send_frame(cmd, payload.data(), 1);
+    serial_->send_frame(cmd, payload.data(), 4);
 
     // v0 stability: Enter post-write settle for D-type commands
     handleWriteCommandSent(LastWriteCommand::Other);
