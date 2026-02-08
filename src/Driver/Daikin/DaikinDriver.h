@@ -90,7 +90,7 @@ namespace StateCommand {
   inline constexpr std::string_view Quiet{"D4"};
   inline constexpr std::string_view Sensor{"D8"};
   inline constexpr std::string_view Led{"D9"};
-  inline constexpr std::string_view Streamer{"DA"};
+  inline constexpr std::string_view Streamer{"D6"};
 }
 
 namespace MiscQuery {

@@ -639,7 +639,7 @@ void DaikinDriver::setAirPurification(bool on)
     pending_.climate.streamer = on;
     pending_.activate_streamer = true;
 
-    sendStreamerCommand(); // Send S21 streamer command - DA controls streamer
+    sendStreamerCommand(); // Send S21 streamer command - D6 controls streamer bitfield
 }
 
 // === S21 Protocol Implementation ===
@@ -1639,7 +1639,7 @@ void DaikinDriver::sendStreamerCommand()
     {
         return;
     }
-    logDebugP("Sending S21 streamer command DA");
+    logDebugP("Sending S21 streamer command D6");
 
     PayloadBuffer payload{};
     // 4-byte structured payload; byte 1 bit 7 carries streamer flag
