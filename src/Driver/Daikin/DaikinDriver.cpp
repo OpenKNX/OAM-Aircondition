@@ -2560,29 +2560,32 @@ void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
         logErrorP("RG response empty");
         return;
     }
-    if (data_size == 1)
-    { // Single-byte response is always ACK
-        uint8_t response = data[0];
-        logDebugP("RG: Single-byte ACK received (0x%02X) - no fan mode data", response);
+
+    stats_.frames_ok++;
+
+    const uint8_t raw = data[0];
+    const bool known_fan_value =
+        (raw == 0x00 || raw == 0x03 || raw == 0x04 || raw == 0x05 || raw == 0x06 || raw == 0x07 || raw == 0x0B ||
+         raw == '0' || raw == 'A' || raw == 'B' || raw == '3' || raw == '4' || raw == '5' || raw == '6' || raw == '7');
+
+    if (!known_fan_value)
+    {
+        logDebugP("RG: unexpected fan payload byte 0x%02X (len=%zu) - ignoring", raw, data_size);
         return;
     }
-    // Multi-byte response contains fan mode
-    if (data_size >= 1)
+
+    support_.fan_mode_query = true; // Mark fan mode query as supported once valid payload is seen
+
+    daikin::DaikinFanMode old_fan = state_.fan;
+    state_.fan = daikin_to_fan_mode(raw);
+    logDebugP("RG: fan_mode decoded from raw 0x%02X ('%c') -> %d",
+              raw, (raw >= 32 && raw < 127) ? static_cast<char>(raw) : '?', static_cast<int>(state_.fan));
+
+    // Report fan speed change if it changed
+    if (old_fan != state_.fan)
     {
-        stats_.frames_ok++;
-
-        support_.fan_mode_query = true; // Mark that fan mode query is supported since we got multi-byte data
-
-        daikin::DaikinFanMode old_fan = state_.fan;
-        state_.fan = daikin_to_fan_mode(data[0]);
-        logDebugP("RG: fan_mode=%d", static_cast<int>(state_.fan));
-
-        // Report fan speed change if it changed
-        if (old_fan != state_.fan)
-        {
-            logInfoP("RG: Fan speed changed from %d to %d", static_cast<int>(old_fan), static_cast<int>(state_.fan));
-            publishState(); // Trigger immediate state update
-        }
+        logInfoP("RG: Fan speed changed from %d to %d", static_cast<int>(old_fan), static_cast<int>(state_.fan));
+        publishState(); // Trigger immediate state update
     }
 }
 
@@ -3548,12 +3551,21 @@ daikin::DaikinFanMode DaikinDriver::daikin_to_fan_mode(uint8_t fan) const
 {
     switch (fan)
     {
-        case 0x00: return daikin::DaikinFanMode::Auto;
-        case 0x03: return daikin::DaikinFanMode::Speed1;
-        case 0x04: return daikin::DaikinFanMode::Speed2;
-        case 0x05: return daikin::DaikinFanMode::Speed3;
-        case 0x06: return daikin::DaikinFanMode::Speed4;
-        case 0x07: return daikin::DaikinFanMode::Speed5;
+        case 0x00:
+        case '0':
+        case 'A': return daikin::DaikinFanMode::Auto;
+        case 0x0B:
+        case 'B': return daikin::DaikinFanMode::Silent;
+        case 0x03:
+        case '3': return daikin::DaikinFanMode::Speed1;
+        case 0x04:
+        case '4': return daikin::DaikinFanMode::Speed2;
+        case 0x05:
+        case '5': return daikin::DaikinFanMode::Speed3;
+        case 0x06:
+        case '6': return daikin::DaikinFanMode::Speed4;
+        case 0x07:
+        case '7': return daikin::DaikinFanMode::Speed5;
         default: return daikin::DaikinFanMode::Auto;
     }
 }
