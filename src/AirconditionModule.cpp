@@ -618,6 +618,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     logErrorP("No SceneHandler initialized");
                 }
             }
+            break;
             case AIR_KoPowerLimit:
             {
                 uint8_t powerLimit = (uint8_t)ko.value(DPT_Scaling);
