@@ -6,7 +6,7 @@
 #include <cctype>
 #include <numeric>
 
-// Implements the Faikin S21 protocol (8972aa9) (https://github.com/revk/ESP32-Faikin/wiki/S21-Protocol#protocol-versions)
+// Implements the Faikout S21 protocol (ba4eb32) (https://github.com/revk/ESP32-Faikout/wiki/S21-Protocol)
 
 // S21 decoding functions
 namespace
