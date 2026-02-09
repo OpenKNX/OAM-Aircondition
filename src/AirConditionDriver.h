@@ -80,8 +80,8 @@ public:
     // Optional vendor-specific extension telemetry.
     // Default no-op so existing modules/drivers do not need to implement it.
     virtual void updateDaikinExtensionTelemetry(bool fu04Valid,
-                                                uint32_t fu04CoolingWh10,
-                                                uint32_t fu04HeatingWh10,
+                                                uint32_t fu04CoolingWh,
+                                                uint32_t fu04HeatingWh,
                                                 bool fx60Valid,
                                                 uint32_t fx60Value10)
     {

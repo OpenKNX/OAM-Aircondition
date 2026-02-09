@@ -11,6 +11,25 @@
 // S21 decoding functions
 namespace
 {
+    int s21_hex_nibble(uint8_t c)
+    {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        return -1;
+    }
+
+    // Decodes a 1-byte value transported as 2 ASCII hex chars in S21 reverse order.
+    // Example: payload "40" => value 0x04.
+    bool s21_decode_hex_byte_reversed(const uint8_t* payload, uint8_t& out)
+    {
+        int lo = s21_hex_nibble(payload[0]);
+        int hi = s21_hex_nibble(payload[1]);
+        if (lo < 0 || hi < 0) return false;
+        out = static_cast<uint8_t>((hi << 4) | lo);
+        return true;
+    }
+
     // s21_decode_target_temp function
     float s21_decode_target_temp(uint8_t v)
     {
@@ -1028,11 +1047,22 @@ void DaikinDriver::updateQueryStateMachine()
             {
                 logInfoP("Post-write settle complete, scheduling first F1 query with extended timeout");
 
-                scheduleFirstF1AfterWrite(); // First query after write gets special handling for v0 stability
-
-                // Clear the write tracking
+                // Clear completed settle tracking BEFORE scheduling follow-up work.
+                // scheduleFirstF1AfterWrite() may flush a coalesced D1/D5 write, which
+                // re-enters PostWriteSettle and sets a new last_write_time_.
+                // Clearing afterwards can overwrite that new timestamp and stall the state machine.
                 last_write_time_ = 0;
                 last_write_command_ = LastWriteCommand::None;
+
+                scheduleFirstF1AfterWrite(); // First query after write gets special handling for v0 stability
+            }
+            else if (last_write_time_ == 0)
+            {
+                // Safety recovery: if settle state is active but no write timestamp exists,
+                // resume normal query flow instead of getting stuck forever in PostWriteSettle.
+                logDebugP("Post-write settle active without write timestamp, recovering query state");
+                query_state_ = QueryState::WaitingToSend;
+                state_start_time_ = now;
             }
             break;
     }
@@ -1394,8 +1424,46 @@ void DaikinDriver::sendClimateCommand()
         default: payload[3] = 'A'; break;
     }
 
-    // Deduplication: Skip if identical to last D1 payload
-    if (std::equal(payload.begin(), payload.begin() + 4, last_sent_d1_payload_.begin()))
+    // Deduplication: Skip only if identical to last D1 payload AND device already matches it.
+    // This prevents skipping valid re-send requests after external changes (e.g. unit turned off via app/remote).
+    const bool same_as_last_sent = std::equal(payload.begin(), payload.begin() + 4, last_sent_d1_payload_.begin());
+    const auto current_power_payload = state_.power ? static_cast<uint8_t>('1') : static_cast<uint8_t>('0');
+
+    uint8_t current_mode_payload = '1';
+    switch (state_.mode)
+    {
+        case daikin::Mode::Heat: current_mode_payload = '4'; break;
+        case daikin::Mode::Cool: current_mode_payload = '3'; break;
+        case daikin::Mode::FanOnly: current_mode_payload = '6'; break;
+        case daikin::Mode::Dry: current_mode_payload = '2'; break;
+        case daikin::Mode::Auto:
+        case daikin::Mode::Off:
+        default: current_mode_payload = '1'; break;
+    }
+
+    const int16_t current_setpoint_c10 = static_cast<int16_t>(state_.targetC * 10);
+    const auto current_temp_payload = static_cast<uint8_t>((current_setpoint_c10 / 5) + 28);
+
+    uint8_t current_fan_payload = 'A';
+    switch (state_.fan)
+    {
+        case daikin::DaikinFanMode::Auto: current_fan_payload = 'A'; break;
+        case daikin::DaikinFanMode::Speed1: current_fan_payload = '3'; break;
+        case daikin::DaikinFanMode::Speed2: current_fan_payload = '4'; break;
+        case daikin::DaikinFanMode::Speed3: current_fan_payload = '5'; break;
+        case daikin::DaikinFanMode::Speed4: current_fan_payload = '6'; break;
+        case daikin::DaikinFanMode::Speed5: current_fan_payload = '7'; break;
+        case daikin::DaikinFanMode::Silent: current_fan_payload = 'B'; break;
+        default: current_fan_payload = 'A'; break;
+    }
+
+    const bool device_matches_payload = state_.online &&
+                                        payload[0] == current_power_payload &&
+                                        payload[1] == current_mode_payload &&
+                                        payload[2] == current_temp_payload &&
+                                        payload[3] == current_fan_payload;
+
+    if (same_as_last_sent && device_matches_payload)
     {
         logDebugP("Skipping D1: payload unchanged ['%c','%c',0x%02X,'%c']",
                   payload[0], payload[1], payload[2], payload[3]);
@@ -1412,6 +1480,10 @@ void DaikinDriver::sendClimateCommand()
         }
         pending_.activate_climate = false;
         return;
+    }
+    else if (same_as_last_sent && !device_matches_payload)
+    {
+        logInfoP("D1 dedupe bypass: payload unchanged but device state differs (or offline), forcing resend");
     }
 
     // Get human-readable names for logging
@@ -1732,26 +1804,37 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     }
     // Fan mode: no temperature setpoint, keep existing
 
+    // Decode fan nibble from F1 for diagnostics (and as fallback when RG is unavailable).
+    daikin::DaikinFanMode f1_fan = daikin::DaikinFanMode::Auto;
+    bool f1_fan_known = true;
+    switch (data[3])
+    {
+        case 'A':
+        case '0': f1_fan = daikin::DaikinFanMode::Auto; break;
+        case 'B': f1_fan = daikin::DaikinFanMode::Silent; break;
+        case '3': f1_fan = daikin::DaikinFanMode::Speed1; break;
+        case '4': f1_fan = daikin::DaikinFanMode::Speed2; break;
+        case '5': f1_fan = daikin::DaikinFanMode::Speed3; break;
+        case '6': f1_fan = daikin::DaikinFanMode::Speed4; break;
+        case '7': f1_fan = daikin::DaikinFanMode::Speed5; break;
+        default:
+            f1_fan_known = false;
+            break;
+    }
+
     // Fan: Only if RG (fan query) doesn't work - Faikin logic
     if (!support_.fan_mode_query)
     {
         daikin::DaikinFanMode old_fan = state_.fan;
 
-        // Handle direct ASCII fan values from S21 protocol
-        switch (data[3])
+        if (f1_fan_known)
         {
-            case 'A': state_.fan = daikin::DaikinFanMode::Auto; break;
-            case '0': state_.fan = daikin::DaikinFanMode::Auto; break;   // v0-Geräte melden teils '0' für Auto
-            case 'B': state_.fan = daikin::DaikinFanMode::Silent; break; // Silent/Quiet mode
-            case '3': state_.fan = daikin::DaikinFanMode::Speed1; break;
-            case '4': state_.fan = daikin::DaikinFanMode::Speed2; break;
-            case '5': state_.fan = daikin::DaikinFanMode::Speed3; break;
-            case '6': state_.fan = daikin::DaikinFanMode::Speed4; break;
-            case '7': state_.fan = daikin::DaikinFanMode::Speed5; break;
-            default:
-                logInfoP("F1: Unknown fan mode ASCII '%c' (0x%02X), defaulting to Auto", data[3], data[3]);
-                state_.fan = daikin::DaikinFanMode::Auto;
-                break;
+            state_.fan = f1_fan;
+        }
+        else
+        {
+            logInfoP("F1: Unknown fan mode ASCII '%c' (0x%02X), defaulting to Auto", data[3], data[3]);
+            state_.fan = daikin::DaikinFanMode::Auto;
         }
 
         // Detect fan mode changes from remote control
@@ -1795,9 +1878,14 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
                                                                                                                                     : " [Auto]";
     }
 
-    logInfoP("F1: power=%s, mode=%s%s, target=%.1f°C, fan=%s (ASCII fanNibble: %c)",
+    // With RG support, state_.fan may still reflect the previous sample when F1 arrives.
+    // Log both values to avoid misleading output and make nibble decoding explicit.
+    const char* f1FanStr = f1_fan_known ? fanToStr(f1_fan) : "?";
+    logInfoP("F1: power=%s, mode=%s%s, target=%.1f degC, fan=%s (state=%s, ASCII fanNibble: %c->%s)",
              state_.power ? "ON" : "OFF", modeStr, biasInfo, state_.targetC,
-             fanToStr(state_.fan), (char)data[3]);
+             support_.fan_mode_query ? f1FanStr : fanToStr(state_.fan),
+             support_.fan_mode_query ? "RG" : "F1",
+             (char)data[3], f1FanStr);
 
     // Mark F1 sample as seen for publish gating
     sample_seen_mask_ |= SEEN_F1;
@@ -2034,12 +2122,14 @@ void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
     }
     stats_.frames_ok++;
 
-    // Demand encoding per S21 wiki:
-    // '1' => 100%, '2' => 90%, ... '9' => 20%
-    if (data[0] >= '1' && data[0] <= '9')
+    // Demand encoding per Faikout S21 wiki:
+    // byte0 uses ASCII '0'..'9' where:
+    // '0' => 100%, '1' => 90%, ... '9' => 10%
+    // (value 100% is also commonly seen on units without demand control support).
+    if (data[0] >= '0' && data[0] <= '9')
     {
-        uint8_t demand_step = static_cast<uint8_t>(data[0] - '0');
-        state_.demand_percentage = static_cast<uint8_t>(110 - (demand_step * 10));
+        const uint8_t demand_step = static_cast<uint8_t>(data[0] - '0');
+        state_.demand_percentage = static_cast<uint8_t>(100 - (demand_step * 10));
     }
     else
     {
@@ -2126,7 +2216,7 @@ void DaikinDriver::handle_f9_response(uint8_t* data, size_t data_size)
     {
         float inside_temp = ((data[0] - 0x80) * 5.0f) / 10.0f;
         state_.homeC = inside_temp;
-        logDebugP("F9: inside=%.1f°C (from 0x%02X)", inside_temp, data[0]);
+        logDebugP("F9: inside=%.1f degC (from 0x%02X)", inside_temp, data[0]);
     }
     else
     {
@@ -2139,7 +2229,7 @@ void DaikinDriver::handle_f9_response(uint8_t* data, size_t data_size)
     {
         float outside_temp = ((data[1] - 0x80) * 5.0f) / 10.0f;
         state_.outsideC = outside_temp;
-        logDebugP("F9: outside=%.1f°C (from 0x%02X)", outside_temp, data[1]);
+        logDebugP("F9: outside=%.1f degC (from 0x%02X)", outside_temp, data[1]);
     }
     else
     {
@@ -2492,10 +2582,13 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
         const bool has_fu25 = (data[2] == '3');
         const bool has_fu35 = (data[3] == '3');
         const bool has_fu45 = (data[4] == '3');
-        const bool has_fx40 = (data[5] == '3');
+        const bool has_streamer = (data[5] == '3');
 
-        logInfoP("FU00: availability FU05=%d FU15=%d FU25=%d FU35=%d FU45=%d FX40=%d",
-                 has_fu05, has_fu15, has_fu25, has_fu35, has_fu45, has_fx40);
+        // FU00 byte5 is the Streamer availability flag (not FX40 capability).
+        support_.streamer = support_.streamer || has_streamer;
+
+        logInfoP("FU00: availability FU05=%d FU15=%d FU25=%d FU35=%d FU45=%d Streamer=%d",
+                 has_fu05, has_fu15, has_fu25, has_fu35, has_fu45, has_streamer);
         return;
     }
 
@@ -2508,18 +2601,21 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
 
     if (command == StateQuery::ExtensionFU04 && data_size >= 16)
     {
-        uint32_t cool_wh10 = 0;
-        uint32_t heat_wh10 = 0;
-        const bool cool_ok = parse_reversed_ascii_hex(data, 8, cool_wh10);
-        const bool heat_ok = parse_reversed_ascii_hex(data + 8, 8, heat_wh10);
+        uint32_t cool_raw = 0;
+        uint32_t heat_raw = 0;
+        const bool cool_ok = parse_reversed_ascii_hex(data, 8, cool_raw);
+        const bool heat_ok = parse_reversed_ascii_hex(data + 8, 8, heat_raw);
         if (cool_ok && heat_ok)
         {
+            // FU04 uses 100 Wh steps per wiki. Convert to absolute Wh.
+            const uint32_t cool_wh = cool_raw * 100U;
+            const uint32_t heat_wh = heat_raw * 100U;
             state_.fu04_valid = true;
-            state_.fu04_cooling_wh10 = cool_wh10;
-            state_.fu04_heating_wh10 = heat_wh10;
+            state_.fu04_cooling_wh = cool_wh;
+            state_.fu04_heating_wh = heat_wh;
 
-            logInfoP("FU04: cooling=%.1fWh heating=%.1fWh (reversed ASCII hex)",
-                     cool_wh10 / 10.0f, heat_wh10 / 10.0f);
+            logInfoP("FU04: cooling=%.1fkWh heating=%.1fkWh (raw=%u/%u in 100Wh steps)",
+                     cool_wh / 1000.0f, heat_wh / 1000.0f, cool_raw, heat_raw);
             return;
         }
     }
@@ -2844,10 +2940,20 @@ void DaikinDriver::handle_rzb2_response(uint8_t* data, size_t data_size)
     {
         stats_.frames_ok++;
 
-        state_.unitState = daikin::DaikinUnitState(data[0]); // Parse unit state bitfield using DaikinUnitState class
+        uint8_t bitfield = data[0];
+        bool decoded_ascii = false;
+        uint8_t parsed = 0;
+        if (s21_decode_hex_byte_reversed(data, parsed))
+        {
+            bitfield = parsed;
+            decoded_ascii = true;
+        }
 
-        logInfoP("RzB2: Unit state bitfield 0x%02X - powerful=%d, defrost=%d, active=%d, online=%d",
-                 data[0],
+        state_.unitState = daikin::DaikinUnitState(bitfield); // Parse unit state bitfield
+
+        logInfoP("RzB2: Unit state bitfield 0x%02X%s - powerful=%d, defrost=%d, active=%d, online=%d",
+                 bitfield,
+                 decoded_ascii ? " (decoded ASCII)" : "",
                  state_.unitState.powerful(),
                  state_.unitState.defrost(),
                  state_.unitState.active(),
@@ -2879,10 +2985,20 @@ void DaikinDriver::handle_rzc3_response(uint8_t* data, size_t data_size)
     {
         stats_.frames_ok++;
 
-        state_.systemState = daikin::DaikinSystemState(data[0]); // Parse system state bitfield using DaikinSystemState class
+        uint8_t bitfield = data[0];
+        bool decoded_ascii = false;
+        uint8_t parsed = 0;
+        if (s21_decode_hex_byte_reversed(data, parsed))
+        {
+            bitfield = parsed;
+            decoded_ascii = true;
+        }
 
-        logInfoP("RzC3: System state bitfield 0x%02X - locked=%d, active=%d, defrost=%d, multizone_conflict=%d",
-                 data[0],
+        state_.systemState = daikin::DaikinSystemState(bitfield); // Parse system state bitfield
+
+        logInfoP("RzC3: System state bitfield 0x%02X%s - locked=%d, active=%d, defrost=%d, multizone_conflict=%d",
+                 bitfield,
+                 decoded_ascii ? " (decoded ASCII)" : "",
                  state_.systemState.locked(),
                  state_.systemState.active(),
                  state_.systemState.defrost(),
@@ -3229,8 +3345,8 @@ void DaikinDriver::publishState()
     static uint32_t last_total_energy = 0;
     static bool last_online = false;
     static bool last_fu04_valid = false;
-    static uint32_t last_fu04_cooling_wh10 = 0;
-    static uint32_t last_fu04_heating_wh10 = 0;
+    static uint32_t last_fu04_cooling_wh = 0;
+    static uint32_t last_fu04_heating_wh = 0;
     static bool last_fx60_valid = false;
     static uint32_t last_fx60_value10 = 0;
 
@@ -3389,21 +3505,21 @@ void DaikinDriver::publishState()
     }
 
     if (state_.fu04_valid != last_fu04_valid ||
-        state_.fu04_cooling_wh10 != last_fu04_cooling_wh10 ||
-        state_.fu04_heating_wh10 != last_fu04_heating_wh10 ||
+        state_.fu04_cooling_wh != last_fu04_cooling_wh ||
+        state_.fu04_heating_wh != last_fu04_heating_wh ||
         state_.fx60_valid != last_fx60_valid ||
         state_.fx60_value10 != last_fx60_value10)
     {
         statusFeedback.updateDaikinExtensionTelemetry(
             state_.fu04_valid,
-            state_.fu04_cooling_wh10,
-            state_.fu04_heating_wh10,
+            state_.fu04_cooling_wh,
+            state_.fu04_heating_wh,
             state_.fx60_valid,
             state_.fx60_value10);
 
         last_fu04_valid = state_.fu04_valid;
-        last_fu04_cooling_wh10 = state_.fu04_cooling_wh10;
-        last_fu04_heating_wh10 = state_.fu04_heating_wh10;
+        last_fu04_cooling_wh = state_.fu04_cooling_wh;
+        last_fu04_heating_wh = state_.fu04_heating_wh;
         last_fx60_valid = state_.fx60_valid;
         last_fx60_value10 = state_.fx60_value10;
     }

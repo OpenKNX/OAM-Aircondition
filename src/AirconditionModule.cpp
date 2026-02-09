@@ -222,8 +222,8 @@ void AirconditionModule::showInformations()
         logInfoP("Current Driver State: %d", _driverState);
         if (_daikinFu04Valid)
         {
-            logInfoP("Daikin Extension FU04: cooling=%.1fWh heating=%.1fWh",
-                     _daikinFu04CoolingWh10 / 10.0f, _daikinFu04HeatingWh10 / 10.0f);
+            logInfoP("Daikin Extension FU04: cooling=%.1fkWh heating=%.1fkWh",
+                     _daikinFu04CoolingWh / 1000.0f, _daikinFu04HeatingWh / 1000.0f);
         }
         if (_daikinFx60Valid)
         {
@@ -978,13 +978,13 @@ void AirconditionModule::updateTotalEnergyConsumption(uint32_t totalEnergyWh) {
 }
 
 void AirconditionModule::updateDaikinExtensionTelemetry(bool fu04Valid,
-                                                        uint32_t fu04CoolingWh10,
-                                                        uint32_t fu04HeatingWh10,
+                                                        uint32_t fu04CoolingWh,
+                                                        uint32_t fu04HeatingWh,
                                                         bool fx60Valid,
                                                         uint32_t fx60Value10) {
     _daikinFu04Valid = fu04Valid;
-    _daikinFu04CoolingWh10 = fu04CoolingWh10;
-    _daikinFu04HeatingWh10 = fu04HeatingWh10;
+    _daikinFu04CoolingWh = fu04CoolingWh;
+    _daikinFu04HeatingWh = fu04HeatingWh;
     _daikinFx60Valid = fx60Valid;
     _daikinFx60Value10 = fx60Value10;
 

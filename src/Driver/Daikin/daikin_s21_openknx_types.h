@@ -290,8 +290,8 @@ namespace daikin
 
         // v3.20+/v3.40+ extension pages (FU/FX):
         bool fu04_valid{false};
-        uint32_t fu04_cooling_wh10{0}; // value is Wh * 10
-        uint32_t fu04_heating_wh10{0}; // value is Wh * 10
+        uint32_t fu04_cooling_wh{0}; // value is Wh (FU04 value * 100 Wh)
+        uint32_t fu04_heating_wh{0}; // value is Wh (FU04 value * 100 Wh)
 
         bool fx60_valid{false};
         uint32_t fx60_value10{0}; // value is unit-dependent *10 scaling from reversed ASCII hex
