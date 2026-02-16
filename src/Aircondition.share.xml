@@ -453,9 +453,9 @@
                 <!-- External room temperatur watchdog -->
                 <Parameter Id="%AID%_UP-%TT%00010" Offset="2" BitOffset="6" Name="ExternTempWatchdog" ParameterType="%AID%_PT-AIRExternTemperatureWatchdogBehavior" Text="Externe Raumtemperatur überwachen" Value="0" />      
                 <!-- Watdchdog DelayBase -->
-                <Parameter Id="%AID%_UP-%TT%00011" Offset="3" BitOffset="0" Name="CH%C%MonitoringWDTTimeoutDelayBase"   ParameterType="%AID%_PT-FCBDelayBaseMin" Text="Überwachung Zeitbasis" Value="1" />
+                <Parameter Id="%AID%_UP-%TT%00011" Offset="3" BitOffset="0" Name="MonitoringWDTTimeoutDelayBase"   ParameterType="%AID%_PT-FCBDelayBaseMin" Text="Überwachung Zeitbasis" Value="1" />
                 <!-- Watdchdog DelayTime -->
-                <Parameter Id="%AID%_UP-%TT%00012" Offset="3" BitOffset="2" Name="CH%C%MonitoringWDTTimeoutDelayTime"   ParameterType="%AID%_PT-DelayTimeMin1"    Text="Überwachung Zeit" Value="60" />
+                <Parameter Id="%AID%_UP-%TT%00012" Offset="3" BitOffset="2" Name="MonitoringWDTTimeoutDelayTime"   ParameterType="%AID%_PT-DelayTimeMin1"    Text="Überwachung Zeit" Value="60" />
                 <!-- ^^^  Need 2 Bytes ^^^ -->
          
 

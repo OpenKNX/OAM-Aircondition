@@ -18,7 +18,7 @@
 #define MAIN_FirmwareName "Klimaanlagen KNX Adapter (Dev)"
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 53
-#define MAIN_ApplicationVersion 7
+#define MAIN_ApplicationVersion 8
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 6408
@@ -291,12 +291,12 @@
 #define AIR_ExternTempWatchdog                  227      // 2 Bits, Bit 1-0
 #define     AIR_ExternTempWatchdogMask 0x03
 #define     AIR_ExternTempWatchdogShift 0
-#define AIR_CHMonitoringWDTTimeoutDelayBase     228      // 2 Bits, Bit 7-6
-#define     AIR_CHMonitoringWDTTimeoutDelayBaseMask 0xC0
-#define     AIR_CHMonitoringWDTTimeoutDelayBaseShift 6
-#define AIR_CHMonitoringWDTTimeoutDelayTime     228      // 14 Bits, Bit 13-0
-#define     AIR_CHMonitoringWDTTimeoutDelayTimeMask 0x3FFF
-#define     AIR_CHMonitoringWDTTimeoutDelayTimeShift 0
+#define AIR_MonitoringWDTTimeoutDelayBase       228      // 2 Bits, Bit 7-6
+#define     AIR_MonitoringWDTTimeoutDelayBaseMask 0xC0
+#define     AIR_MonitoringWDTTimeoutDelayBaseShift 6
+#define AIR_MonitoringWDTTimeoutDelayTime       228      // 14 Bits, Bit 13-0
+#define     AIR_MonitoringWDTTimeoutDelayTimeMask 0x3FFF
+#define     AIR_MonitoringWDTTimeoutDelayTimeShift 0
 #define AIR_Mit_MinTemp                         230      // 8 Bits, Bit 7-0
 #define AIR_SCAActive                           245      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
@@ -532,11 +532,11 @@
 // Externe Raumtemperatur überwachen
 #define ParamAIR_ExternTempWatchdog                  (knx.paramByte(AIR_ExternTempWatchdog) & AIR_ExternTempWatchdogMask)
 // Überwachung Zeitbasis
-#define ParamAIR_CHMonitoringWDTTimeoutDelayBase     ((knx.paramByte(AIR_CHMonitoringWDTTimeoutDelayBase) & AIR_CHMonitoringWDTTimeoutDelayBaseMask) >> AIR_CHMonitoringWDTTimeoutDelayBaseShift)
+#define ParamAIR_MonitoringWDTTimeoutDelayBase       ((knx.paramByte(AIR_MonitoringWDTTimeoutDelayBase) & AIR_MonitoringWDTTimeoutDelayBaseMask) >> AIR_MonitoringWDTTimeoutDelayBaseShift)
 // Überwachung Zeit
-#define ParamAIR_CHMonitoringWDTTimeoutDelayTime     (knx.paramWord(AIR_CHMonitoringWDTTimeoutDelayTime) & AIR_CHMonitoringWDTTimeoutDelayTimeMask)
+#define ParamAIR_MonitoringWDTTimeoutDelayTime       (knx.paramWord(AIR_MonitoringWDTTimeoutDelayTime) & AIR_MonitoringWDTTimeoutDelayTimeMask)
 // Überwachung Zeit (in Millisekunden)
-#define ParamAIR_CHMonitoringWDTTimeoutDelayTimeMS   (paramDelay(knx.paramWord(AIR_CHMonitoringWDTTimeoutDelayTime)))
+#define ParamAIR_MonitoringWDTTimeoutDelayTimeMS     (paramDelay(knx.paramWord(AIR_MonitoringWDTTimeoutDelayTime)))
 // Minimale Soll-Temperatur
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
 // Szene A
