@@ -12,7 +12,7 @@
 
                         <Parameters>
 
-                            <Union SizeInBit="40">
+                            <Union SizeInBit="40" op:nowarn="true">
                                 <Memory CodeSegment="%MID%" Offset="%MO%" BitOffset="0" />
                                 <!-- Szene Active --> 
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+0%" Offset="0" BitOffset="0" Name="SC%SN%Active" ParameterType="%AID%_PT-OnOffYesNo" Text="Szene %SN%" Value="0" />
@@ -27,7 +27,7 @@
                             </Union>
 
                             <!-- Tosiba--> 
-                            <Union SizeInBit="120">
+                            <Union SizeInBit="120" op:nowarn="true">
                                 <Memory CodeSegment="%MID%" Offset="%MO+5%" BitOffset="0" />
 
                                 <!-- Szene Function Operation Mode -->
@@ -59,7 +59,7 @@
                             </Union>
 
                             <!-- Daikin--> 
-                            <Union SizeInBit="120">
+                            <Union SizeInBit="120" op:nowarn="true">
                                 <Memory CodeSegment="%MID%" Offset="%MO+5%" BitOffset="0" />
 
                                 <!-- Szene Function Operation Mode -->

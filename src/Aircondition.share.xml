@@ -463,7 +463,7 @@
 
               <!-- *** Mitsubishi *** -->
               <Union SizeInBit="8">
-                <Memory CodeSegment="%MID%" Offset="3" BitOffset="0" />
+                <Memory CodeSegment="%MID%" Offset="5" BitOffset="0" />
                 <!-- Minimum Temperature -->
                 <Parameter Id="%AID%_UP-%TT%00200" Offset="0" BitOffset="0" Name="Mit_MinTemp" ParameterType="%AID%_PT-AIRMitsubishiMinimumTemperature" Text="Minimale Soll-Temperatur" Value="19" />
               </Union>
