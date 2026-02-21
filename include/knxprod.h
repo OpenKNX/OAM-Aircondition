@@ -18,13 +18,13 @@
 #define MAIN_FirmwareName "Klimaanlagen KNX Adapter (Dev)"
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 53
-#define MAIN_ApplicationVersion 8
+#define MAIN_ApplicationVersion 9
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 6408
 #define MAIN_MaxKoNumber 465
 #define MAIN_OrderNumber "MGKnxAIR"
-#define BASE_ModuleVersion 22
+#define BASE_ModuleVersion 23
 #define NET_ModuleVersion 5
 #define UCT_ModuleVersion 4
 #define LOG_ModuleVersion 64
