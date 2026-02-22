@@ -11,7 +11,9 @@
 
 void setup()
 {
+#ifdef VISO_SENSE_PIN
     pinMode(VISO_SENSE_PIN, INPUT_PULLUP);
+#endif
     openknx.init();
 #if defined(KNX_IP_WIFI) || defined(KNX_IP_LAN)
     openknx.addModule(0, openknxNetwork);

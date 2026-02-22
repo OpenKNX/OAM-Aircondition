@@ -27,7 +27,7 @@
 # $settings = scripts/OpenKNX-Build-Settings.ps1
 
 # execute generic pre-build steps
-lib/OGM-Common/scripts/setup/reusable/Build-Release-Preprocess.ps1 $args[0]
+../OGM-Common/scripts/setup/reusable/Build-Release-Preprocess.ps1 $args[0]
 if (!$?) { exit 1 }
 
 # build firmware based on generated headerfile 
@@ -42,22 +42,22 @@ if (!$?) { exit 1 }
 ../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_OpenKNX_UP1_GW_UART firmware-Aircondition-OpenKNX-UP1-GW-UART uf2
 if (!$?) { exit 1 }
 
-#../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_OpenKNX_UP1_WLAN_2XUART firmware-Aircondition-OpenKNX-UP1-WLAN-2xUART esp32
-#if (!$?) { exit 1 }
+../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_OpenKNX_UP1_WLAN_2XUART firmware-Aircondition-OpenKNX-UP1-WLAN-2xUART esp32
+if (!$?) { exit 1 }
 
- #../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_TP firmware-Aircondition-Adafruit_Feather_ESP32_V2_TP esp32
- #if (!$?) { exit 1 }
+../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_TP firmware-Aircondition-Adafruit_Feather_ESP32_V2_TP esp32
+if (!$?) { exit 1 }
 
- #../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_IP firmware-Aircondition-Adafruit_Feather_ESP32_V2_IP esp32
- #if (!$?) { exit 1 }
+../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_Adafruit_Feather_ESP32_V2_IP firmware-Aircondition-Adafruit_Feather_ESP32_V2_IP esp32
+if (!$?) { exit 1 }
 
- #../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_AZDelivery_DevKit_C_V4_TP firmware-Aircondition-AZDelivery_DevKit_C_V4_TP esp32
- #if (!$?) { exit 1 }
+../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_AZDelivery_DevKit_C_V4_TP firmware-Aircondition-AZDelivery_DevKit_C_V4_TP esp32
+if (!$?) { exit 1 }
 
- #../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_AZDelivery_DevKit_C_V4_IP firmware-Aircondition-AZDelivery_DevKit_C_V4_IP esp32
- #if (!$?) { exit 1 }
+../OGM-Common/scripts/setup/reusable/Build-Step.ps1 release_AZDelivery_DevKit_C_V4_IP firmware-Aircondition-AZDelivery_DevKit_C_V4_IP esp32
+if (!$?) { exit 1 }
 
 
 # execute generic post-build steps
-lib/OGM-Common/scripts/setup/reusable/Build-Release-Postprocess.ps1 $args[0]
+../OGM-Common/scripts/setup/reusable/Build-Release-Postprocess.ps1 $args[0]
 if (!$?) { exit 1 }
