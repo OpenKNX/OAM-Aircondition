@@ -53,9 +53,13 @@ unsigned int MideaDriver::getMaximumHorizontalFixPosition()
 {
     return 5; 
 }
-unsigned int MideaDriver::getMaximumVertiacalFixPosition()
+unsigned int MideaDriver::getMaximumVerticalFixPosition()
 {
     return 5; 
+}
+unsigned int MideaDriver::getMaximumHumidityModeLevels()
+{
+    return 0; 
 }
 
 void MideaDriver::setPower(bool power)
@@ -70,10 +74,10 @@ void MideaDriver::setMode(AirConditionMode mode)
     statusFeedback.modeChanged(mode);
 }
 
-void MideaDriver::setTargetTemperature(float temperaturCelius)
+void MideaDriver::setTargetTemperature(float temperaturCelsius)
 {
     // To Do (Midea): Implementation for target temperature control
-    statusFeedback.targetTemperatureChanged(temperaturCelius, true);
+    statusFeedback.targetTemperatureChanged(temperaturCelsius, true);
 }
 
 void MideaDriver::setFanSpeed(unsigned int speed)
@@ -106,10 +110,10 @@ void MideaDriver::setSwingVerticalFixPosition(unsigned int position)
     statusFeedback.swingVerticalFixPositionChanged(position);
 }
 
-void MideaDriver::setExternalSensorRoomTemperature(float temperaturCelius)
+void MideaDriver::setExternalSensorRoomTemperature(float temperaturCelsius)
 {
     // To Do (Midea): Implementation for external sensor room temperature control
-    statusFeedback.roomTemperatureChanged(temperaturCelius);
+    statusFeedback.roomTemperatureChanged(temperaturCelsius);
 }
 
 void MideaDriver::setWifiLed(bool on)
@@ -146,3 +150,20 @@ void MideaDriver::setAirPurification(bool on)
     // To Do (Midea): Implementation for air purification control
     statusFeedback.airPurificationChanged(on);
 }
+
+void MideaDriver::updatePower(bool power) { statusFeedback.updatePower(power); }
+void MideaDriver::updateMode(AirConditionMode mode) { statusFeedback.updateMode(mode); }
+void MideaDriver::updateTargetTemperature(float temperaturCelsius) { statusFeedback.updateTargetTemperature(temperaturCelsius); }
+void MideaDriver::updateFanSpeed(int speed) { statusFeedback.updateFanSpeed(speed); }
+void MideaDriver::updateSwingHorizontal(bool swing) { statusFeedback.updateSwingHorizontal(swing); }
+void MideaDriver::updateSwingVertical(bool swing) { statusFeedback.updateSwingVertical(swing); }
+void MideaDriver::updateCurrentTemperature(float temperaturCelsius) { statusFeedback.updateCurrentTemperature(temperaturCelsius); }
+void MideaDriver::updateOutdoorTemperature(float temperaturCelsius) { statusFeedback.updateOutdoorTemperature(temperaturCelsius); }
+void MideaDriver::updateDeviceMode(AirConditionDeviceMode mode) { statusFeedback.updateDeviceMode(mode); }
+void MideaDriver::updateMaxPowerLevel(uint8_t percentage) { statusFeedback.updateMaxPowerLevel(percentage); }
+void MideaDriver::updateAirPurification(bool on) { statusFeedback.updateAirPurification(on); }
+void MideaDriver::updateOnlineStatus(bool online) { statusFeedback.updateOnlineStatus(online); }
+void MideaDriver::updateWifiLed(bool on) { statusFeedback.updateWifiLed(on); }
+void MideaDriver::updateHumidity(uint8_t humidity) { statusFeedback.updateHumidity(humidity); }
+void MideaDriver::updateHumidityMode(uint8_t humidityMode) { statusFeedback.updateHumidityMode(humidityMode); }
+void MideaDriver::updateTotalEnergyConsumption(uint32_t totalEnergyWh) { statusFeedback.updateTotalEnergyConsumption(totalEnergyWh); }

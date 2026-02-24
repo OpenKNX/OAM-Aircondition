@@ -3,6 +3,10 @@
 
 #include "ToshibaDriver.h"
 #include "NetworkModule.h"
+#include <Arduino.h>
+#if defined(ARDUINO_ARCH_RP2040)
+  #include <hardware/gpio.h>   // gpio_set_function, gpio_pull_up, gpio_set_input_hysteresis_enabled
+#endif
 
 static const int RECEIVE_TIMEOUT = 200;
 static const int COMMAND_DELAY = 100;
@@ -670,9 +674,13 @@ unsigned int ToshibaDriver::getMaximumHorizontalFixPosition()
 {
     return 5;
 }
-unsigned int ToshibaDriver::getMaximumVertiacalFixPosition()
+unsigned int ToshibaDriver::getMaximumVerticalFixPosition()
 {
     return 5;
+}
+unsigned int ToshibaDriver::getMaximumHumidityModeLevels()
+{
+    return 0;
 }
 
 void ToshibaDriver::setPower(bool power)
@@ -711,9 +719,9 @@ void ToshibaDriver::setMode(AirConditionMode mode)
     }
 }
 
-void ToshibaDriver::setTargetTemperature(float temperaturCelius)
+void ToshibaDriver::setTargetTemperature(float temperaturCelsius)
 {
-    uint8_t newTargetTemp = (uint8_t)round(temperaturCelius);
+    uint8_t newTargetTemp = (uint8_t)round(temperaturCelsius);
     bool special_mode_changed = false;
     if (newTargetTemp >= StandardModeMinTemp && _specialMode == ToshibaSpecialMode::ToshibaSpecialModeEightDegree)
     {
@@ -917,7 +925,7 @@ void ToshibaDriver::setWifiLed(bool on)
     sendCommand(ToshibaCommandType::ToshibaCommandTypeWifiLED, on ? (uint8_t)ToshibaLedState::On : (uint8_t)ToshibaLedState::Off);
 }
 
-void ToshibaDriver::setExternalSensorRoomTemperature(float temperaturCelius)
+void ToshibaDriver::setExternalSensorRoomTemperature(float temperaturCelsius)
 {
 }
 
@@ -1010,3 +1018,20 @@ void ToshibaDriver::setAirPurification(bool on)
     logDebugP("Setting air purification to %s", on ? "on" : "off");
     sendCommand(ToshibaCommandType::ToshibaCommandTypePure, on ? (uint8_t)ToshibaPureState::ToshibaPureStateOn : (uint8_t)ToshibaPureState::ToshibaPureStateOff);
 }
+
+void ToshibaDriver::updatePower(bool power) { statusFeedback.updatePower(power); }
+void ToshibaDriver::updateMode(AirConditionMode mode) { statusFeedback.updateMode(mode); }
+void ToshibaDriver::updateTargetTemperature(float temperaturCelsius) { statusFeedback.updateTargetTemperature(temperaturCelsius); }
+void ToshibaDriver::updateFanSpeed(int speed) { statusFeedback.updateFanSpeed(speed); }
+void ToshibaDriver::updateSwingHorizontal(bool swing) { statusFeedback.updateSwingHorizontal(swing); }
+void ToshibaDriver::updateSwingVertical(bool swing) { statusFeedback.updateSwingVertical(swing); }
+void ToshibaDriver::updateCurrentTemperature(float temperaturCelsius) { statusFeedback.updateCurrentTemperature(temperaturCelsius); }
+void ToshibaDriver::updateOutdoorTemperature(float temperaturCelsius) { statusFeedback.updateOutdoorTemperature(temperaturCelsius); }
+void ToshibaDriver::updateDeviceMode(AirConditionDeviceMode mode) { statusFeedback.updateDeviceMode(mode); }
+void ToshibaDriver::updateMaxPowerLevel(uint8_t percentage) { statusFeedback.updateMaxPowerLevel(percentage); }
+void ToshibaDriver::updateAirPurification(bool on) { statusFeedback.updateAirPurification(on); }
+void ToshibaDriver::updateOnlineStatus(bool online) { statusFeedback.updateOnlineStatus(online); }
+void ToshibaDriver::updateWifiLed(bool on) { statusFeedback.updateWifiLed(on); }
+void ToshibaDriver::updateHumidity(uint8_t humidity) { statusFeedback.updateHumidity(humidity); }
+void ToshibaDriver::updateHumidityMode(uint8_t humidityMode) { statusFeedback.updateHumidityMode(humidityMode); }
+void ToshibaDriver::updateTotalEnergyConsumption(uint32_t totalEnergyWh) { statusFeedback.updateTotalEnergyConsumption(totalEnergyWh); }
