@@ -9,9 +9,9 @@ Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Herstelle
   - Viele andere Modelle mit WLAN-Modul sollten funktionieren. Bitte gerne Rückmeldung geben, wenn ein neues Modell getestet wurde.
 
 - Daikin
-  - S21 Protocol v3.30 (Vollständig implementiert)
-  - Alle Modelle mit S21-Schnittstelle (HA-Anschluss) unterstützt
-  - Features: Grundsteuerung, Spezialmodi (Powerful, Quiet, Comfort, Streamer), Intelligent Eye Sensor, Humidity Control, Swing-Modi
+  - S21-Protokoll mit automatischer Protokoll-/Feature-Erkennung (inkl. v3.30 Kernfunktionen)
+  - Unterstützung für viele Modelle mit S21-Schnittstelle (HA-Anschluss), abhängig von Gerätefähigkeiten/Firmware
+  - Features: Grundsteuerung, Spezialmodi (Powerful, Econo, Quiet, Comfort, Streamer), Intelligent Eye Sensor, Humidity-Mode-Rückmeldung, Swing-Modi
   - Getestet mit verschiedenen FTXM/FTXF Serien
 
 Geplant:
@@ -34,13 +34,17 @@ Geplant:
 - Erweiterte Lüftersteuerung
 
 #### Daikin (S21 Protocol)
-- **Spezialmodi**: Powerful, Quiet, Comfort, Streamer
+- **Spezialmodi**: Powerful, Econo, Quiet, Comfort, Streamer
 - **Intelligent Eye Sensor**: Automatische Temperaturanpassung basierend auf Anwesenheitserkennung
-- **Humidity Control**: 5 Stufen (Off, Low, Standard, High, Continuous, Moisturizing)
+- **Humidity Mode Rückmeldung**: 5 Stufen (Off, Low, Standard, High, Continuous)
 - **Swing Modi**: Vertikal, Horizontal, Both
+- **Lamellenposition**: Über S21 aktuell nur Swing Ein/Aus (keine feste Position)
 - **Umfassende Sensorik**: Innen-/Außentemperatur, Luftfeuchtigkeit, Kompressorfrequenz
 - **Energy Monitoring**: Stromverbrauch-Tracking
-- **Erweiterte Diagnostik**: Vollständige S21 v3.30 Protokoll-Unterstützung
+- **Erweiterte Diagnostik**: Query-basierte Feature-Erkennung und Fallback-Mechanismen je nach Gerät
+
+Hinweis: Nicht jedes Daikin-Gerät unterstützt jeden S21-Befehl. Nicht verfügbare Features werden automatisch erkannt und entsprechend übersprungen.
+Hinweis: Leistungsbegrenzung (Power Limit in %) wird aktuell nicht aktiv an Daikin-Geräte geschrieben.
 
 ## Anwenderdokumentation
 
@@ -168,8 +172,8 @@ Besonderen Dank an folgende Projekte:
 - [toremick/shorai-esp32](https://github.com/toremick/shorai-esp32) für die Infos zur HW-Anbindung für Toshiba
 
 ### Daikin
-- [revk/ESP32-Faikin](https://github.com/revk/ESP32-Faikin) für die umfassende S21 Protokoll-Dokumentation und Reverse Engineering
-- [ESP32-Faikin S21 Protocol Wiki](https://github.com/revk/ESP32-Faikin/wiki/S21-Protocol) für die detaillierte S21 v3.30 Spezifikation
+- [revk/ESP32-Faikout](https://github.com/revk/ESP32-Faikout) für die umfassende S21 Protokoll-Dokumentation und Reverse Engineering
+- [ESP32-Faikout S21 Protocol Wiki](https://github.com/revk/ESP32-Faikout/wiki/S21-Protocol) für die detaillierte S21 v3.30 Spezifikation
 - Die Daikin S21 Community für Feldtests und Protokoll-Verifikation
 
 ## Lizenz
