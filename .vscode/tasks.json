@@ -22,7 +22,7 @@
         {
             "label": "OpenKNXproducer (DEV)",
             "type": "shell",
-            "command": "OpenKNXproducer",
+            "command": "~/bin/OpenKNXproducer",
             "args": [
                 "create",
                 "--Debug",

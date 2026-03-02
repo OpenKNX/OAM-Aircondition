@@ -32,6 +32,12 @@
     <op:verify File="../lib/OFM-ConfigTransfer/library.json" ModuleVersion="%UCT_VerifyVersion%" />
   </op:define>
 
+  <op:define prefix="SENS" ModuleType="40"
+    share="../lib/OFM-SensorModule/src/Sensormodul.share.xml"
+    KoSingleOffset="43">
+    <op:verify File="../lib/OFM-SensorModule/library.json" ModuleVersion="%SENS_VerifyVersion%" />
+  </op:define>
+
   <op:define prefix="AIR" ModuleType="20"
     share="../src/Aircondition.share.xml"
     KoSingleOffset="400">

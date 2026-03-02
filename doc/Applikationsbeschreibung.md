@@ -128,27 +128,100 @@ Zur Auswahl:
 
 <!-- DOCEND -->
 
+### Daikin
+
+Folgende Einstellungen und Funktionen stehen für Daikin Klimageräte zur Verfügung:
+
+Diese Implementierung bietet vollständige Unterstützung für Daikin Klimageräte über das S21-Protokoll. Die Kommunikation erfolgt direkt über die serielle Schnittstelle des Daikin-Innengeräts.
+
+#### Unterstützte Funktionen
+
+##### Grundfunktionen
+- **Ein/Aus-Steuerung**: Vollständige Kontrolle über den Gerätestatus
+- **Betriebsmodi**: Automatik, Kühlen, Heizen, Trocknen, Lüfter
+- **Temperatursteuerung**: Präzise Solltemperatur-Einstellung (18-32°C, 0,5°C Schritte)
+- **Lüftergeschwindigkeit**: Automatik + 5 manuelle Stufen
+- **Lamellenkontrolle**: Vertikale und horizontale Schwenkbewegung
+
+##### Erweiterte Funktionen
+- **Powerful-Modus**: Erhöhte Kühl-/Heizleistung für schnelles Erreichen der Solltemperatur
+- **Econo-Modus**: Energiesparender Betrieb mit reduzierter Leistung
+- **Quiet-Modus**: Leiserer Betrieb des Außengeräts
+- **LED-Steuerung**: Kontrolle der Wifi-LED am Innengerät
+- **Streamer**: Daikin Flash Streamer Luftreinigungstechnologie
+- **(Kein nativer Externer Raumtemperatur-Eingang)**: S21 bietet keine dokumentierte Möglichkeit, eine externe Raumtemperatur direkt an das Innengerät zu übergeben. Die interne Regeltemperaturquelle bleibt das Gerät.
+
+##### Externe Raumtemperaturerfassung
+Es existiert im bislang veröffentlichten und revers‑engineerten S21-Protokoll (Faikin Wiki v0–v3.40) **kein** dokumentierter Befehl, der eine alternative Raumtemperatursensorquelle (externer KNX Sensor) direkt als Regelgröße an das Daikin-Innengerät übergibt. 
+
+Die in F6 / G6 als "Sensor" bezeichneten Bits beziehen sich auf spezielle Komfort-/Präsenz-/Intelligent‑Eye Funktionen des Geräts (inkl. LED Verhalten) – **nicht** auf einen externen Temperatursensor.
+
+OpenKNX bietet optional eine rein logische Korrektur (Sollwertverschiebung) gegenüber der vom Gerät gemeldeten internen Raumtemperatur, um einen externen KNX-Sensor zu berücksichtigen. Dabei wird keine externe Temperatur in das Gerät injiziert, sondern nur die an das Gerät gesendete Solltemperatur rechnerisch angepasst (siehe Abschnitt "Externe Raumtemperatur" in der allgemeinen Dokumentation).
+
+Zusammenfassung:
+- Keine native S21-Funktion zur Übergabe eines externen Raumtemperaturwertes
+- F6 Sensor-/LED-Bits = Komfort-/Anwesenheitsfunktion, nicht Temperaturquelle
+- Externe KNX-Temperatur → nur indirekte Beeinflussung durch Sollwertkorrektur
+
+### Daikin
+
+Folgende Einstellungen und Funktionen stehen für Daikin Klimageräte (S21 Schnittstelle am Innengerät) zur Verfügung.
+
+Hinweis: Das S21-Protokoll ist nicht vollständig dokumentiert und einige Funktionen sind je nach Gerätemodell / Protokoll-Version optional. Die Implementierung nutzt nur dokumentierte beziehungsweise verifizierte Teile (Stand: Faikin Wiki Protokoll v0–v3.40). Nicht unterstützte oder unsichere Bereiche wurden bewusst weggelassen.
+##### Telemetrie und Überwachung
+##### Grundfunktionen
+- **Ein/Aus**: Steuerung über D1 (Power Bit)
+- **Betriebsmodi**: Automatik, Kühlen, Heizen, Trocknen, Lüfter (gemäß F1 Rückmeldung)
+- **Solltemperatur**: 18,0–30,0 °C in 0,5 °C Schritten (ASCII Kodierung @ … X). Temperaturen >30 °C werden aktuell nicht gesetzt (Spezial-/Region‑Fälle werden ignoriert)
+- **Lüftergeschwindigkeit**: Automatik + 5 Stufen (Low → High). Quiet/Night wird intern als eigener Modus behandelt – Rückmeldung über RG korrekt, F1 zeigt Quiet wie Auto (Protokoll-Einschränkung)
+- **Swing**: Vertikal / Horizontal / Beides über D5 sofern vom Gerät gemeldet (F2 Featurebits). Keine absolute Lamellenpositions-Steuerung.
+
+##### Erweiterte / Optionale Funktionen
+Die Verfügbarkeit wird zur Laufzeit über F2 / FK / (bei v3+) FU00 erkannt. Nicht jedes Gerät unterstützt alle Funktionen.
+
+- **Powerful** (F6 / D6): Wenn F6 unterstützt (ab vielen v2/v3 Geräten). Frühe Geräte evtl. nur Status über F3 Bitmuster.
+- **Econo** (F7 / D7): Energiesparmodus (Bit im zweiten Byte von F7)
+- **Quiet** (D4 proprietär in dieser Implementierung / Status in F6 Quiet-Bit). Fan Quiet wird durch RG korrekt gelesen; F1 meldet ihn als Auto (Protokoll-Eigenheit).
+- **Streamer**: Wenn in FU00 Byte 5 gesetzt und F6 Streamer-Bit reagiert.
+- **LED**: Steuerung (abhängig von LED-Bit in F6 Byte 3, invertierte Logik). Fehlt bei älteren Modellen.
+- **Kein externer Temperatursensor via S21**: F6 Sensor-Bit dient nicht zur Auswahl einer externen Raumtemperaturquelle; eine Übergabe externer Temperaturdaten findet nicht statt.
+- **Demand / Leistungsvorgabe (F7)**: Auswertung des Rohwertes (1‑stellige Lastkennzahl), Umsetzung derzeit auf Prozent heuristisch (experimentell).
+
+Hinweis: Eine eventuelle zukünftige Erweiterung würde deutlich gekennzeichnet und setzt belastbare Protokollnachweise voraus.
+- **Robuste Kommunikation**: Retry-Mechanismen und Timeout-Behandlung
+- **Innengerät Temperatur (RH)**
+- **Außentemperatur (Ra)**
+- **Feuchtigkeit (Re)**: Falls Gerät Sensor meldet (nicht zuverlässig bei Geräten ohne echten Sensor → oft 50%)
+- **Leistungsaufnahme**: Aktuell nicht ausgewertet (FM liefert kumulierten Verbrauch Wh/10 – geplante zukünftige Auswertung)
+- **Kompressorfrequenz (Rd)**
+- **Fan Speed (RL / RK)**: Drehzahl / Tap (wenn verfügbar)
+- **Echter Zielwert (RX)**: Interner Reglerzielwert (inkl. Powerful/Intelligent Eye Einflüsse)
+- **Unit/System State (RzB2 / RzC3)**: Bitfelder für Aktiv / Defrost / Powerful etc.
+
+**Protokollversionen**: Dynamische Erkennung v0 / v2 / v3.x (F8 + FY00 Probe). Antwort ‚v2‘ über F8 bei v3 ist Daikin-Rückwärtskompatibilität.
 # Gerätemodus-Einstellungen über Gruppenobjekte
-
-## Leistungsbeschränkung
-
-Die Leistungsbeschränkung wird in Prozent vorgegeben.
-Je nach Klimagerätetyp werden aber nur fest definierte Werte unterstützt.
+**Automatische Funktionen:**
+- **Protokoll-Detection**: F8 → ggf. FY00 für v3+; Feature-Bits über F2/FK/F6/FU00
+- **Polaritätshandling**: Automatische Polarity-Versuche (Inversion RX/TX Kombinationen)
+- **Fallback F6→F3**: Falls F6 (Special Modes) nicht reagiert werden ggf. F3 Bits genutzt (eingeschränkt)
+- **Retry / Timeout**: ACK- und Grace-Window Handling (angepasst an beobachtete Zeiten)
 Der Vorgabewert wird auf den nächstliegenden fest definierten Wert gerundet.
-Die Statusrückmeldung liefert den aktuellen, auf den zulässigen gerundeten Wert des Gerätes.
+**Getestete Geräte (Beispiele – nicht vollständig):**
+- Daikin Stylish FTXA25AW 
+Rückmeldungen aus Tests willkommen – unbekannte Feature-Kombinationen werden protokolliert und können zukünftige Erweiterungen steuern.
 
-## Gerätemodus
+**Faikin-Bezug:**
+Konzepte (Timing, Query-Reihenfolge, Interpretation von F*/R*/Rz*-Kommandos) orientieren sich an den im Faikin-Projekt dokumentierten Erkenntnissen. Nicht jede dort aufgeführte experimentelle Funktion ist hier aktiv umgesetzt.
 
-Über den Eingang 'Gerätemodus' kann über eine Szenennummer das Klimagerät in einen speziellen Modus geschaltet werden.
-Abhängig vom Klimagerät können folgende Modi verwendet werden:
+| Szenennummer | Beschreibung         | Toshiba | Daikin |
+|--------------|----------------------|---------|--------|
+| 1            | Standard             | Ja      | Ja     |
+| 2            | Hi-Power/Powerful    | Ja      | Ja     |
+| 3            | Eco/Econo            | Ja      | Ja     |
+| 4            | Leise/Quiet          | Ja      | Ja     |
+| 5            | Luftreinigung        | Nein    | Ja*    |
 
-| Szenennummer | Beschreibung         | Toshiba |
-|--------------|----------------------|---------|
-| 1            | Standard             | Ja      |
-| 2            | Hi-Power             | Ja      |
-| 3            | Eco                  | Ja      |
-| 4            | Leise 1 (Außengerät) | Ja      |
-| 5            | Leise 2 (Außengerät) | Ja      |
+*Für Daikin: Streamer (Flash Streamer Luftreinigungstechnologie)
 
 Für jeden Betriebsmodus stehen auch separate Gruppenobjekte für das Schalten und den aktuellen Status zur Verfügung.
 
@@ -181,6 +254,17 @@ Einstellungen, ob beim Aufruf der Szene das Gerät ein- oder ausgeschaltet werde
 
 Ermöglicht das Aktivieren eines Betriebsmodus.
 
+Optionen für Daikin:
+
+- Keine Änderung
+- Automatik
+- Kühlen
+- Heizen
+- Trocknen
+- Lüfter
+
+Optionen für Toshiba:
+
 - Keine Änderung
 - Automatik
 - Kühlen
@@ -201,6 +285,8 @@ Vorgabe der Solltemperatur
 
 Lüftergeschwindigkeit
 
+Optionen für Toshiba:
+
 - Keine Änderung
 - Automatik
 - Leise
@@ -215,6 +301,8 @@ Lüftergeschwindigkeit
 
 Steuert die Bewegung der Lamellen.
 
+Optionen für Toshiba:
+
 - Keine Änderung
 - Aus
 - Vertikal
@@ -227,6 +315,8 @@ Steuert die Bewegung der Lamellen.
 Diese Einstellung ist nur verfügbar, wenn bei Lamellenbewegung "Keine Änderung" oder "Aus" gewählt wurde.
 Gibt die Position der Lamellen an. 
 
+Optionen für Toshiba:
+
 - Keine Änderung
 - Ganz Oben
 - Oben
@@ -234,20 +324,33 @@ Gibt die Position der Lamellen an.
 - Unten
 - Ganz Unten
 
+Für Daikin steht diese Option nicht zur Verfügung.
+
 <!-- DOC -->
 #### Leistungsbegrenzung
 
-Verfügbare Einstellungen:
+Mit dieser Option, kann die maximale Leistung des Klimageräts angepasst werden.
+
+Optionen für Toshiba:
 
 - Keine Änderung
 - 50%
 - 75%
 - 100%
 
+Für Daikin steht diese Option nicht zur Verfügung.
+
 <!-- DOC -->
 #### Gerätemodus
 
-Verfügbare Einstellungen:
+Optionen für Daikin:
+
+- **Standard**: Normaler Betriebsmodus
+- **Hi-Power**: Entspricht Daikin "Powerful"-Modus für maximale Leistung
+- **ECO**: Entspricht Daikin "Econo"-Modus für energiesparenden Betrieb
+- **Leise**: Entspricht Daikin "Quiet"-Modus für reduzierten Außengeräuschpegel
+
+Optionen für Toshiba:
 
 - Keine Änderung
 - Standard
@@ -264,3 +367,5 @@ Verfügbare Einstellungen:
 - Keine Änderung
 - Aus
 - Ein
+
+Für Daikin steht diese Option nicht zur Verfügung.

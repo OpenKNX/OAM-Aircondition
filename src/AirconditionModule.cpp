@@ -26,6 +26,7 @@ void AirconditionModule::setup()
     // <Enumeration Text="Midea" Value="2" Id="%ENID%" />
     // <Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />
     // <Enumeration Text="Toshiba" Value="4" Id="%ENID%" />
+
     switch (ParamAIR_DeviceType)
     {
         case 0:
@@ -217,8 +218,17 @@ void AirconditionModule::showInformations()
         logInfoP("Maximum Target Temperature: %.1f °C", _airConditionDriver->getMaximumTargetTemperature());
         logInfoP("Maximum Fan Speed: %u", _airConditionDriver->getMaximumFanSpeed());
         logInfoP("Maximum Horizontal Fix Position: %u", _airConditionDriver->getMaximumHorizontalFixPosition());
-        logInfoP("Maximum Vertical Fix Position: %u", _airConditionDriver->getMaximumVertiacalFixPosition());
+        logInfoP("Maximum Vertical Fix Position: %u", _airConditionDriver->getMaximumVerticalFixPosition());
         logInfoP("Current Driver State: %d", _driverState);
+        if (_daikinFu04Valid)
+        {
+            logInfoP("Daikin Extension FU04: cooling=%.1fkWh heating=%.1fkWh",
+                     _daikinFu04CoolingWh / 1000.0f, _daikinFu04HeatingWh / 1000.0f);
+        }
+        if (_daikinFx60Valid)
+        {
+            logInfoP("Daikin Extension FX60: value=%.1f", _daikinFx60Value10 / 10.0f);
+        }
         _airConditionDriver->showInformations();
     }
     else
@@ -277,7 +287,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_Power);
         return true;
     }
-    else if (cmd.rfind("temp ") == 0)
+    else if (cmd.length() >= 5 && cmd.substr(0, 5) == "temp ")
     {
          std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
@@ -285,7 +295,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_SetTemperature);
         return true;
     }
-    else if (cmd.rfind("room ") == 0)
+    else if (cmd.length() >= 5 && cmd.substr(0, 5) == "room ")
     {
         std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
@@ -293,7 +303,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         processInputKo(KoAIR_RoomTemperatureInput);
         return true;
     }
-    else if (cmd.rfind("fan ") == 0)
+    else if (cmd.length() >= 4 && cmd.substr(0, 4) == "fan ")
     {
         // Extract the fan speed value from the command
         std::string fanStr = cmd.substr(4);
@@ -526,10 +536,10 @@ void AirconditionModule::processInputKo(GroupObject& ko)
             case AIR_KoLouverVerticalPosition:
             {
                 float verticalPositionPercent = ko.value(DPT_Scaling);
-                unsigned int verticalPosition = round((float)_airConditionDriver->getMaximumVertiacalFixPosition() * verticalPositionPercent / 100.f);
-                if (verticalPosition > _airConditionDriver->getMaximumVertiacalFixPosition())
+                unsigned int verticalPosition = round((float)_airConditionDriver->getMaximumVerticalFixPosition() * verticalPositionPercent / 100.f);
+                if (verticalPosition > _airConditionDriver->getMaximumVerticalFixPosition())
                 {
-                    logErrorP("Vertical position %u is out of range (0 - %u)", verticalPosition, _airConditionDriver->getMaximumVertiacalFixPosition());
+                    logErrorP("Vertical position %u is out of range (0 - %u)", verticalPosition, _airConditionDriver->getMaximumVerticalFixPosition());
                     return;
                 }
                 logInfoP("Set vertical swing position to %u", verticalPosition);
@@ -608,6 +618,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                     logErrorP("No SceneHandler initialized");
                 }
             }
+            break;
             case AIR_KoPowerLimit:
             {
                 uint8_t powerLimit = (uint8_t)ko.value(DPT_Scaling);
@@ -788,7 +799,7 @@ void AirconditionModule::swingHorizontalFixPositionChanged(int position)
 
 void AirconditionModule::swingVerticalFixPositionChanged(int position)
 {
-    unsigned int currentVertialPositionPercent = position * 100 / _airConditionDriver->getMaximumVertiacalFixPosition();
+    unsigned int currentVertialPositionPercent = position * 100 / _airConditionDriver->getMaximumVerticalFixPosition();
     logInfoP("AirCondition report vertical fix position changed to %u (%u%%)", position, currentVertialPositionPercent);
     KoAIR_LouverVerticalPositionState.valueCompare((uint8_t)currentVertialPositionPercent, DPT_Scaling);
 }
@@ -895,3 +906,90 @@ void AirconditionModule::showHelp()
     openknx.console.printHelpLine("room <value>", "Set the room temperature (e.g., room 22)");
 
 }
+
+void AirconditionModule::updatePower(bool power) {
+    powerChanged(power);
+}
+
+void AirconditionModule::updateMode(AirConditionMode mode) {
+    modeChanged(mode);
+}
+
+void AirconditionModule::updateTargetTemperature(float c) {
+    targetTemperatureChanged(c, /*fromKnx=*/false);
+}
+
+void AirconditionModule::updateFanSpeed(int speed) {
+    fanSpeedChanged(speed);
+}
+
+void AirconditionModule::updateSwingHorizontal(bool swing) {
+    swingHorizontalChanged(swing);
+}
+
+void AirconditionModule::updateSwingVertical(bool swing) {
+    swingVerticalChanged(swing);
+}
+
+void AirconditionModule::updateCurrentTemperature(float c) {
+    roomTemperatureChanged(c);
+}
+
+void AirconditionModule::updateOutdoorTemperature(float c) {
+    outsideTemperaturChanged(c);
+}
+
+void AirconditionModule::updateDeviceMode(AirConditionDeviceMode mode) {
+    deviceModeChanged(mode);
+}
+
+void AirconditionModule::updateMaxPowerLevel(uint8_t percentage) {
+    maxPowerLevelChanged(percentage);
+}
+
+void AirconditionModule::updateAirPurification(bool on) {
+    airPurificationChanged(on);
+}
+
+void AirconditionModule::updateOnlineStatus(bool online) {
+    logInfoP("AirCondition report online state: %s", online ? "online" : "offline");
+    KoAIR_OnlineState.valueCompare(online, DPT_State);
+}
+
+void AirconditionModule::updateWifiLed(bool on) {
+    // optional: publish to KO
+}
+
+void AirconditionModule::updateHumidity(uint8_t humidity) {
+    logInfoP("AirCondition report humidity changed to %u%%", humidity);
+    KoAIR_HumidityState.valueCompare((float)humidity, DPT_Value_Humidity);
+}
+
+void AirconditionModule::updateHumidityMode(uint8_t step) {
+    const uint8_t levels = _airConditionDriver->getMaximumHumidityModeLevels();
+    uint8_t percent = (levels > 1) ? uint8_t(std::round(100.0f * step / float(levels - 1))) : 0;
+
+    logInfoP("AirCondition report humidity mode step=%u (levels=%u -> %u%%)", step, levels, percent);
+    KoAIR_HumidityModePercent.valueCompare(percent, DPT_Scaling);
+}
+
+void AirconditionModule::updateTotalEnergyConsumption(uint32_t totalEnergyWh) {
+    KoAIR_TotalEnergy.valueCompare(totalEnergyWh / 1000.0f, DPT_ActiveEnergy_kWh);
+}
+
+void AirconditionModule::updateDaikinExtensionTelemetry(bool fu04Valid,
+                                                        uint32_t fu04CoolingWh,
+                                                        uint32_t fu04HeatingWh,
+                                                        bool fx60Valid,
+                                                        uint32_t fx60Value10) {
+    _daikinFu04Valid = fu04Valid;
+    _daikinFu04CoolingWh = fu04CoolingWh;
+    _daikinFu04HeatingWh = fu04HeatingWh;
+    _daikinFx60Valid = fx60Valid;
+    _daikinFx60Value10 = fx60Value10;
+
+    // TODO: Map FU04/FX60 extension telemetry to dedicated KOs once DPT/object definitions are finalized.
+    logDebugP("Daikin extension telemetry updated (FU04 valid=%d, FX60 valid=%d)",
+              fu04Valid ? 1 : 0, fx60Valid ? 1 : 0);
+}
+

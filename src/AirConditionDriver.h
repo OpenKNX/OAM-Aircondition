@@ -32,6 +32,13 @@ enum AirConditionDeviceMode
     // AirConditionDeviceModeComfort,
     // AirConditionDeviceModeSleep,
     // AirConditionDeviceModeFloor,
+    
+    // Extended unified naming (aliases preserve existing numeric values where applicable)
+    AirConditionDeviceModeNormal         = AirConditionDeviceModeStandard,
+    AirConditionDeviceModeHighPerformance= AirConditionDeviceModeHiPower,
+    AirConditionDeviceModePowerSaving    = AirConditionDeviceModeEco,
+    AirConditionDeviceModeQuietMode      = AirConditionDeviceModeSilent1, // map primary quiet to Silent1
+
 };
 
 class AirConditionDriverStatusFeedback
@@ -52,6 +59,33 @@ public:
     virtual void deviceModeChanged(AirConditionDeviceMode mode) = 0;
     virtual void maxPowerLevelChanged(uint8_t percentage) = 0;
     virtual void airPurificationChanged(bool on) = 0;
+
+    virtual void updatePower(bool power) = 0;
+    virtual void updateMode(AirConditionMode mode) = 0;
+    virtual void updateTargetTemperature(float temperaturCelius) = 0;
+    virtual void updateFanSpeed(int speed) = 0;
+    virtual void updateSwingHorizontal(bool swing) = 0;
+    virtual void updateSwingVertical(bool swing) = 0;
+    virtual void updateCurrentTemperature(float temperaturCelius) = 0;
+    virtual void updateOutdoorTemperature(float temperaturCelius) = 0;
+    virtual void updateDeviceMode(AirConditionDeviceMode mode) = 0;
+    virtual void updateMaxPowerLevel(uint8_t percentage) = 0;
+    virtual void updateAirPurification(bool on) = 0;
+    virtual void updateOnlineStatus(bool online) = 0;
+    virtual void updateWifiLed(bool on) = 0;
+    virtual void updateHumidity(uint8_t humidity) = 0;
+    virtual void updateHumidityMode(uint8_t step) = 0;     
+    virtual void updateTotalEnergyConsumption(uint32_t totalEnergyWh) = 0;
+
+    // Optional vendor-specific extension telemetry.
+    // Default no-op so existing modules/drivers do not need to implement it.
+    virtual void updateDaikinExtensionTelemetry(bool fu04Valid,
+                                                uint32_t fu04CoolingWh,
+                                                uint32_t fu04HeatingWh,
+                                                bool fx60Valid,
+                                                uint32_t fx60Value10)
+    {
+    }
 };
 
 class AirConditionDriver 
@@ -84,7 +118,8 @@ public:
     virtual float getMaximumTargetTemperature() = 0;
     virtual unsigned int getMaximumFanSpeed() = 0; 
     virtual unsigned int getMaximumHorizontalFixPosition() = 0; 
-    virtual unsigned int getMaximumVertiacalFixPosition() = 0; 
+    virtual unsigned int getMaximumVerticalFixPosition() = 0; 
+    virtual unsigned int getMaximumHumidityModeLevels() = 0;
     virtual bool supportExternalRoomTemperatureSensor() = 0;
 
     // Methods to control the air condition device
