@@ -19,16 +19,16 @@
 #define MAIN_FirmwareName "Klimaanlagen KNX Adapter (Dev)"
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 53
-#define MAIN_ApplicationVersion 10
+#define MAIN_ApplicationVersion 11
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
-#define MAIN_ParameterSize 6501
+#define MAIN_ParameterSize 9111
 #define MAIN_MaxKoNumber 465
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 23
 #define NET_ModuleVersion 5
-#define UCT_ModuleVersion 4
-#define SENS_ModuleVersion 74
+#define UCT_ModuleVersion 5
+#define SENS_ModuleVersion 75
 #define LOG_ModuleVersion 64
 #define FCB_ModuleVersion 9
 // Parameter with single occurrence
@@ -714,51 +714,51 @@
 #define KoSENS_Error                               (knx.getGroupObject(SENS_KoError))
 // Temperatur
 #define KoSENS_Temp                                (knx.getGroupObject(SENS_KoTemp))
-// Extern: Temperatur 1
+// Externer Temperatur 1
 #define KoSENS_Ext1Temp                            (knx.getGroupObject(SENS_KoExt1Temp))
-// Extern: Temperatur 2
+// Externer Temperatur 2
 #define KoSENS_Ext2Temp                            (knx.getGroupObject(SENS_KoExt2Temp))
 // Luftfeuchte
 #define KoSENS_Hum                                 (knx.getGroupObject(SENS_KoHum))
-// Extern: Luftfeuchte 1
+// Externer Luftfeuchte 1
 #define KoSENS_Ext1Hum                             (knx.getGroupObject(SENS_KoExt1Hum))
-// Extern: Luftfeuchte 2
+// Externer Luftfeuchte 2
 #define KoSENS_Ext2Hum                             (knx.getGroupObject(SENS_KoExt2Hum))
 // Luftdruck
 #define KoSENS_Pre                                 (knx.getGroupObject(SENS_KoPre))
-// Extern: Luftdruck 1
+// Externer Luftdruck 1
 #define KoSENS_Ext1Pre                             (knx.getGroupObject(SENS_KoExt1Pre))
-// Extern: Luftdruck 2
+// Externer Luftdruck 2
 #define KoSENS_Ext2Pre                             (knx.getGroupObject(SENS_KoExt2Pre))
 // VOC
 #define KoSENS_Voc                                 (knx.getGroupObject(SENS_KoVoc))
-// Extern: VOC 1
+// Externer VOC 1
 #define KoSENS_Ext1Voc                             (knx.getGroupObject(SENS_KoExt1Voc))
-// Extern: VOC 2
+// Externer VOC 2
 #define KoSENS_Ext2Voc                             (knx.getGroupObject(SENS_KoExt2Voc))
 // CO2
 #define KoSENS_Co2                                 (knx.getGroupObject(SENS_KoCo2))
-// Extern: CO2 1
+// Externer CO2 1
 #define KoSENS_Ext1Co2                             (knx.getGroupObject(SENS_KoExt1Co2))
-// Extern: CO2 2
+// Externer CO2 2
 #define KoSENS_Ext2Co2                             (knx.getGroupObject(SENS_KoExt2Co2))
 // Helligkeit
 #define KoSENS_Lux                                 (knx.getGroupObject(SENS_KoLux))
-// Extern: Helligkeit 1
+// Externer Helligkeit 1
 #define KoSENS_Ext1Lux                             (knx.getGroupObject(SENS_KoExt1Lux))
-// Extern: Helligkeit 2
+// Externer Helligkeit 2
 #define KoSENS_Ext2Lux                             (knx.getGroupObject(SENS_KoExt2Lux))
 // Entfernung
 #define KoSENS_Tof                                 (knx.getGroupObject(SENS_KoTof))
-// Extern: Entfernung 1
+// Externer Entfernung 1
 #define KoSENS_Ext1Tof                             (knx.getGroupObject(SENS_KoExt1Tof))
-// Extern: Entfernung 2
+// Externer Entfernung 2
 #define KoSENS_Ext2Tof                             (knx.getGroupObject(SENS_KoExt2Tof))
 // CO2-VOC
 #define KoSENS_Co2b                                (knx.getGroupObject(SENS_KoCo2b))
 // Taupunkt
 #define KoSENS_Dewpoint                            (knx.getGroupObject(SENS_KoDewpoint))
-// Behaglichkeit
+// Behaglichkeit (2=behaglich, 1=geht noch, 0=unbehaglich)
 #define KoSENS_Comfort                             (knx.getGroupObject(SENS_KoComfort))
 // Luftqualitätsampel (1-6)
 #define KoSENS_Airquality                          (knx.getGroupObject(SENS_KoAirquality))
@@ -2068,7 +2068,7 @@
 // Welcher Feiertag ist morgen?
 #define KoLOG_Holiday2                            (knx.getGroupObject(LOG_KoHoliday2))
 
-#define LOG_ChannelCount 20
+#define LOG_ChannelCount 50
 
 // Parameter per channel
 #define LOG_ParamBlockOffset 3545
@@ -3945,7 +3945,7 @@
 // Ausgang
 #define KoLOG_KOfO                                (knx.getGroupObject(LOG_KoCalcNumber(LOG_KoKOfO)))
 
-#define FCB_VisibleChannels                     5285      // uint8_t
+#define FCB_VisibleChannels                     7895      // uint8_t
 
 // Verfügbare Kanäle
 #define ParamFCB_VisibleChannels                     (knx.paramByte(FCB_VisibleChannels))
@@ -3953,7 +3953,7 @@
 #define FCB_ChannelCount 15
 
 // Parameter per channel
-#define FCB_ParamBlockOffset 5286
+#define FCB_ParamBlockOffset 7896
 #define FCB_ParamBlockSize 81
 #define FCB_ParamCalcIndex(index) (index + FCB_ParamBlockOffset + _channelIndex * FCB_ParamBlockSize)
 
@@ -5025,9 +5025,13 @@
 #define BASE_KommentarModuleModuleParamSize 0
 #define BASE_KommentarModuleSubmodulesParamSize 0
 #define BASE_KommentarModuleParamSize 0
-#define BASE_KommentarModuleParamOffset 6501
+#define BASE_KommentarModuleParamOffset 9111
 #define BASE_KommentarModuleCalcIndex(index, m1) (index + BASE_KommentarModuleParamOffset + _channelIndex * BASE_KommentarModuleCount * BASE_KommentarModuleParamSize + m1 * BASE_KommentarModuleParamSize)
 
+
+
+
+// enumeration types
 
 
 #ifdef MAIN_FirmwareRevision
