@@ -9,8 +9,8 @@
   <op:config name="%FCB_VerifyVersion%" value="0.9" />
   <op:config name="%SENS_VerifyVersion%" value="4.11" />
 
-  <op:config name="%ReleaseApplicationVersion%" value="0.7.0" />
-  <op:config name="%ReleaseReplacesVersions%" value="0.6 0.5 0.4 0.3 0.2 0.1 0.0" />
+  <op:config name="%ReleaseApplicationVersion%" value="0.8.0" />
+  <op:config name="%ReleaseReplacesVersions%" value="0.7 0.6 0.5 0.4 0.3 0.2 0.1 0.0" />
 
   <op:config name="%LOG_NumChannelsDefault%" value="1" />
   <op:config name="%LOG_EnableSave%" value="0" />

@@ -5,6 +5,7 @@ class SceneHandler;
 
 class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedback
 {
+    const int retryConnectDelay = 60000; // 60 seconds delay before retrying connection after an error
     AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
     bool _lastPower = false;
     bool _lastWifiLedState = true;
@@ -15,6 +16,7 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     bool _waitingForFan = false;
     bool _waitingForDehumidification = false;
     bool _waitingForAuto = false;
+    bool _lastAirConditionPower = false;
     unsigned long _waitingForModeChange = 0;
     bool _daikinFu04Valid = false;
     uint32_t _daikinFu04CoolingWh = 0;

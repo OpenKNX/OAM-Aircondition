@@ -21,30 +21,24 @@ const std::string AirconditionModule::version()
 
 void AirconditionModule::setup()
 {
-    // <Enumeration Text="Bitte wählen..." Value="0" Id="%ENID%" />
-    // <Enumeration Text="Daikin" Value="1" Id="%ENID%" />
-    // <Enumeration Text="Midea" Value="2" Id="%ENID%" />
-    // <Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />
-    // <Enumeration Text="Toshiba" Value="4" Id="%ENID%" />
-
     switch (ParamAIR_DeviceType)
     {
-        case 0:
+        case PT_AIRDeviceType::None:
             logInfoP("No AirCondition Device Type selected");
             break;
-        case 1: // Daikin
+        case PT_AIRDeviceType::Daikin:
             logInfoP("Initialize DaikinDriver");
             _airConditionDriver = new DaikinDriver(*this);
             break;
-        case 2: // Midea
+        case (PT_AIRDeviceType) 2: // PT_AIRDeviceType::Midea:
             logInfoP("Initialize MideaDriver");
             _airConditionDriver = new MideaDriver(*this);
             break;
-        case 3: // Mitsubishi
+        case (PT_AIRDeviceType) 3: // PT_AIRDeviceType::Mitsubishi:
             logInfoP("Initialize MitsubishiDriver");
             _airConditionDriver = new MitsubishiDriver(*this);
             break;
-        case 4: // Toshiba
+        case PT_AIRDeviceType::Toshiba:
             logInfoP("Initialize ToshibaDriver");
             _airConditionDriver = new ToshibaDriver(*this);
             break;
@@ -64,11 +58,7 @@ void AirconditionModule::setup()
         _airConditionDriver->startCommunication(false);
         logInfoP("Communication started");
 
-        // <Enumeration Text="WLAN Status" Value="0" Id="%ENID%" />
-        // <Enumeration Text="Aus" Value="1" Id="%ENID%" />
-        // <Enumeration Text="Ein" Value="2" Id="%ENID%" />
-        // <Enumeration Text="Schaltbar über Gruppenobjekt" Value="3" Id="%ENID%" />
-        if (ParamAIR_WifiLED == 3 && !KoAIR_WifiLED.initialized())
+        if (ParamAIR_WifiLED == PT_AIRWifiLED::SwitchableViaGroupObject && !KoAIR_WifiLED.initialized())
             KoAIR_WifiLED.requestObjectRead();
     }
     else
@@ -80,15 +70,12 @@ void AirconditionModule::setup()
 void AirconditionModule::setLocked(bool locked)
 {
     bool initialized = KoAIR_LockReleaseState.initialized();
-    int handleChangeParameterValue = 0;
-    // <Enumeration Text="Keines" Value="0" Id="%ENID%" />
-    // <Enumeration Text="Freigabe" Value="1" Id="%ENID%" />
-    // <Enumeration Text="Sperre" Value="2" Id="%ENID%" />
+    PT_AIRLockReleaseBehavior handleChangeParameterValue = PT_AIRLockReleaseBehavior::None;
     switch (ParamAIR_LockReleaseKo)
     {
-        case 0:
+        case PT_AIRLockReleaseKo::None:
             return;
-        case 1:
+        case PT_AIRLockReleaseKo::Release:
         {
             bool release = !locked;
             if (KoAIR_LockReleaseState.valueCompare(release, DPT_Switch) && initialized)
@@ -106,7 +93,7 @@ void AirconditionModule::setLocked(bool locked)
             }
         }
         break;
-        case 2:
+        case PT_AIRLockReleaseKo::Lock:
         {
             if (KoAIR_LockReleaseState.valueCompare(locked, DPT_Switch) && initialized)
             {
@@ -125,17 +112,14 @@ void AirconditionModule::setLocked(bool locked)
     }
     if (initialized)
     {
-        // <Enumeration Text="Keine Änderung" Value="0" Id="%ENID%" />
-        // <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
-        // <Enumeration Text="Ausschalten" Value="2" Id="%ENID%" />
         switch (handleChangeParameterValue)
         {
-            case 0: // Do nothing
+            case PT_AIRLockReleaseBehavior::None: // Do nothing
                 break;
-            case 1: // Power on
+            case PT_AIRLockReleaseBehavior::On: // Power on
                 _airConditionDriver->setPower(true);
                 break;
-            case 2: // Power off
+            case PT_AIRLockReleaseBehavior::Off: // Power off
                 _airConditionDriver->setPower(false);
                 break;
         }
@@ -144,8 +128,37 @@ void AirconditionModule::setLocked(bool locked)
 
 void AirconditionModule::loop()
 {
+
+    bool airConditionPower = true;
+#ifdef VISO_SENSE_PIN
+    airConditionPower = digitalRead(VISO_SENSE_PIN) == LOW; // LOW means power is on due to pull-up resistor
+#endif
+    if (_lastAirConditionPower != airConditionPower || !KoAIR_PowerAlarm.initialized())
+    {
+        bool inInitPhase = !KoAIR_PowerAlarm.initialized();
+        _lastAirConditionPower = airConditionPower;
+        logInfoP("AirCondition power state changed to %s", airConditionPower ? "ON" : "OFF");
+        KoAIR_PowerAlarm.value(!airConditionPower, DPT_Switch);
+        if (!inInitPhase)
+        {
+            if (airConditionPower)
+            {
+                if (_errorSince > 0)
+                {
+                    // If power is on and error is active, set error since to a value that triggers a retry soon
+                    _errorSince = millis() - retryConnectDelay + 500; 
+                }
+            }
+            else
+            {
+                driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "No power");
+                updateOnlineStatus(false);
+            }
+        }
+    }
     if (_airConditionDriver != nullptr)
     {
+
         _airConditionDriver->loop();
         if (_lastWifiLedDebounceRunning != 0 && millis() - _lastWifiLedDebounceRunning > 1000)
         {
@@ -163,25 +176,22 @@ void AirconditionModule::loop()
             bool on = false;
             bool needDebounce = false;
 
-            // <Enumeration Text="WLAN Status" Value="0" Id="%ENID%" />
-            // <Enumeration Text="Aus" Value="1" Id="%ENID%" />
-            // <Enumeration Text="Ein" Value="2" Id="%ENID%" />
-            // <Enumeration Text="Schaltbar über Gruppenobjekt" Value="3" Id="%ENID%" />
+
             switch (ParamAIR_WifiLED)
             {
-                case 0: // WLAN Status
+                case PT_AIRWifiLED::WLANStatus: 
 #if defined(KNX_IP_WIFI) || defined(KNX_IP_LAN)
                     on = openknxNetwork.connected();
 #endif
                     needDebounce = true;
                     break;
-                case 1: // Always off
+                case PT_AIRWifiLED::AlwaysOff: 
                     on = false;
                     break;
-                case 2: // Always on
+                case PT_AIRWifiLED::AlwaysOn: 
                     on = true;
                     break;
-                case 3: // Switchable via Group Object
+                case PT_AIRWifiLED::SwitchableViaGroupObject: 
                     on = KoAIR_WifiLED.value(DPT_Switch);
 
                     break;
@@ -399,7 +409,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
         // <Enumeration Text="Sperre" Value="2" Id="%ENID%" />
         switch (ParamAIR_LockReleaseKo)
         {
-            case 1: // Release
+            case PT_AIRLockReleaseKo::Release: 
                 if (ko.asap() == AIR_KoLockRelease)
                 {
                     setLocked(!ko.value(DPT_Switch));
@@ -408,7 +418,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 if (!KoAIR_LockReleaseState.value(DPT_Switch))
                     return;
                 break;
-            case 2: // Lock
+            case PT_AIRLockReleaseKo::Lock: 
                 if (ko.asap() == AIR_KoLockRelease)
                 {
                     setLocked(ko.value(DPT_Switch));

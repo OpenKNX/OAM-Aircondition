@@ -16,10 +16,10 @@
 #define ETS_ModuleId_AIR 5
 #define ETS_ModuleId_LOG 6
 #define ETS_ModuleId_FCB 7
-#define MAIN_FirmwareName "Klimaanlagen KNX Adapter (Dev)"
+#define MAIN_FirmwareName "Klimaanlagen KNX Adapter (Beta)"
 #define MAIN_OpenKnxId 0xAE
-#define MAIN_ApplicationNumber 53
-#define MAIN_ApplicationVersion 11
+#define MAIN_ApplicationNumber 54
+#define MAIN_ApplicationVersion 8
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9111
@@ -90,7 +90,7 @@
 #define BASE_Info1LedFunc                        80      // 16 Bits, Bit 15-0
 #define BASE_Info2LedFunc                        82      // 16 Bits, Bit 15-0
 #define BASE_Info3LedFunc                        84      // 16 Bits, Bit 15-0
-#define BASE_DefaultLedFunc                      85      // 1 Bit, Bit 7
+#define BASE_DefaultLedFunc                      86      // 1 Bit, Bit 7
 #define     BASE_DefaultLedFuncMask 0x80
 #define     BASE_DefaultLedFuncShift 7
 #define BASE_Dummy                               109      // uint8_t
@@ -1017,27 +1017,27 @@
 #define AIR_SCJSceneAirPurificationDaikin       530      // 8 Bits, Bit 7-0
 
 // Hersteller
-#define ParamAIR_DeviceType                          ((knx.paramByte(AIR_DeviceType) & AIR_DeviceTypeMask) >> AIR_DeviceTypeShift)
+#define ParamAIR_DeviceType                          (PT_AIRDeviceType)((knx.paramByte(AIR_DeviceType) & AIR_DeviceTypeMask) >> AIR_DeviceTypeShift)
 // Nach Busspannungsausfall / Neustart
-#define ParamAIR_StartBehavior                       ((knx.paramByte(AIR_StartBehavior) & AIR_StartBehaviorMask) >> AIR_StartBehaviorShift)
+#define ParamAIR_StartBehavior                       (PT_AIRStartBehavior)((knx.paramByte(AIR_StartBehavior) & AIR_StartBehaviorMask) >> AIR_StartBehaviorShift)
 // Freigabe- / Sperrobjekt
-#define ParamAIR_LockReleaseKo                       ((knx.paramByte(AIR_LockReleaseKo) & AIR_LockReleaseKoMask) >> AIR_LockReleaseKoShift)
+#define ParamAIR_LockReleaseKo                       (PT_AIRLockReleaseKo)((knx.paramByte(AIR_LockReleaseKo) & AIR_LockReleaseKoMask) >> AIR_LockReleaseKoShift)
 // Verhalten bei Freigabe
-#define ParamAIR_ReleaseBehaviorOn                   ((knx.paramByte(AIR_ReleaseBehaviorOn) & AIR_ReleaseBehaviorOnMask) >> AIR_ReleaseBehaviorOnShift)
+#define ParamAIR_ReleaseBehaviorOn                   (PT_AIRLockReleaseBehavior)((knx.paramByte(AIR_ReleaseBehaviorOn) & AIR_ReleaseBehaviorOnMask) >> AIR_ReleaseBehaviorOnShift)
 // Verhalten bei Freigabe Ende
-#define ParamAIR_ReleaseBehaviorOff                  ((knx.paramByte(AIR_ReleaseBehaviorOff) & AIR_ReleaseBehaviorOffMask) >> AIR_ReleaseBehaviorOffShift)
+#define ParamAIR_ReleaseBehaviorOff                  (PT_AIRLockReleaseBehavior)((knx.paramByte(AIR_ReleaseBehaviorOff) & AIR_ReleaseBehaviorOffMask) >> AIR_ReleaseBehaviorOffShift)
 // Verhalten bei Sperre
-#define ParamAIR_LockBehaviorOn                      (knx.paramByte(AIR_LockBehaviorOn) & AIR_LockBehaviorOnMask)
+#define ParamAIR_LockBehaviorOn                      (PT_AIRLockReleaseBehavior)(knx.paramByte(AIR_LockBehaviorOn) & AIR_LockBehaviorOnMask)
 // Verhalten bei Sperre Ende
-#define ParamAIR_LockBehaviorOff                     ((knx.paramByte(AIR_LockBehaviorOff) & AIR_LockBehaviorOffMask) >> AIR_LockBehaviorOffShift)
+#define ParamAIR_LockBehaviorOff                     (PT_AIRLockReleaseBehavior)((knx.paramByte(AIR_LockBehaviorOff) & AIR_LockBehaviorOffMask) >> AIR_LockBehaviorOffShift)
 // Wifi LED
-#define ParamAIR_WifiLED                             ((knx.paramByte(AIR_WifiLED) & AIR_WifiLEDMask) >> AIR_WifiLEDShift)
+#define ParamAIR_WifiLED                             (PT_AIRWifiLED)((knx.paramByte(AIR_WifiLED) & AIR_WifiLEDMask) >> AIR_WifiLEDShift)
 // Eingang für externe Raumtemperatur
 #define ParamAIR_ExternalRoomTemperature             ((bool)(knx.paramByte(AIR_ExternalRoomTemperature) & AIR_ExternalRoomTemperatureMask))
 // Gruppenobjekt 'Klimagerät Solltemperatur Ausgang' (für Diagnose)
 #define ParamAIR_ClimateSetTemperature               ((bool)(knx.paramByte(AIR_ClimateSetTemperature) & AIR_ClimateSetTemperatureMask))
 // Externe Raumtemperatur überwachen
-#define ParamAIR_ExternTempWatchdog                  (knx.paramByte(AIR_ExternTempWatchdog) & AIR_ExternTempWatchdogMask)
+#define ParamAIR_ExternTempWatchdog                  (PT_AIRExternTemperatureWatchdogBehavior)(knx.paramByte(AIR_ExternTempWatchdog) & AIR_ExternTempWatchdogMask)
 // Überwachung Zeitbasis
 #define ParamAIR_MonitoringWDTTimeoutDelayBase       ((knx.paramByte(AIR_MonitoringWDTTimeoutDelayBase) & AIR_MonitoringWDTTimeoutDelayBaseMask) >> AIR_MonitoringWDTTimeoutDelayBaseShift)
 // Überwachung Zeit
@@ -1051,7 +1051,7 @@
 // Szenennummer
 #define ParamAIR_SCANumber                           ((knx.paramByte(AIR_SCANumber) & AIR_SCANumberMask) >> AIR_SCANumberShift)
 // Schalten
-#define ParamAIR_SCAOnOff                            (knx.paramByte(AIR_SCAOnOff))
+#define ParamAIR_SCAOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCAOnOff))
 // Betriebsmodus
 #define ParamAIR_SCAOperationMode                    (knx.paramByte(AIR_SCAOperationMode))
 // Solltemperatur
@@ -1085,7 +1085,7 @@
 // Szenennummer
 #define ParamAIR_SCBNumber                           ((knx.paramByte(AIR_SCBNumber) & AIR_SCBNumberMask) >> AIR_SCBNumberShift)
 // Schalten
-#define ParamAIR_SCBOnOff                            (knx.paramByte(AIR_SCBOnOff))
+#define ParamAIR_SCBOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCBOnOff))
 // Betriebsmodus
 #define ParamAIR_SCBOperationMode                    (knx.paramByte(AIR_SCBOperationMode))
 // Solltemperatur
@@ -1119,7 +1119,7 @@
 // Szenennummer
 #define ParamAIR_SCCNumber                           ((knx.paramByte(AIR_SCCNumber) & AIR_SCCNumberMask) >> AIR_SCCNumberShift)
 // Schalten
-#define ParamAIR_SCCOnOff                            (knx.paramByte(AIR_SCCOnOff))
+#define ParamAIR_SCCOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCCOnOff))
 // Betriebsmodus
 #define ParamAIR_SCCOperationMode                    (knx.paramByte(AIR_SCCOperationMode))
 // Solltemperatur
@@ -1153,7 +1153,7 @@
 // Szenennummer
 #define ParamAIR_SCDNumber                           ((knx.paramByte(AIR_SCDNumber) & AIR_SCDNumberMask) >> AIR_SCDNumberShift)
 // Schalten
-#define ParamAIR_SCDOnOff                            (knx.paramByte(AIR_SCDOnOff))
+#define ParamAIR_SCDOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCDOnOff))
 // Betriebsmodus
 #define ParamAIR_SCDOperationMode                    (knx.paramByte(AIR_SCDOperationMode))
 // Solltemperatur
@@ -1187,7 +1187,7 @@
 // Szenennummer
 #define ParamAIR_SCENumber                           ((knx.paramByte(AIR_SCENumber) & AIR_SCENumberMask) >> AIR_SCENumberShift)
 // Schalten
-#define ParamAIR_SCEOnOff                            (knx.paramByte(AIR_SCEOnOff))
+#define ParamAIR_SCEOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCEOnOff))
 // Betriebsmodus
 #define ParamAIR_SCEOperationMode                    (knx.paramByte(AIR_SCEOperationMode))
 // Solltemperatur
@@ -1221,7 +1221,7 @@
 // Szenennummer
 #define ParamAIR_SCFNumber                           ((knx.paramByte(AIR_SCFNumber) & AIR_SCFNumberMask) >> AIR_SCFNumberShift)
 // Schalten
-#define ParamAIR_SCFOnOff                            (knx.paramByte(AIR_SCFOnOff))
+#define ParamAIR_SCFOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCFOnOff))
 // Betriebsmodus
 #define ParamAIR_SCFOperationMode                    (knx.paramByte(AIR_SCFOperationMode))
 // Solltemperatur
@@ -1255,7 +1255,7 @@
 // Szenennummer
 #define ParamAIR_SCGNumber                           ((knx.paramByte(AIR_SCGNumber) & AIR_SCGNumberMask) >> AIR_SCGNumberShift)
 // Schalten
-#define ParamAIR_SCGOnOff                            (knx.paramByte(AIR_SCGOnOff))
+#define ParamAIR_SCGOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCGOnOff))
 // Betriebsmodus
 #define ParamAIR_SCGOperationMode                    (knx.paramByte(AIR_SCGOperationMode))
 // Solltemperatur
@@ -1289,7 +1289,7 @@
 // Szenennummer
 #define ParamAIR_SCHNumber                           ((knx.paramByte(AIR_SCHNumber) & AIR_SCHNumberMask) >> AIR_SCHNumberShift)
 // Schalten
-#define ParamAIR_SCHOnOff                            (knx.paramByte(AIR_SCHOnOff))
+#define ParamAIR_SCHOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCHOnOff))
 // Betriebsmodus
 #define ParamAIR_SCHOperationMode                    (knx.paramByte(AIR_SCHOperationMode))
 // Solltemperatur
@@ -1323,7 +1323,7 @@
 // Szenennummer
 #define ParamAIR_SCINumber                           ((knx.paramByte(AIR_SCINumber) & AIR_SCINumberMask) >> AIR_SCINumberShift)
 // Schalten
-#define ParamAIR_SCIOnOff                            (knx.paramByte(AIR_SCIOnOff))
+#define ParamAIR_SCIOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCIOnOff))
 // Betriebsmodus
 #define ParamAIR_SCIOperationMode                    (knx.paramByte(AIR_SCIOperationMode))
 // Solltemperatur
@@ -1357,7 +1357,7 @@
 // Szenennummer
 #define ParamAIR_SCJNumber                           ((knx.paramByte(AIR_SCJNumber) & AIR_SCJNumberMask) >> AIR_SCJNumberShift)
 // Schalten
-#define ParamAIR_SCJOnOff                            (knx.paramByte(AIR_SCJOnOff))
+#define ParamAIR_SCJOnOff                            (PT_AIRSceneOnOff)(knx.paramByte(AIR_SCJOnOff))
 // Betriebsmodus
 #define ParamAIR_SCJOperationMode                    (knx.paramByte(AIR_SCJOperationMode))
 // Solltemperatur
@@ -1411,7 +1411,7 @@
 #define AIR_KoLouverVerticalPositionState 422
 #define AIR_KoLouverHorizontalSwing 423
 #define AIR_KoLouverHorizontalSwingState 424
-#define AIR_KoLouverHorizontalUpDown 425
+#define AIR_KoLouverHorizontalLeftRight 425
 #define AIR_KoLockRelease 426
 #define AIR_KoLockReleaseState 427
 #define AIR_KoSetTemperature 428
@@ -1423,8 +1423,9 @@
 #define AIR_KoScene 434
 #define AIR_KoWifiLED 435
 #define AIR_KoClimateTargetTemperatur 437
-#define AIR_KoAirPurification 438
-#define AIR_KoAirPurificationState 439
+#define AIR_KoPowerAlarm 438
+#define AIR_KoAirPurification 439
+#define AIR_KoAirPurificationState 440
 #define AIR_KoPowerLimit 448
 #define AIR_KoPowerLimitState 449
 #define AIR_KoDeviceMode 450
@@ -1493,7 +1494,7 @@
 // Lamelle Horizontal Bewegen Status
 #define KoAIR_LouverHorizontalSwingState          (knx.getGroupObject(AIR_KoLouverHorizontalSwingState))
 // Lamelle Horizontal Links/Rechts
-#define KoAIR_LouverHorizontalUpDown              (knx.getGroupObject(AIR_KoLouverHorizontalUpDown))
+#define KoAIR_LouverHorizontalLeftRight           (knx.getGroupObject(AIR_KoLouverHorizontalLeftRight))
 // Sperre / Freigabe
 #define KoAIR_LockRelease                         (knx.getGroupObject(AIR_KoLockRelease))
 // Sperre / Freigabe Aktiv
@@ -1502,7 +1503,7 @@
 #define KoAIR_SetTemperature                      (knx.getGroupObject(AIR_KoSetTemperature))
 // Solltemperatur Status
 #define KoAIR_SetTemperatureState                 (knx.getGroupObject(AIR_KoSetTemperatureState))
-// Solltemperatur mehr/weniger
+// Solltemperatur verringern/erhöhen
 #define KoAIR_SetTemperatureUpDown                (knx.getGroupObject(AIR_KoSetTemperatureUpDown))
 // Raumtemperatur Status
 #define KoAIR_RoomTemperatureState                (knx.getGroupObject(AIR_KoRoomTemperatureState))
@@ -1516,6 +1517,8 @@
 #define KoAIR_WifiLED                             (knx.getGroupObject(AIR_KoWifiLED))
 // Klimagerät Solltemperatur Ausgang
 #define KoAIR_ClimateTargetTemperatur             (knx.getGroupObject(AIR_KoClimateTargetTemperatur))
+// Klimagerät Stromausfall
+#define KoAIR_PowerAlarm                          (knx.getGroupObject(AIR_KoPowerAlarm))
 // Luftreinigung
 #define KoAIR_AirPurification                     (knx.getGroupObject(AIR_KoAirPurification))
 // Luftreinigung Status
@@ -1540,13 +1543,13 @@
 #define KoAIR_DeviceModeEco                       (knx.getGroupObject(AIR_KoDeviceModeEco))
 // Gerätemodus ECO Status
 #define KoAIR_DeviceModeEcoState                  (knx.getGroupObject(AIR_KoDeviceModeEcoState))
-// Gerätemodus Geräuscharm 1 (Außengerät)
+// Gerätemodus Außengerät Geräuscharm 1
 #define KoAIR_DeviceModeSilent1                   (knx.getGroupObject(AIR_KoDeviceModeSilent1))
-// Gerätemodus Geräuscharm 1 (Außengerät) Status
+// Gerätemodus Außengerät Geräuscharm 1 Status
 #define KoAIR_DeviceModeSilent1State              (knx.getGroupObject(AIR_KoDeviceModeSilent1State))
-// Gerätemodus Geräuscharm 2 (Außengerät)
+// Gerätemodus Außengerät Geräuscharm 2
 #define KoAIR_DeviceModeSilent2                   (knx.getGroupObject(AIR_KoDeviceModeSilent2))
-// Gerätemodus Geräuscharm 2 (Außengerät) Status
+// Gerätemodus Außengerät Geräuscharm 2 Status
 #define KoAIR_DeviceModeSilent2State              (knx.getGroupObject(AIR_KoDeviceModeSilent2State))
 // Luftfeuchtigkeit Status
 #define KoAIR_HumidityState                       (knx.getGroupObject(AIR_KoHumidityState))
@@ -5032,6 +5035,55 @@
 
 
 // enumeration types
+enum class PT_AIRDeviceType
+{
+    None = 0,
+    Daikin = 1,
+    Toshiba = 4
+};
+
+enum class PT_AIRStartBehavior
+{
+    None = 0,
+    RestoreSettings = 1
+};
+
+enum class PT_AIRLockReleaseKo
+{
+    None = 0,
+    Release = 1,
+    Lock = 2
+};
+
+enum class PT_AIRLockReleaseBehavior
+{
+    None = 0,
+    On = 1,
+    Off = 2
+};
+
+enum class PT_AIRWifiLED
+{
+    WLANStatus = 0,
+    AlwaysOff = 1,
+    AlwaysOn = 2,
+    SwitchableViaGroupObject = 3
+};
+
+enum class PT_AIRExternTemperatureWatchdogBehavior
+{
+    Disabled = 0,
+    YesReadThenIgnore = 1,
+    YesIgnore = 2
+};
+
+enum class PT_AIRSceneOnOff
+{
+    NoChange = 255,
+    Off = 0,
+    On = 1
+};
+
 
 
 #ifdef MAIN_FirmwareRevision

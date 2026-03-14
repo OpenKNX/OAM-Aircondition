@@ -63,7 +63,7 @@ void SceneHandler::handleScene(uint8_t sceneNumber)
 
 SceneParameters SceneHandler::getSceneParameters(int index)
 {
-    const bool supportsScenePositionAndPowerLimit = (ParamAIR_DeviceType == 4); // Toshiba
+    const bool supportsScenePositionAndPowerLimit = (ParamAIR_DeviceType == PT_AIRDeviceType::Toshiba);
     SceneParameters params;
     switch (index)
     {
@@ -389,13 +389,13 @@ void SceneHandler::applyParameters(int index)
     // <Enumeration Text="Einschalten" Value="1" Id="%ENID%" />
     switch (params.onOff)
     {
-        case 255:
+        case PT_AIRSceneOnOff::NoChange:
             break; // No change
-        case 0:
+        case PT_AIRSceneOnOff::Off:
             logDebugP("Turning off air conditioner");
             _airConditionDriver.setPower(false);
             break;
-        case 1:
+        case PT_AIRSceneOnOff::On:
             logDebugP("Turning on air conditioner");
             _airConditionDriver.setPower(true);
             break;

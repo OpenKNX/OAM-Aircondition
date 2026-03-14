@@ -2,9 +2,11 @@
 
 Lüftergeschwindigkeit
 
+Optionen für Toshiba:
+
 - Keine Änderung
 - Automatik
-- Geräuscharm
+- Leise
 - Stufe 1
 - Stufe 2
 - Stufe 3

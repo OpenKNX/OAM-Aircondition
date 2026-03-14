@@ -14,8 +14,11 @@ Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Herstelle
   - Features: Grundsteuerung, Spezialmodi (Powerful, Econo, Quiet, Comfort, Streamer), Intelligent Eye Sensor, Humidity-Mode-Rückmeldung, Swing-Modi
   - Getestet mit verschiedenen FTXM/FTXF Serien
 
-Geplant:
-- Mitsubishi (In Entwicklung)
+# Release notes
+
+- 0.8 Spannungsüberwachung des Klimagerätes
+- 0.8 Umbennung der Gruppenobjekte auf OpenKNX Standard
+- 0.8 Daikin Support
 
 ## Features
 

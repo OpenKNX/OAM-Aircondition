@@ -12,6 +12,10 @@
 void setup()
 {
 #ifdef VISO_SENSE_PIN
+#ifdef DEVICE_UP1_GW_UART 
+    pinMode(27, INPUT); // Only needed for development board
+    pinMode(25, INPUT); // Only needed for development board
+#endif
     pinMode(VISO_SENSE_PIN, INPUT_PULLUP);
 #endif
     openknx.init();

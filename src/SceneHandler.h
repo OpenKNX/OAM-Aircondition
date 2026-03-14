@@ -4,7 +4,7 @@
 
 struct SceneParameters
 {
-    uint8_t onOff = 255;
+    PT_AIRSceneOnOff onOff = PT_AIRSceneOnOff::NoChange;
     uint8_t operationMode = 255;
     uint8_t temperature = 255;
     uint8_t fan = 255;

@@ -30,8 +30,6 @@ In diesem Abschnitt wird eingestellt, welche Klimaanlage gesteuert werden soll.
 Auswahl des Herstellers der Klimaanlage:
 
 - Daikin
-- Midea
-- Mitsubishi
 - Toshiba
 
 <!-- DOCEND -->
@@ -356,8 +354,8 @@ Optionen für Toshiba:
 - Standard
 - Hi-Power
 - ECO
-- Leise 1 (Außengerät)
-- Leise 2 (Außengerät)
+- Außengerät Leise 1
+- Außengerät Leise 2
 
 <!-- DOC -->
 #### Luftreinigung
