@@ -339,6 +339,9 @@ private:
     // Online/offline detection (robust S21 connectivity tracking)
     uint32_t last_rx_ok_ms_{0};            // Time of last ACK or valid frame
     bool online_{false};                   // Current online status
+    uint32_t comm_start_time_{0};          // When startCommunication() was called
+    bool startup_offline_published_{false}; // True after startup offline state was published
+    static constexpr uint32_t STARTUP_OFFLINE_TIMEOUT_MS = 15000; // 15s before publishing offline defaults at startup
     
     // Protocol detection optimization
     bool old_protocol_detected_{false};    // Early detection flag

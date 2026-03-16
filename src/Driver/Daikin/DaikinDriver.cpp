@@ -266,12 +266,27 @@ void DaikinDriver::startCommunication(bool restart)
         state_.swing = daikin::Swing::Off;
     }
 
+    // Reset pending activation flags to prevent stale commands after restart
+    pending_.activate_climate = false;
+    pending_.activate_swing_mode = false;
+    pending_.activate_powerful = false;
+    pending_.activate_econo = false;
+    pending_.activate_quiet = false;
+    pending_.activate_led = false;
+    pending_.activate_streamer = false;
+    pending_.activate_sensor = false;
+    pending_explicit_off_ = false;
+    pending_explicit_fan_ = false;
+
     // Do not publish default/offline values on startup.
     // Wait until we have a real sample from the indoor unit, then seed all KOs once.
     sample_seen_mask_ = 0;
     online_since_ms_ = 0;
     gate_publish_until_full_sample_ = true;
     seed_kos_pending_ = true;
+    startup_offline_published_ = false;
+    comm_start_time_ = millis();
+    if (comm_start_time_ == 0) comm_start_time_ = 1; // avoid 0 sentinel
 
     // Start communication with smart protocol detection
     last_query_cycle_ = 0; // Force immediate cycle start
@@ -943,6 +958,13 @@ void DaikinDriver::updateQueryStateMachine()
                             {
                                 logErrorP("Protocol detection failed after %d attempts", protocol_detection_attempts_);
                                 statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Protocol detection failed");
+                                if (seed_kos_pending_ && !online_ && !state_.online)
+                                {
+                                    logInfoP("Protocol detection failed at startup -> publishing offline default state");
+                                    state_.online = false;
+                                    gate_publish_until_full_sample_ = false;
+                                    publishState();
+                                }
                                 protocol_detection_failed_reported_ = true;
                             }
 
@@ -3386,6 +3408,10 @@ void DaikinDriver::publishState()
         last_fan_speed = (daikin_to_openknx_fan(state_.fan) == 0) ? 1 : 0; // Different to force update
         last_swing_h = !((state_.swing == daikin::Swing::Horizontal) || (state_.swing == daikin::Swing::Both));
         last_swing_v = !((state_.swing == daikin::Swing::Vertical) || (state_.swing == daikin::Swing::Both));
+        if (!state_.online)
+        {
+            last_online = true; // force KO463=false during offline startup seeding
+        }
 
         seed_kos_pending_ = false;
         logInfoP("KO seeding completed - all states will be published");
@@ -3857,5 +3883,19 @@ void DaikinDriver::checkOnlineTimeout()
             serial_->force_framed_mode("offline recovery");
             last_framed_retry_ms = now;
         }
+    }
+
+    // Startup offline detection: if device never came online after startup,
+    // publish offline default state so all KOs are initialized on the bus.
+    // This handles the case where the AC is powered off when the GW starts.
+    if (!startup_offline_published_ && !online_ && seed_kos_pending_ &&
+        comm_start_time_ != 0 && (now - comm_start_time_) > STARTUP_OFFLINE_TIMEOUT_MS)
+    {
+        startup_offline_published_ = true;
+        logInfoP("Device offline at startup after %lu ms -> publishing offline default state (all off)",
+                 (unsigned long)(now - comm_start_time_));
+        state_.online = false;
+        gate_publish_until_full_sample_ = false;
+        publishState(); // seed_kos_pending_ will force all KOs to be written
     }
 }
