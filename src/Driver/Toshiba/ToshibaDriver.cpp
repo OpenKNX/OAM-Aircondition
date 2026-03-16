@@ -5,7 +5,7 @@
 #include "NetworkModule.h"
 #include <Arduino.h>
 #if defined(ARDUINO_ARCH_RP2040)
-  #include <hardware/gpio.h>   // gpio_set_function, gpio_pull_up, gpio_set_input_hysteresis_enabled
+    #include <hardware/gpio.h> // gpio_set_function, gpio_pull_up, gpio_set_input_hysteresis_enabled
 #endif
 
 static const int RECEIVE_TIMEOUT = 200;
@@ -225,6 +225,7 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
             _commandQueue.erase(_commandQueue.begin());
             logDebugP("Response for command %d received", static_cast<int>(commandType));
             statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
+            statusFeedback.updateOnlineStatus(true);
             if (currentCommand.requestFeedback)
             {
                 logInfoP("Request feedback not yet sent, ignore value");
@@ -441,17 +442,17 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
                     break;
                 case ToshibaSpecialMode::ToshibaSpecialModeFireplace1:
                     logDebugP("Special mode: Fireplace1");
-                   // statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFireplace1);
-                   statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
+                    // statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFireplace1);
+                    statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
                     break;
                 case ToshibaSpecialMode::ToshibaSpecialModeFireplace2:
                     logDebugP("Special mode: Fireplace2");
-                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFireplace2);
+                    // statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFireplace2);
                     statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
                     break;
                 case ToshibaSpecialMode::ToshibaSpecialModeEightDegree:
                     logDebugP("Special mode: Eight Degree");
-                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeEightDegree);
+                    // statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeEightDegree);
                     statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
                     break;
                 case ToshibaSpecialMode::ToshibaSpecialModeSilent1:
@@ -464,17 +465,17 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
                     break;
                 case ToshibaSpecialMode::ToshibaSpecialModeSleep:
                     logDebugP("Special mode: Sleep");
-                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeSleep);
+                    // statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeSleep);
                     statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
                     break;
                 case ToshibaSpecialMode::ToshibaSpecialModeFloor:
                     logDebugP("Special mode: Floor");
-                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFloor);
+                    // statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeFloor);
                     statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
                     break;
                 case ToshibaSpecialMode::ToshibaSpecialModeComfort:
                     logDebugP("Special mode: Comfort");
-                    //statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeComfort);
+                    // statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeComfort);
                     statusFeedback.deviceModeChanged(AirConditionDeviceMode::AirConditionDeviceModeStandard);
                     break;
                 default:
@@ -601,6 +602,7 @@ void ToshibaDriver::processCommandQueue()
                 {
                     // Command timeout
                     statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError, "Command timeout");
+                    statusFeedback.updateOnlineStatus(false);
                     _commandQueue.erase(_commandQueue.begin());
                     return;
                 }
@@ -975,18 +977,18 @@ void ToshibaDriver::setDeviceMode(AirConditionDeviceMode mode)
             logDebugP("Setting device mode to Silent2");
             sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeSilent2);
             break;
-        // case AirConditionDeviceMode::AirConditionDeviceModeSleep:
-        //     logDebugP("Setting device mode to Sleep");
-        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeSleep);
-        //     break;
-        // case AirConditionDeviceMode::AirConditionDeviceModeFloor:
-        //     logDebugP("Setting device mode to Floor");
-        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeFloor);
-        //     break;
-        // case AirConditionDeviceMode::AirConditionDeviceModeComfort:
-        //     logDebugP("Setting device mode to Comfort");
-        //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeComfort);
-        //     break;
+            // case AirConditionDeviceMode::AirConditionDeviceModeSleep:
+            //     logDebugP("Setting device mode to Sleep");
+            //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeSleep);
+            //     break;
+            // case AirConditionDeviceMode::AirConditionDeviceModeFloor:
+            //     logDebugP("Setting device mode to Floor");
+            //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeFloor);
+            //     break;
+            // case AirConditionDeviceMode::AirConditionDeviceModeComfort:
+            //     logDebugP("Setting device mode to Comfort");
+            //     sendCommand(ToshibaCommandType::ToshibaCommandTypeSpecialMode, ToshibaSpecialMode::ToshibaSpecialModeComfort);
+            //     break;
     }
 }
 
@@ -1011,7 +1013,6 @@ void ToshibaDriver::setMaxPowerLevel(uint8_t percentage)
             break;
     }
 }
-
 
 void ToshibaDriver::setAirPurification(bool on)
 {
