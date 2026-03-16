@@ -7,6 +7,7 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
 {
     const int retryConnectDelay = 60000; // 60 seconds delay before retrying connection after an error
     AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
+    bool _hasKnownMode = false;
     bool _lastPower = false;
     bool _lastWifiLedState = true;
     bool _forceWifiLedState = false;

@@ -30,11 +30,11 @@ void AirconditionModule::setup()
             logInfoP("Initialize DaikinDriver");
             _airConditionDriver = new DaikinDriver(*this);
             break;
-        case (PT_AIRDeviceType) 2: // PT_AIRDeviceType::Midea:
+        case (PT_AIRDeviceType)2: // PT_AIRDeviceType::Midea:
             logInfoP("Initialize MideaDriver");
             _airConditionDriver = new MideaDriver(*this);
             break;
-        case (PT_AIRDeviceType) 3: // PT_AIRDeviceType::Mitsubishi:
+        case (PT_AIRDeviceType)3: // PT_AIRDeviceType::Mitsubishi:
             logInfoP("Initialize MitsubishiDriver");
             _airConditionDriver = new MitsubishiDriver(*this);
             break;
@@ -146,7 +146,7 @@ void AirconditionModule::loop()
                 if (_errorSince > 0)
                 {
                     // If power is on and error is active, set error since to a value that triggers a retry soon
-                    _errorSince = millis() - retryConnectDelay + 500; 
+                    _errorSince = millis() - retryConnectDelay + 500;
                 }
             }
             else
@@ -176,22 +176,21 @@ void AirconditionModule::loop()
             bool on = false;
             bool needDebounce = false;
 
-
             switch (ParamAIR_WifiLED)
             {
-                case PT_AIRWifiLED::WLANStatus: 
+                case PT_AIRWifiLED::WLANStatus:
 #if defined(KNX_IP_WIFI) || defined(KNX_IP_LAN)
                     on = openknxNetwork.connected();
 #endif
                     needDebounce = true;
                     break;
-                case PT_AIRWifiLED::AlwaysOff: 
+                case PT_AIRWifiLED::AlwaysOff:
                     on = false;
                     break;
-                case PT_AIRWifiLED::AlwaysOn: 
+                case PT_AIRWifiLED::AlwaysOn:
                     on = true;
                     break;
-                case PT_AIRWifiLED::SwitchableViaGroupObject: 
+                case PT_AIRWifiLED::SwitchableViaGroupObject:
                     on = KoAIR_WifiLED.value(DPT_Switch);
 
                     break;
@@ -299,7 +298,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
     }
     else if (cmd.length() >= 5 && cmd.substr(0, 5) == "temp ")
     {
-         std::string tempStr = cmd.substr(5);
+        std::string tempStr = cmd.substr(5);
         float temperature = std::stof(tempStr);
         KoAIR_SetTemperature.valueNoSend(temperature, DPT_Value_Temp);
         processInputKo(KoAIR_SetTemperature);
@@ -409,7 +408,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
         // <Enumeration Text="Sperre" Value="2" Id="%ENID%" />
         switch (ParamAIR_LockReleaseKo)
         {
-            case PT_AIRLockReleaseKo::Release: 
+            case PT_AIRLockReleaseKo::Release:
                 if (ko.asap() == AIR_KoLockRelease)
                 {
                     setLocked(!ko.value(DPT_Switch));
@@ -418,7 +417,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 if (!KoAIR_LockReleaseState.value(DPT_Switch))
                     return;
                 break;
-            case PT_AIRLockReleaseKo::Lock: 
+            case PT_AIRLockReleaseKo::Lock:
                 if (ko.asap() == AIR_KoLockRelease)
                 {
                     setLocked(ko.value(DPT_Switch));
@@ -640,7 +639,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
             {
                 uint8_t deviceMode = (uint8_t)ko.value(DPT_SceneNumber) + 1;
                 logInfoP("Set device mode to %u", deviceMode);
-                _airConditionDriver->setDeviceMode((AirConditionDeviceMode) deviceMode);
+                _airConditionDriver->setDeviceMode((AirConditionDeviceMode)deviceMode);
             }
             break;
             case AIR_KoDeviceModeStandard:
@@ -688,7 +687,7 @@ void AirconditionModule::setTargetTemperaturToAircondition(float temperature)
 {
     if (_airConditionDriver != nullptr)
     {
-       
+
         logInfoP("Set target temperature to %.1f °C", temperature);
         _airConditionDriver->setTargetTemperature(temperature);
     }
@@ -701,7 +700,14 @@ void AirconditionModule::powerChanged(bool power)
     KoAIR_PowerState.valueCompare(power, DPT_Switch);
     if (power)
     {
-        modeChanged(_lastMode); // Reset mode to last known state
+        if (_hasKnownMode)
+        {
+            modeChanged(_lastMode); // Restore the last confirmed mode state
+        }
+        else
+        {
+            logInfoP("AirCondition mode still unknown, skip mode KO update");
+        }
     }
     else
     {
@@ -727,6 +733,7 @@ void AirconditionModule::fanSpeedChanged(int fanSpeed)
 void AirconditionModule::modeChanged(AirConditionMode mode)
 {
     _lastMode = mode;
+    _hasKnownMode = true;
     if (_lastPower == false)
     {
         logInfoP("AirCondition is off, not changing mode for KO's");
@@ -851,6 +858,7 @@ void AirconditionModule::driverStateChanged(AirConditionDriverState state, std::
                 _errorSince = 0; // Reset error timestamp
                 _errorMessage = "";
                 _initialDataNeeded = true;
+                _hasKnownMode = false;
                 break;
             case AirConditionDriverState::AirConditionDriverStateStarting:
                 logInfoP("AirCondition Driver state: %s", AirConditionDriver::getDriverStateString(state));
@@ -858,6 +866,7 @@ void AirconditionModule::driverStateChanged(AirConditionDriverState state, std::
                 _errorMessage = "";
                 _lastWifiLedDebounceRunning = 0;
                 _initialDataNeeded = true;
+                _hasKnownMode = false;
                 break;
             case AirConditionDriverState::AirConditionDriverStateOk:
                 logInfoP("AirCondition Driver state: %s", AirConditionDriver::getDriverStateString(state));
@@ -872,6 +881,7 @@ void AirconditionModule::driverStateChanged(AirConditionDriverState state, std::
                 {
                     _errorSince = max(1UL, millis());
                     _errorMessage = error;
+                    _hasKnownMode = false;
                     logErrorP("AirCondition Driver state: %s error: %s", AirConditionDriver::getDriverStateString(state), _errorMessage.c_str());
                 }
                 break;
@@ -888,7 +898,7 @@ void AirconditionModule::maxPowerLevelChanged(uint8_t maxPower)
 void AirconditionModule::deviceModeChanged(AirConditionDeviceMode mode)
 {
     logInfoP("AirCondition report device mode changed to %d", (int)mode);
-    KoAIR_DeviceModeState.valueCompare((uint8_t) (((uint8_t) mode) - 1), DPT_SceneNumber);
+    KoAIR_DeviceModeState.valueCompare((uint8_t)(((uint8_t)mode) - 1), DPT_SceneNumber);
     KoAIR_DeviceModeStandardState.valueCompare(mode == AirConditionDeviceMode::AirConditionDeviceModeStandard, DPT_Switch);
     KoAIR_DeviceModeHiPowerState.valueCompare(mode == AirConditionDeviceMode::AirConditionDeviceModeHiPower, DPT_Switch);
     KoAIR_DeviceModeEcoState.valueCompare(mode == AirConditionDeviceMode::AirConditionDeviceModeEco, DPT_Switch);
@@ -914,68 +924,82 @@ void AirconditionModule::showHelp()
     openknx.console.printHelpLine("all", "Request all data from the air condition");
     openknx.console.printHelpLine("acroom <value>", "Simulate room temperature feedback from aircondition (e.g., acroom 22)");
     openknx.console.printHelpLine("room <value>", "Set the room temperature (e.g., room 22)");
-
 }
 
-void AirconditionModule::updatePower(bool power) {
+void AirconditionModule::updatePower(bool power)
+{
     powerChanged(power);
 }
 
-void AirconditionModule::updateMode(AirConditionMode mode) {
+void AirconditionModule::updateMode(AirConditionMode mode)
+{
     modeChanged(mode);
 }
 
-void AirconditionModule::updateTargetTemperature(float c) {
+void AirconditionModule::updateTargetTemperature(float c)
+{
     targetTemperatureChanged(c, /*fromKnx=*/false);
 }
 
-void AirconditionModule::updateFanSpeed(int speed) {
+void AirconditionModule::updateFanSpeed(int speed)
+{
     fanSpeedChanged(speed);
 }
 
-void AirconditionModule::updateSwingHorizontal(bool swing) {
+void AirconditionModule::updateSwingHorizontal(bool swing)
+{
     swingHorizontalChanged(swing);
 }
 
-void AirconditionModule::updateSwingVertical(bool swing) {
+void AirconditionModule::updateSwingVertical(bool swing)
+{
     swingVerticalChanged(swing);
 }
 
-void AirconditionModule::updateCurrentTemperature(float c) {
+void AirconditionModule::updateCurrentTemperature(float c)
+{
     roomTemperatureChanged(c);
 }
 
-void AirconditionModule::updateOutdoorTemperature(float c) {
+void AirconditionModule::updateOutdoorTemperature(float c)
+{
     outsideTemperaturChanged(c);
 }
 
-void AirconditionModule::updateDeviceMode(AirConditionDeviceMode mode) {
+void AirconditionModule::updateDeviceMode(AirConditionDeviceMode mode)
+{
     deviceModeChanged(mode);
 }
 
-void AirconditionModule::updateMaxPowerLevel(uint8_t percentage) {
+void AirconditionModule::updateMaxPowerLevel(uint8_t percentage)
+{
     maxPowerLevelChanged(percentage);
 }
 
-void AirconditionModule::updateAirPurification(bool on) {
+void AirconditionModule::updateAirPurification(bool on)
+{
     airPurificationChanged(on);
 }
 
-void AirconditionModule::updateOnlineStatus(bool online) {
+void AirconditionModule::updateOnlineStatus(bool online)
+{
     logInfoP("AirCondition report online state: %s", online ? "online" : "offline");
     KoAIR_OnlineState.valueCompare(online, DPT_State);
 }
 
-void AirconditionModule::updateWifiLed(bool on) {
+void AirconditionModule::updateWifiLed(bool on)
+{
     // optional: publish to KO
 }
 
-void AirconditionModule::updateHumidity(uint8_t humidity) {
+void AirconditionModule::updateHumidity(uint8_t humidity)
+{
     logInfoP("AirCondition report humidity changed to %u%%", humidity);
     KoAIR_HumidityState.valueCompare((float)humidity, DPT_Value_Humidity);
 }
 
-void AirconditionModule::updateHumidityMode(uint8_t step) {
+void AirconditionModule::updateHumidityMode(uint8_t step)
+{
     const uint8_t levels = _airConditionDriver->getMaximumHumidityModeLevels();
     uint8_t percent = (levels > 1) ? uint8_t(std::round(100.0f * step / float(levels - 1))) : 0;
 
@@ -983,7 +1007,8 @@ void AirconditionModule::updateHumidityMode(uint8_t step) {
     KoAIR_HumidityModePercent.valueCompare(percent, DPT_Scaling);
 }
 
-void AirconditionModule::updateTotalEnergyConsumption(uint32_t totalEnergyWh) {
+void AirconditionModule::updateTotalEnergyConsumption(uint32_t totalEnergyWh)
+{
     KoAIR_TotalEnergy.valueCompare(totalEnergyWh / 1000.0f, DPT_ActiveEnergy_kWh);
 }
 
@@ -991,7 +1016,8 @@ void AirconditionModule::updateDaikinExtensionTelemetry(bool fu04Valid,
                                                         uint32_t fu04CoolingWh,
                                                         uint32_t fu04HeatingWh,
                                                         bool fx60Valid,
-                                                        uint32_t fx60Value10) {
+                                                        uint32_t fx60Value10)
+{
     _daikinFu04Valid = fu04Valid;
     _daikinFu04CoolingWh = fu04CoolingWh;
     _daikinFu04HeatingWh = fu04HeatingWh;
@@ -1002,4 +1028,3 @@ void AirconditionModule::updateDaikinExtensionTelemetry(bool fu04Valid,
     logDebugP("Daikin extension telemetry updated (FU04 valid=%d, FX60 valid=%d)",
               fu04Valid ? 1 : 0, fx60Valid ? 1 : 0);
 }
-
