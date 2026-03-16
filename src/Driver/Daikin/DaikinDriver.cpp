@@ -1517,6 +1517,8 @@ void DaikinDriver::sendClimateCommand()
     // v0 stability: Enter post-write settle instead of simple cooldown
     handleWriteCommandSent(LastWriteCommand::D1_ModePower);
 
+    publishOptimisticClimateState(power_to_send, mode_to_send, temp_to_send, fan_to_send);
+
     logInfoP("D1 sent, entering post-write settle for %dms", getSettlePeriodForCommand(LastWriteCommand::D1_ModePower));
 
     // Clear explicit OFF flag after command processing
@@ -1531,6 +1533,25 @@ void DaikinDriver::sendClimateCommand()
     }
     pending_.activate_climate = false;
 }
+void DaikinDriver::publishOptimisticClimateState(bool power,
+                                                 daikin::Mode mode,
+                                                 float target_temperature,
+                                                 daikin::DaikinFanMode fan_mode)
+{
+    // Keep the conservative device confirmation flow intact. This only improves
+    // local UX while the normal poll/feedback path still verifies the real state.
+    if (!state_.online || gate_publish_until_full_sample_)
+    {
+        return;
+    }
+
+    state_.power = power;
+    state_.mode = mode;
+    state_.targetC = target_temperature;
+    state_.fan = fan_mode;
+    publishState();
+}
+
 
 void DaikinDriver::sendSwingCommand()
 {

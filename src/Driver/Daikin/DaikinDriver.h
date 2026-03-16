@@ -376,6 +376,10 @@ private:
     uint32_t getSettlePeriodForCommand(LastWriteCommand cmd_type) const;
     bool isInPostWriteSettle() const;
     bool isProtocolV0() const;
+    void publishOptimisticClimateState(bool power,
+                                       daikin::Mode mode,
+                                       float target_temperature,
+                                       daikin::DaikinFanMode fan_mode);
     void clearRxBuffer();
     void scheduleFirstF1AfterWrite();
     
