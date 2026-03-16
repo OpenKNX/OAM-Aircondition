@@ -266,11 +266,12 @@ void DaikinDriver::startCommunication(bool restart)
         state_.swing = daikin::Swing::Off;
     }
 
-    // KO-Seeding at startup (even if Offline)
-    gate_publish_until_full_sample_ = false;  // do not wait for Full Sample
-    seed_kos_pending_ = true;                 // force first publish round
-    publishState();                           // initially write all KOs
-    statusFeedback.updateOnlineStatus(false); // explicitly set KO463 = 0
+    // Do not publish default/offline values on startup.
+    // Wait until we have a real sample from the indoor unit, then seed all KOs once.
+    sample_seen_mask_ = 0;
+    online_since_ms_ = 0;
+    gate_publish_until_full_sample_ = true;
+    seed_kos_pending_ = true;
 
     // Start communication with smart protocol detection
     last_query_cycle_ = 0; // Force immediate cycle start
