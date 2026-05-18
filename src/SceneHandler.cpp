@@ -2,8 +2,8 @@
 #include "SceneHandler.h"
 
 
-SceneHandler::SceneHandler(AirConditionDriver& driver)
-    : _airConditionDriver(driver)
+SceneHandler::SceneHandler(AirConditionDriver& driver, SceneHandlerCallback* callback)
+    : _airConditionDriver(driver), _callback(callback)
 {
 }
 
@@ -63,7 +63,10 @@ void SceneHandler::handleScene(uint8_t sceneNumber)
 
 SceneParameters SceneHandler::getSceneParameters(int index)
 {
-    const bool supportsScenePositionAndPowerLimit = (ParamAIR_DeviceType == PT_AIRDeviceType::Toshiba);
+    const bool supportsScenePosition = (ParamAIR_DeviceType == PT_AIRDeviceType::Toshiba || ParamAIR_DeviceType == PT_AIRDeviceType::TCL);
+    const bool supportsScenePowerLimit = (ParamAIR_DeviceType == PT_AIRDeviceType::Toshiba);
+    const bool supportsSceneDeviceMode = (ParamAIR_DeviceType != PT_AIRDeviceType::TCL);
+    const bool supportsSceneAirPurification = (ParamAIR_DeviceType != PT_AIRDeviceType::TCL);
     SceneParameters params;
     switch (index)
     {
@@ -73,10 +76,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCASceneTemperature;
             params.fan = ParamAIR_SCASceneFan;
             params.swing = ParamAIR_SCASceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCAScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCAScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCASceneDeviceMode;
-            params.airPurification = ParamAIR_SCASceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCAScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCAScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCASceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCASceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCAAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCAAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCAAutoOffDelayTime;
             break;
         case 1:
             params.onOff = ParamAIR_SCBOnOff;
@@ -84,10 +90,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCBSceneTemperature;
             params.fan = ParamAIR_SCBSceneFan;
             params.swing = ParamAIR_SCBSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCBScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCBScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCBSceneDeviceMode;
-            params.airPurification = ParamAIR_SCBSceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCBScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCBScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCBSceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCBSceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCBAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCBAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCBAutoOffDelayTime;
             break;
         case 2:
             params.onOff = ParamAIR_SCCOnOff;
@@ -95,10 +104,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCCSceneTemperature;
             params.fan = ParamAIR_SCCSceneFan;
             params.swing = ParamAIR_SCCSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCCScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCCScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCCSceneDeviceMode;
-            params.airPurification = ParamAIR_SCCSceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCCScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCCScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCCSceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCCSceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCCAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCCAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCCAutoOffDelayTime;
             break;
         case 3:
             params.onOff = ParamAIR_SCDOnOff;
@@ -106,10 +118,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCDSceneTemperature;
             params.fan = ParamAIR_SCDSceneFan;
             params.swing = ParamAIR_SCDSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCDScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCDScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCDSceneDeviceMode;
-            params.airPurification = ParamAIR_SCDSceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCDScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCDScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCDSceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCDSceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCDAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCDAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCDAutoOffDelayTime;
             break;
         case 4:
             params.onOff = ParamAIR_SCEOnOff;
@@ -117,10 +132,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCESceneTemperature;
             params.fan = ParamAIR_SCESceneFan;
             params.swing = ParamAIR_SCESceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCEScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCEScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCESceneDeviceMode;
-            params.airPurification = ParamAIR_SCESceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCEScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCEScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCESceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCESceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCEAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCEAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCEAutoOffDelayTime;
             break;
         case 5:
             params.onOff = ParamAIR_SCFOnOff;
@@ -128,10 +146,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCFSceneTemperature;
             params.fan = ParamAIR_SCFSceneFan;
             params.swing = ParamAIR_SCFSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCFScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCFScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCFSceneDeviceMode;
-            params.airPurification = ParamAIR_SCFSceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCFScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCFScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCFSceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCFSceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCFAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCFAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCFAutoOffDelayTime;
             break;
         case 6:
             params.onOff = ParamAIR_SCGOnOff;
@@ -139,10 +160,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCGSceneTemperature;
             params.fan = ParamAIR_SCGSceneFan;
             params.swing = ParamAIR_SCGSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCGScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCGScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCGSceneDeviceMode;
-            params.airPurification = ParamAIR_SCGSceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCGScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCGScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCGSceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCGSceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCGAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCGAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCGAutoOffDelayTime;
             break;
         case 7:
             params.onOff = ParamAIR_SCHOnOff;
@@ -150,10 +174,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCHSceneTemperature;
             params.fan = ParamAIR_SCHSceneFan;  
             params.swing = ParamAIR_SCHSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCHScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCHScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCHSceneDeviceMode;
-            params.airPurification = ParamAIR_SCHSceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCHScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCHScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCHSceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCHSceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCHAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCHAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCHAutoOffDelayTime;
             break;
         case 8:
             params.onOff = ParamAIR_SCIOnOff;
@@ -161,10 +188,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCISceneTemperature;
             params.fan = ParamAIR_SCISceneFan;
             params.swing = ParamAIR_SCISceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCIScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCIScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCISceneDeviceMode;
-            params.airPurification = ParamAIR_SCISceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCIScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCIScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCISceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCISceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCIAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCIAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCIAutoOffDelayTime;
             break;
         case 9:
             params.onOff = ParamAIR_SCJOnOff;
@@ -172,10 +202,13 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCJSceneTemperature;
             params.fan = ParamAIR_SCJSceneFan;
             params.swing = ParamAIR_SCJSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCJScenePosition : 255;
-            params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCJScenePowerLimit : 255;
-            params.deviceMode = ParamAIR_SCJSceneDeviceMode;
-            params.airPurification = ParamAIR_SCJSceneAirPurification;
+            params.position = supportsScenePosition ? ParamAIR_SCJScenePosition : 255;
+            params.powerLimit = supportsScenePowerLimit ? ParamAIR_SCJScenePowerLimit : 255;
+            params.deviceMode = supportsSceneDeviceMode ? ParamAIR_SCJSceneDeviceMode : 255;
+            params.airPurification = supportsSceneAirPurification ? ParamAIR_SCJSceneAirPurification : 255;
+            params.autoOffActive = ParamAIR_SCJAutoOffActive;
+            params.autoOffDelayBase = ParamAIR_SCJAutoOffDelayBase;
+            params.autoOffDelayTime = ParamAIR_SCJAutoOffDelayTime;
             break;
 #ifdef ParamAIR_SCKOnOff
 #error "ParamAIR_SCKOnOff is not handled."
@@ -401,5 +434,10 @@ void SceneHandler::applyParameters(int index)
             break;
         default:
             logErrorP("Invalid on/off value %d", params.onOff);
+    }
+
+    if (_callback != nullptr)
+    {
+        _callback->sceneApplied(params);
     }
 }

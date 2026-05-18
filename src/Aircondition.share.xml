@@ -2,7 +2,7 @@
 <?xml-model href="../../Organization/knxprod-support/knx_project_20/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <KNX xmlns:op="http://github.com/OpenKNX/OpenKNXproducer"
   xmlns="http://knx.org/xml/project/20" CreatedBy="KNX MT" ToolVersion="5.1.255.16695">
-  
+
   <!-- Enable IPTool of ETS. This hide ip settings in network tab -->
   <op:config name="%NET_IPConfigTool%" value="0" />
   <op:config name="%NET_WifiTool%" value="0" />
@@ -42,6 +42,7 @@
                   <!--Enumeration Text="Midea" Value="2" Id="%ENID%" />-->
                   <!--<Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />-->
                   <Enumeration Text="Toshiba" Value="4" Id="%ENID%" op:headerName="Toshiba" />
+                  <Enumeration Text="TCL" Value="5" Id="%ENID%" op:headerName="TCL" />
                 </TypeRestriction>
               </ParameterType>
 
@@ -100,8 +101,20 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRSceneAutoOffDelayBase" Name="AIRSceneAutoOffDelayBase" op:headerExport="enum">
+                <TypeRestriction Base="Value" SizeInBit="2">
+                  <Enumeration Text="Sekunden" Value="0" Id="%ENID%" op:headerName="Seconds" />
+                  <Enumeration Text="Minuten" Value="1" Id="%ENID%" op:headerName="Minutes" />
+                  <Enumeration Text="Stunden" Value="2" Id="%ENID%" op:headerName="Hours" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneAutoOffDelayTime" Name="AIRSceneAutoOffDelayTime">
+                <TypeNumber SizeInBit="8" Type="unsignedInt" minInclusive="1" maxInclusive="255" />
+              </ParameterType>
+
               <!-- Template Operation Mode
-                If a specifc device needs more entries, add the here 
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneOperationMode" Name="AIRSceneOperationMode">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -138,7 +151,7 @@
 
 
               <!-- Template Temperature
-                If a specifc device needs more entries, add the here    
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneTemperature" Name="AIRSceneTemperature">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -167,8 +180,8 @@
                   <Enumeration Text="28°" Value="28" Id="%ENID%" />
                   <Enumeration Text="28,5°" Value="128" Id="%ENID%" />
                   <Enumeration Text="29°" Value="29" Id="%ENID%" />
-                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />  
-                  <Enumeration Text="30°" Value="30" Id="%ENID%" /> 
+                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />
+                  <Enumeration Text="30°" Value="30" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
               -->
@@ -201,8 +214,8 @@
                   <Enumeration Text="28°" Value="28" Id="%ENID%" />
                   <Enumeration Text="28,5°" Value="128" Id="%ENID%" />
                   <Enumeration Text="29°" Value="29" Id="%ENID%" />
-                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />  
-                  <Enumeration Text="30°" Value="30" Id="%ENID%" /> 
+                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />
+                  <Enumeration Text="30°" Value="30" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
 
@@ -228,7 +241,7 @@
 
 
               <!-- Template Fan
-                If a specifc device needs more entries, add the here    
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneFan" Name="AIRSceneFan">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -270,7 +283,7 @@
               </ParameterType>
 
               <!-- Template Swing
-                If a specifc device needs more entries, add the here    
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneSwing" Name="AIRSceneSwing">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -326,7 +339,7 @@
                   <Enumeration Text="Ganz Unten" Value="4" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
-              
+
 
               <!-- Template Horizontal Position
                 If a specifc device needs more entries, add the here
@@ -411,6 +424,10 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRLiveDataText" Name="AIRLiveDataText">
+                <TypeText SizeInBit="8192" />
+              </ParameterType>
+
               <!-- *** Mitsubishi *** -->
               <ParameterType Id="%AID%_PT-AIRMitsubishiMinimumTemperature" Name="AIRMitsubishiMinimumTemperature">
                 <TypeRestriction Base="Value" SizeInBit="8">
@@ -422,10 +439,12 @@
             </ParameterTypes>
             <Parameters>
               <!-- Base Settings -->
-              
+
               <!-- Show external room temperatur input -->
               <Parameter Id="%AID%_P-%TT%10000" Name="ShowExternalRoomTemp" ParameterType="%AID%_PT-ValueDpt5" Text=""        Value="%AIR_ShowExternalRoomTempInput%" Access="None" />
-             
+              <Parameter Id="%AID%_P-%TT%10001" Name="LiveRawDump" ParameterType="%AID%_PT-AIRLiveDataText" Text="Rohdump" Value="" />
+              <Parameter Id="%AID%_P-%TT%10002" Name="LiveDecodedDump" ParameterType="%AID%_PT-AIRLiveDataText" Text="Dekodiert" Value="" />
+
               <Union SizeInBit="40">
                 <Memory CodeSegment="%MID%" Offset="0" BitOffset="0" />
                 <!-- Device Type -->
@@ -451,13 +470,13 @@
                 <!-- Climate set temperatur  -->
                 <Parameter Id="%AID%_UP-%TT%00009" Offset="2" BitOffset="5" Name="ClimateSetTemperature" ParameterType="%AID%_PT-OnOffYesNo" Text="Gruppenobjekt 'Klimagerät Solltemperatur Ausgang' (für Diagnose)" Value="0" />
                 <!-- External room temperatur watchdog -->
-                <Parameter Id="%AID%_UP-%TT%00010" Offset="2" BitOffset="6" Name="ExternTempWatchdog" ParameterType="%AID%_PT-AIRExternTemperatureWatchdogBehavior" Text="Externe Raumtemperatur überwachen" Value="0" />      
+                <Parameter Id="%AID%_UP-%TT%00010" Offset="2" BitOffset="6" Name="ExternTempWatchdog" ParameterType="%AID%_PT-AIRExternTemperatureWatchdogBehavior" Text="Externe Raumtemperatur überwachen" Value="0" />
                 <!-- Watdchdog DelayBase -->
                 <Parameter Id="%AID%_UP-%TT%00011" Offset="3" BitOffset="0" Name="MonitoringWDTTimeoutDelayBase"   ParameterType="%AID%_PT-FCBDelayBaseMin" Text="Überwachung Zeitbasis" Value="1" />
                 <!-- Watdchdog DelayTime -->
                 <Parameter Id="%AID%_UP-%TT%00012" Offset="3" BitOffset="2" Name="MonitoringWDTTimeoutDelayTime"   ParameterType="%AID%_PT-DelayTimeMin1"    Text="Überwachung Zeit" Value="60" />
                 <!-- ^^^  Need 2 Bytes ^^^ -->
-         
+
 
               </Union>
 
@@ -472,9 +491,11 @@
             </Parameters>
             <ParameterRefs>
               <!-- Base Settings -->
-              
+
               <!-- Show extneral room temperuture intput option -->
               <ParameterRef Id="%AID%_P-%TT%10000_R-%TT%1000001" RefId="%AID%_P-%TT%10000" />
+              <ParameterRef Id="%AID%_P-%TT%10001_R-%TT%1000101" RefId="%AID%_P-%TT%10001" />
+              <ParameterRef Id="%AID%_P-%TT%10002_R-%TT%1000201" RefId="%AID%_P-%TT%10002" />
 
               <!-- Device Type -->
               <ParameterRef Id="%AID%_UP-%TT%00000_R-%TT%0000001" RefId="%AID%_UP-%TT%00000" />
@@ -585,20 +606,20 @@
               <!-- Wifi LED -->
               <ComObject Id="%AID%_O-%TT%00035" Number="35" Name="WifiLED" Text="Wifi LED Schalten" FunctionText="AC: Eingang, Schalten, Wifi LED" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- 36 Reserved for second LED -->
-          
+
               <!-- Klimagerät Solltemperatur Status -->
-              <ComObject Id="%AID%_O-%TT%00037" Number="37" Name="ClimateTargetTemperatur" Text="Klimagerät Solltemperatur Ausgang" FunctionText="AC: Ausgang, °C (Diagnose)" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />             
+              <ComObject Id="%AID%_O-%TT%00037" Number="37" Name="ClimateTargetTemperatur" Text="Klimagerät Solltemperatur Ausgang" FunctionText="AC: Ausgang, °C (Diagnose)" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Klimagerät Power Alarm Status -->
-              <ComObject Id="%AID%_O-%TT%00040" Number="38" Name="PowerAlarm" Text="Klimagerät Stromausfall" FunctionText="AC: Ausgang, Alarm, kein Alarm=0/Alarm=1" ObjectSize="1 Bit" DatapointType="DPST-1-5" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />             
-         
+              <ComObject Id="%AID%_O-%TT%00040" Number="38" Name="PowerAlarm" Text="Klimagerät Stromausfall" FunctionText="AC: Ausgang, Alarm, kein Alarm=0/Alarm=1" ObjectSize="1 Bit" DatapointType="DPST-1-5" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+
 
               <!-- Luftreinigung -->
               <ComObject Id="%AID%_O-%TT%00038" Number="39" Name="AirPurification" Text="Luftreinigung" FunctionText="AC: Eingang, Schalten, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Luftreinigung Status -->
               <ComObject Id="%AID%_O-%TT%00039" Number="40" Name="AirPurificationState" Text="Luftreinigung Status" FunctionText="AC: Ausgang, Status, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-          
+
               <!-- 41-47 Reserved for specific -->
-              
+
               <!-- Leistungsbegrenzung -->
               <ComObject Id="%AID%_O-%TT%00048" Number="48" Name="PowerLimit" Text="Leistungsbegrenzung" FunctionText="AC: Eingang, Steuern, Prozent" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Leistungsbegrenzung Status -->
@@ -635,6 +656,38 @@
               <ComObject Id="%AID%_O-%TT%00064" Number="64" Name="HumidityModePercent" Text="Luftfeuchtigkeitsmodus" FunctionText="AC: Ausgang, Status, Prozent" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
                <!-- TotalEnergy -->
               <ComObject Id="%AID%_O-%TT%00065" Number="65" Name="TotalEnergy" Text="Gesamtenergieverbrauch" FunctionText="AC: Ausgang, Status, kWh" ObjectSize="4 Bytes" DatapointType="DPST-13-013" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Sleep Mode -->
+              <ComObject Id="%AID%_O-%TT%00066" Number="66" Name="TclSleepMode" Text="TCL Sleep Mode" FunctionText="AC: Eingang, Sleep Mode, 0=Aus/1=Standard/2=Alt/3=Jung" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Sleep Mode Status -->
+              <ComObject Id="%AID%_O-%TT%00067" Number="67" Name="TclSleepModeState" Text="TCL Sleep Mode Status" FunctionText="AC: Ausgang, Status, 0=Aus/1=Standard/2=Alt/3=Jung" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Eco Mode -->
+              <ComObject Id="%AID%_O-%TT%00068" Number="68" Name="TclEcoMode" Text="TCL Eco Mode" FunctionText="AC: Eingang, Eco Mode, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Eco Mode Status -->
+              <ComObject Id="%AID%_O-%TT%00069" Number="69" Name="TclEcoModeState" Text="TCL Eco Mode Status" FunctionText="AC: Ausgang, Status, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL 7-Seg Display -->
+              <ComObject Id="%AID%_O-%TT%00070" Number="70" Name="TclDisplay" Text="TCL 7-Seg Display" FunctionText="AC: Eingang, Display, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL 7-Seg Display Status -->
+              <ComObject Id="%AID%_O-%TT%00071" Number="71" Name="TclDisplayState" Text="TCL 7-Seg Display Status" FunctionText="AC: Ausgang, Status, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Buzzer -->
+              <ComObject Id="%AID%_O-%TT%00072" Number="72" Name="TclBuzzer" Text="TCL Buzzer" FunctionText="AC: Eingang, Buzzer, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Buzzer Status -->
+              <ComObject Id="%AID%_O-%TT%00073" Number="73" Name="TclBuzzerState" Text="TCL Buzzer Status" FunctionText="AC: Ausgang, Status, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Extended Mode -->
+              <ComObject Id="%AID%_O-%TT%00074" Number="74" Name="TclExtendedMode" Text="TCL Extended Mode Bitmaske" FunctionText="AC: Eingang, Bitmaske, 0=Normal/1=Health/4=Turbo/8=Low Noise, kombinierbar" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Extended Mode Status -->
+              <ComObject Id="%AID%_O-%TT%00075" Number="75" Name="TclExtendedModeState" Text="TCL Extended Mode Bitmaske Status" FunctionText="AC: Ausgang, Status-Bitmaske, 0=Normal/1=Health/4=Turbo/8=Low Noise, kombinierbar" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Health Mode -->
+              <ComObject Id="%AID%_O-%TT%00076" Number="76" Name="TclHealthMode" Text="TCL Health Mode" FunctionText="AC: Eingang, Health Mode, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Health Mode Status -->
+              <ComObject Id="%AID%_O-%TT%00077" Number="77" Name="TclHealthModeState" Text="TCL Health Mode Status" FunctionText="AC: Ausgang, Status, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Turbo Mode -->
+              <ComObject Id="%AID%_O-%TT%00078" Number="78" Name="TclTurboMode" Text="TCL Turbo Mode" FunctionText="AC: Eingang, Turbo Mode, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Turbo Mode Status -->
+              <ComObject Id="%AID%_O-%TT%00079" Number="79" Name="TclTurboModeState" Text="TCL Turbo Mode Status" FunctionText="AC: Ausgang, Status, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Low Noise Mode -->
+              <ComObject Id="%AID%_O-%TT%00080" Number="80" Name="TclLowNoiseMode" Text="TCL Low Noise Mode" FunctionText="AC: Eingang, Low Noise Mode, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <!-- TCL Low Noise Mode Status -->
+              <ComObject Id="%AID%_O-%TT%00081" Number="81" Name="TclLowNoiseModeState" Text="TCL Low Noise Mode Status" FunctionText="AC: Ausgang, Status, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -754,14 +807,49 @@
               <ComObjectRef Id="%AID%_O-%TT%00064_R-%TT%0006401" RefId="%AID%_O-%TT%00064" />
               <!-- TotalEnergy -->
               <ComObjectRef Id="%AID%_O-%TT%00065_R-%TT%0006501" RefId="%AID%_O-%TT%00065" />
+              <!-- TCL Sleep Mode -->
+              <ComObjectRef Id="%AID%_O-%TT%00066_R-%TT%0006601" RefId="%AID%_O-%TT%00066" />
+              <!-- TCL Sleep Mode Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00067_R-%TT%0006701" RefId="%AID%_O-%TT%00067" />
+              <!-- TCL Eco Mode -->
+              <ComObjectRef Id="%AID%_O-%TT%00068_R-%TT%0006801" RefId="%AID%_O-%TT%00068" />
+              <!-- TCL Eco Mode Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00069_R-%TT%0006901" RefId="%AID%_O-%TT%00069" />
+              <!-- TCL 7-Seg Display -->
+              <ComObjectRef Id="%AID%_O-%TT%00070_R-%TT%0007001" RefId="%AID%_O-%TT%00070" />
+              <!-- TCL 7-Seg Display Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00071_R-%TT%0007101" RefId="%AID%_O-%TT%00071" />
+              <!-- TCL Buzzer -->
+              <ComObjectRef Id="%AID%_O-%TT%00072_R-%TT%0007201" RefId="%AID%_O-%TT%00072" />
+              <!-- TCL Buzzer Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00073_R-%TT%0007301" RefId="%AID%_O-%TT%00073" />
+              <!-- TCL Extended Mode -->
+              <ComObjectRef Id="%AID%_O-%TT%00074_R-%TT%0007401" RefId="%AID%_O-%TT%00074" />
+              <!-- TCL Extended Mode Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00075_R-%TT%0007501" RefId="%AID%_O-%TT%00075" />
+              <!-- TCL Health Mode -->
+              <ComObjectRef Id="%AID%_O-%TT%00076_R-%TT%0007601" RefId="%AID%_O-%TT%00076" />
+              <!-- TCL Health Mode Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00077_R-%TT%0007701" RefId="%AID%_O-%TT%00077" />
+              <!-- TCL Turbo Mode -->
+              <ComObjectRef Id="%AID%_O-%TT%00078_R-%TT%0007801" RefId="%AID%_O-%TT%00078" />
+              <!-- TCL Turbo Mode Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00079_R-%TT%0007901" RefId="%AID%_O-%TT%00079" />
+              <!-- TCL Low Noise Mode -->
+              <ComObjectRef Id="%AID%_O-%TT%00080_R-%TT%0008001" RefId="%AID%_O-%TT%00080" />
+              <!-- TCL Low Noise Mode Status -->
+              <ComObjectRef Id="%AID%_O-%TT%00081_R-%TT%0008101" RefId="%AID%_O-%TT%00081" />
 
             </ComObjectRefs>
+            <Script>
+              <op:include href="Aircondition.script.js" type="script" />
+            </Script>
           </Static>
           <Dynamic>
             <Channel Id="%AID%_CH-%PREFIX%" Number="%PREFIX%" Name="Main" Text="Klimaanlage" Icon="air-conditioner" HelpContext="AIR-Klimaanlage">
               <ParameterBlock Id="%AID%_PB-nnn" Name="Basic" Text="Allgemein" Icon="cog-outline" HelpContext="AIR-Klimaanlage">
 
-                <!-- Invisible Parameter: Show external room temperature input option --> 
+                <!-- Invisible Parameter: Show external room temperature input option -->
                 <ParameterRefRef RefId="%AID%_P-%TT%10000_R-%TT%1000001" />
 
                 <ParameterSeparator Id="%AID%_PS-nnn" Text="Klimaanlage" UIHint="Headline" />
@@ -790,13 +878,16 @@
                   <when test="4">
                     <!-- Toshiba -->
                   </when>
+                  <when test="5">
+                    <!-- TCL -->
+                  </when>
                   <when test="!=0">
 
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="Basiseinstellungen" UIHint="Headline" />
                     <!-- Start Behavior -->
                     <!--<ParameterRefRef RefId="%AID%_UP-%TT%00001_R-%TT%0000101" IndentLevel="1" HelpContext="%DOC%"/>-->
-                    
+
                     <!-- Lock Release Ko -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00002_R-%TT%0000201" IndentLevel="1" HelpContext="%DOC%"/>
                     <choose ParamRefId="%AID%_UP-%TT%00002_R-%TT%0000201">
@@ -820,21 +911,37 @@
 
                     </choose>
                     <!-- Wifi LED -->
-                    <ParameterRefRef RefId="%AID%_UP-%TT%00007_R-%TT%0000701" IndentLevel="1" HelpContext="%DOC%" />
+                    <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                      <when test="5">
+                        <!-- TCL has no WiFi LED KO -->
+                        <Assign TargetParamRefRef="%AID%_UP-%TT%00007_R-%TT%0000701" Value="1" />
+                      </when>
+                      <when test="!=5">
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00007_R-%TT%0000701" IndentLevel="1" HelpContext="%DOC%" />
+                      </when>
+                    </choose>
 
                     <!-- Show external room temperature input option -->
                     <choose ParamRefId="%AID%_P-%TT%10000_R-%TT%1000001">
                       <when test="1">
-                          <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
-                          <ParameterSeparator Id="%AID%_PS-nnn" Text="Externe Raumtemperaturmessung" UIHint="Headline" />
-                          <!-- External Room Temperature -->
-                          <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />
-                      </when>    
+                        <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                          <when test="5">
+                            <!-- TCL has no external room temperature input -->
+                            <Assign TargetParamRefRef="%AID%_UP-%TT%00008_R-%TT%0000801" Value="0" />
+                          </when>
+                          <when test="!=5">
+                            <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
+                            <ParameterSeparator Id="%AID%_PS-nnn" Text="Externe Raumtemperaturmessung" UIHint="Headline" />
+                            <!-- External Room Temperature -->
+                            <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />
+                          </when>
+                        </choose>
+                      </when>
                       <when test="0">
                         <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                           <when test="3">
                             <!-- Mitsubishi -->
-                            <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />  
+                            <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
                             <ParameterSeparator Id="%AID%_PS-nnn" Text="Externe Raumtemperaturmessung" UIHint="Headline" />
                             <!-- External Room Temperature -->
                             <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />
@@ -859,7 +966,7 @@
                         <ParameterRefRef RefId="%AID%_UP-%TT%00010_R-%TT%0001001" IndentLevel="1" HelpContext="%DOC%" />
                         <choose ParamRefId="%AID%_UP-%TT%00010_R-%TT%0001001">
                           <when test="1">
-                      
+
                           <ParameterBlock Id="%AID%_PB-nnn" Name="f%C%MonitoringWatchdogTime" Inline="true" Layout="Grid" HelpContext="AIR-Ueberwachungszeit">
                             <Rows>
                               <Row Id="%AID%_PB-nnn_R-1" Name="Row1" />
@@ -875,18 +982,18 @@
                             <!-- Watdchdog DelayBase -->
                             <ParameterRefRef  IndentLevel="2" RefId="%AID%_UP-%TT%00011_R-%TT%0001101" Cell="1,3" HelpContext="%DOC%" />
                           </ParameterBlock>
-                       
-                          </when> 
+
+                          </when>
                         </choose>
 
                         <!-- Climate set temperature -->
                         <ParameterRefRef RefId="%AID%_UP-%TT%00009_R-%TT%0000901" IndentLevel="1" HelpContext="%DOC%" />
-                     
+
                       </when>
                     </choose>
 
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Operation" Text="Betriebsmodus" Inline="true" ShowInComObjectTree="true">
-           
+
                       <!-- Power -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00000_R-%TT%0000001" />
                       <!-- Power Status -->
@@ -917,7 +1024,7 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00013_R-%TT%0001301" />
                     </ParameterBlock>
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Luefter" Text="Lüfter" Inline="true" ShowInComObjectTree="true">
-           
+
                       <!-- Lüftergeschwindigkeit -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00014_R-%TT%0001401" />
                       <!-- Lüftergeschwindigkeit Status -->
@@ -926,12 +1033,12 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00017_R-%TT%0001701" />
                     </ParameterBlock>
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Lamellen" Text="Lamellen" Inline="true" ShowInComObjectTree="true">
-           
+
                       <!-- Lamelle Vertikal Bewegen -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00018_R-%TT%0001801" />
                       <!-- Lamelle Vertikal Bewegen Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00019_R-%TT%0001901" />
-                      
+
                       <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                         <when test="2 3">
                           <!-- Midea, Mitsubishi -->
@@ -941,8 +1048,8 @@
                         </when>
                       </choose>
                       <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
-                        <when test="2 3 4">
-                          <!-- Midea, Mitsubishi, Toshiba -->
+                        <when test="2 3 4 5">
+                          <!-- Midea, Mitsubishi, Toshiba, TCL -->
 
                           <!-- Lamelle Vertikale Position -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00024_R-%TT%0002401" />
@@ -986,7 +1093,7 @@
                       </when>
                     </choose>
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Temperatur" Text="Temperatur" Inline="true" ShowInComObjectTree="true">
-          
+
                       <!-- Solltemperatur -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00028_R-%TT%0002801" />
                       <!-- Solltemperatur Status -->
@@ -996,7 +1103,11 @@
                       <!-- Raumtemperatur Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00031_R-%TT%0003101" />
                       <!-- Außentemperatur Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00032_R-%TT%0003201" />
+                      <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                        <when test="!=5">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00032_R-%TT%0003201" />
+                        </when>
+                      </choose>
                       <!-- External Room Temperature -->
                       <choose ParamRefId="%AID%_UP-%TT%00008_R-%TT%0000801">
                         <when test="1">
@@ -1013,12 +1124,12 @@
                       </choose>
                     </ParameterBlock>
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Gerät" Text="Gerät" Inline="true" ShowInComObjectTree="true">
-          
+
                       <!-- Wifi LED -->
                       <choose ParamRefId="%AID%_UP-%TT%00007_R-%TT%0000701">
                         <when test="3">
                           <!-- Schaltbar über Gruppenobjekt -->
-                          
+
                           <!-- Wifi LED -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00035_R-%TT%0003501" />
                         </when>
@@ -1027,61 +1138,126 @@
 
                     <!-- Klimagerät Power Alarm Status -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00040_R-%TT%0004001" />
-                    
 
-                    <ParameterBlock Id="%AID%_PB-nnn" Name="Geraetemodus" Text="Gerätemodus" Inline="true" ShowInComObjectTree="true">
-                      <!-- Luftreinigung -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00038_R-%TT%0003801" />
-                      <!-- Luftreinigung Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00039_R-%TT%0003901" />
 
-                      <!-- Leistungsbegrenzung -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00048_R-%TT%0004801" />
-                      <!-- Leistungsbegrenzung Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00049_R-%TT%0004901" />
-                      <!-- Gerätemodus -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00050_R-%TT%0005001" />
-                      <!-- Gerätemodus Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00051_R-%TT%0005101" />
-                      <!-- Gerätemodus Standard -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00052_R-%TT%0005201" />
-                      <!-- Gerätemodus Standard Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00053_R-%TT%0005301" />
-                      <!-- Gerätemodus Hi Power -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00054_R-%TT%0005401" />
-                      <!-- Gerätemodus Hi Power Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00055_R-%TT%0005501" />
-                      <!-- Gerätemodus ECO -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00056_R-%TT%0005601" />
-                      <!-- Gerätemodus ECO Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00057_R-%TT%0005701" />
-                      <!-- Gerätemodus Silent 1-->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00058_R-%TT%0005801" />
-                      <!-- Gerätemodus Silent 1 Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00059_R-%TT%0005901" />
-                      <!-- Gerätemodus Silent 2 -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00060_R-%TT%0006001" />
-                      <!-- Gerätemodus Silent 2 Status -->
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00061_R-%TT%0006101" />
-                      <!-- Geräte Online Status -->   
-                      <ComObjectRefRef RefId="%AID%_O-%TT%00063_R-%TT%0006301" />
+                    <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                      <when test="!=5">
+                        <ParameterBlock Id="%AID%_PB-nnn" Name="Geraetemodus" Text="Gerätemodus" Inline="true" ShowInComObjectTree="true">
+                          <!-- Luftreinigung -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00038_R-%TT%0003801" />
+                          <!-- Luftreinigung Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00039_R-%TT%0003901" />
 
-                      <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
-                        <when test="1">
-                          <!-- Daikin -->
+                          <!-- Leistungsbegrenzung -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00048_R-%TT%0004801" />
+                          <!-- Leistungsbegrenzung Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00049_R-%TT%0004901" />
+                          <!-- Gerätemodus -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00050_R-%TT%0005001" />
+                          <!-- Gerätemodus Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00051_R-%TT%0005101" />
+                          <!-- Gerätemodus Standard -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00052_R-%TT%0005201" />
+                          <!-- Gerätemodus Standard Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00053_R-%TT%0005301" />
+                          <!-- Gerätemodus Hi Power -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00054_R-%TT%0005401" />
+                          <!-- Gerätemodus Hi Power Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00055_R-%TT%0005501" />
+                          <!-- Gerätemodus ECO -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00056_R-%TT%0005601" />
+                          <!-- Gerätemodus ECO Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00057_R-%TT%0005701" />
+                          <!-- Gerätemodus Silent 1-->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00058_R-%TT%0005801" />
+                          <!-- Gerätemodus Silent 1 Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00059_R-%TT%0005901" />
+                          <!-- Gerätemodus Silent 2 -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00060_R-%TT%0006001" />
+                          <!-- Gerätemodus Silent 2 Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00061_R-%TT%0006101" />
+                          <!-- Geräte Online Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00063_R-%TT%0006301" />
 
-                          <!-- Luftfeuchtigkeits Status -->
-                          <ComObjectRefRef RefId="%AID%_O-%TT%00062_R-%TT%0006201" />
-                          <!-- Luftfeuchtigkeitsmodus Percent -->
-                          <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
-                          <!-- TotalEnergy -->
-                          <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" /> 
-                        </when>
-                      </choose>
-                    </ParameterBlock>                 
+                          <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                            <when test="1">
+                              <!-- Daikin -->
+
+                              <!-- Luftfeuchtigkeits Status -->
+                              <ComObjectRefRef RefId="%AID%_O-%TT%00062_R-%TT%0006201" />
+                              <!-- Luftfeuchtigkeitsmodus Percent -->
+                              <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
+                              <!-- TotalEnergy -->
+                              <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" />
+                            </when>
+                          </choose>
+                        </ParameterBlock>
+                      </when>
+                      <when test="5">
+                        <ParameterBlock Id="%AID%_PB-nnn" Name="TCLGeraet" Text="Gerät" Inline="true" ShowInComObjectTree="true">
+                          <!-- Geräte Online Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00063_R-%TT%0006301" />
+                          <!-- TCL Sleep Mode -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00066_R-%TT%0006601" />
+                          <!-- TCL Sleep Mode Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00067_R-%TT%0006701" />
+                          <!-- TCL Eco Mode -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00068_R-%TT%0006801" />
+                          <!-- TCL Eco Mode Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00069_R-%TT%0006901" />
+                          <!-- TCL 7-Seg Display -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00070_R-%TT%0007001" />
+                          <!-- TCL 7-Seg Display Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00071_R-%TT%0007101" />
+                          <!-- TCL Buzzer -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00072_R-%TT%0007201" />
+                          <!-- TCL Buzzer Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00073_R-%TT%0007301" />
+                          <!-- TCL Extended Mode -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00074_R-%TT%0007401" />
+                          <!-- TCL Extended Mode Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00075_R-%TT%0007501" />
+                          <!-- TCL Health Mode -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00076_R-%TT%0007601" />
+                          <!-- TCL Health Mode Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00077_R-%TT%0007701" />
+                          <!-- TCL Turbo Mode -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00078_R-%TT%0007801" />
+                          <!-- TCL Turbo Mode Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00079_R-%TT%0007901" />
+                          <!-- TCL Low Noise Mode -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00080_R-%TT%0008001" />
+                          <!-- TCL Low Noise Mode Status -->
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00081_R-%TT%0008101" />
+                        </ParameterBlock>
+                      </when>
+                    </choose>
                   </when>
-                </choose>  
+                </choose>
               </ParameterBlock>
+              <!-- Online Live Data -->
+              <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                <when test="5">
+                  <ParameterBlock Id="%AID%_PB-nnn" Name="LiveData" Text="Live Daten" Icon="information-outline" HelpContext="AIR-Klimaanlage">
+                    <ParameterSeparator Id="%AID%_PS-nnn" Text="Online-Diagnose" UIHint="Headline" />
+                    <ParameterBlock Id="%AID%_PB-nnn" Name="LiveDataRead" Inline="true" Layout="Grid">
+                      <Rows>
+                        <Row Id="%AID%_PB-nnn_R-1" />
+                      </Rows>
+                      <Columns>
+                        <Column Id="%AID%_PB-nnn_C-1" Width="60%" />
+                        <Column Id="%AID%_PB-nnn_C-2" Width="40%" />
+                      </Columns>
+                      <ParameterSeparator Id="%AID%_PS-nnn" Text="Aktuellen Klima-Dump auslesen" Cell="1,1" />
+                      <Button Id="%AID%_B-%TT%900001" Text="Auslesen" Cell="1,2" Name="readLiveData" EventHandler="AIR_readLiveData" EventHandlerOnline="ConnectionOriented" />
+                    </ParameterBlock>
+                    <ParameterSeparator Id="%AID%_PS-nnn" Text="Rohdaten" UIHint="Headline" />
+                    <ParameterRefRef RefId="%AID%_P-%TT%10001_R-%TT%1000101" IndentLevel="1" HelpContext="AIR-Klimaanlage" />
+                    <ParameterSeparator Id="%AID%_PS-nnn" Text="Dekodierte Daten" UIHint="Headline" />
+                    <ParameterRefRef RefId="%AID%_P-%TT%10002_R-%TT%1000201" IndentLevel="1" HelpContext="AIR-Klimaanlage" />
+                  </ParameterBlock>
+                </when>
+              </choose>
               <!-- Device Type -->
               <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                 <when test="!=0">
@@ -1093,7 +1269,7 @@
                     <ComObjectRefRef RefId="%AID%_O-%TT%00034_R-%TT%0003401" />
 
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="Szenen" UIHint="Headline" />
-        
+
                     <!-- Szenen Configuration -->
                     <op:usePart name="Scene" xpath="//Dynamic/ChannelIndependentBlock/ParameterBlock[@Id='Scene']/*" />
 

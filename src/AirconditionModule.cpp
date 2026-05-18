@@ -3,9 +3,12 @@
 #include "Driver/Midea/MideaDriver.h"
 #include "Driver/Mitsubishi/MitsubishiDriver.h"
 #include "Driver/Toshiba/ToshibaDriver.h"
+#include "Driver/TCL/TclDriver.h"
 #include "NetworkModule.h"
 #include "OpenKNX.h"
 #include "SceneHandler.h"
+
+#include <algorithm>
 
 AirconditionModule openknxAircondition;
 
@@ -42,13 +45,17 @@ void AirconditionModule::setup()
             logInfoP("Initialize ToshibaDriver");
             _airConditionDriver = new ToshibaDriver(*this);
             break;
+        case PT_AIRDeviceType::TCL:
+            logInfoP("Initialize TclDriver");
+            _airConditionDriver = new TclDriver(*this);
+            break;
         default:
             logErrorP("AirCondition Device Type %d not supported", ParamAIR_DeviceType);
             break;
     }
     if (_airConditionDriver != nullptr)
     {
-        _sceneHandler = new SceneHandler(*_airConditionDriver);
+        _sceneHandler = new SceneHandler(*_airConditionDriver, this);
         setLocked(false);
         logInfoP("Start driver");
         _airConditionDriver->setup();
@@ -215,6 +222,7 @@ void AirconditionModule::loop()
         }
         handleDebouncedModeChange();
     }
+    processSceneAutoOffTimer();
 }
 
 void AirconditionModule::showInformations()
@@ -345,6 +353,105 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
     return false;
 }
 
+
+void AirconditionModule::writeOnlineResultStringChunk(const std::string& text, uint16_t offset, uint8_t *resultData, uint8_t &resultLength)
+{
+    resultData[0] = 0;
+    resultData[1] = offset < text.length() ? 1 : 0;
+    resultLength = 2;
+
+    if (offset >= text.length())
+    {
+        resultData[1] = 0;
+        return;
+    }
+
+    const uint16_t remaining = text.length() - offset;
+    const uint8_t chunkLength = (uint8_t)std::min<uint16_t>(remaining, 120);
+
+    for (uint8_t i = 0; i < chunkLength; i++)
+    {
+        resultData[2 + i] = (uint8_t)text[offset + i];
+    }
+
+    resultLength = 2 + chunkLength;
+    resultData[1] = (offset + chunkLength) < text.length() ? 1 : 0;
+}
+
+bool AirconditionModule::processFunctionProperty(uint8_t objectIndex, uint8_t propertyId, uint8_t length, uint8_t *data, uint8_t *resultData, uint8_t &resultLength)
+{
+    static constexpr uint8_t AIR_ONLINE_OBJECT_INDEX = 160;
+    static constexpr uint8_t AIR_ONLINE_PROPERTY_ID = 3;
+    static constexpr uint8_t AIR_ONLINE_TCL_READ_DUMP = 1;
+    static constexpr uint8_t AIR_ONLINE_TCL_GET_RAW_CHUNK = 2;
+    static constexpr uint8_t AIR_ONLINE_TCL_GET_DECODED_CHUNK = 3;
+
+    resultLength = 1;
+    resultData[0] = 4; // unknown function / unsupported by default
+
+    if (objectIndex != AIR_ONLINE_OBJECT_INDEX || propertyId != AIR_ONLINE_PROPERTY_ID)
+        return false;
+
+    if (length == 0 || data == nullptr)
+    {
+        resultData[0] = 5; // malformed request
+        return true;
+    }
+
+    switch (data[0])
+    {
+        case AIR_ONLINE_TCL_READ_DUMP:
+        {
+            if (ParamAIR_DeviceType != PT_AIRDeviceType::TCL)
+            {
+                resultData[0] = 1; // not TCL
+                return true;
+            }
+            if (_airConditionDriver == nullptr)
+            {
+                resultData[0] = 2; // no driver
+                return true;
+            }
+
+            std::string rawDump;
+            std::string decodedDump;
+            const bool success = _airConditionDriver->readLiveDataDump(rawDump, decodedDump, 2500);
+            if (!success)
+            {
+                resultData[0] = 3; // timeout / no TCL response
+                return true;
+            }
+
+            _onlineLiveRawDump = rawDump;
+            _onlineLiveDecodedDump = decodedDump;
+
+            resultData[0] = 0;
+            resultData[1] = (uint8_t)((_onlineLiveRawDump.length() >> 8) & 0xFF);
+            resultData[2] = (uint8_t)(_onlineLiveRawDump.length() & 0xFF);
+            resultData[3] = (uint8_t)((_onlineLiveDecodedDump.length() >> 8) & 0xFF);
+            resultData[4] = (uint8_t)(_onlineLiveDecodedDump.length() & 0xFF);
+            resultLength = 5;
+            return true;
+        }
+        case AIR_ONLINE_TCL_GET_RAW_CHUNK:
+        case AIR_ONLINE_TCL_GET_DECODED_CHUNK:
+        {
+            if (length < 3)
+            {
+                resultData[0] = 5; // malformed request
+                return true;
+            }
+
+            const uint16_t offset = ((uint16_t)data[1] << 8) | data[2];
+            const std::string& text = data[0] == AIR_ONLINE_TCL_GET_RAW_CHUNK ? _onlineLiveRawDump : _onlineLiveDecodedDump;
+            writeOnlineResultStringChunk(text, offset, resultData, resultLength);
+            return true;
+        }
+        default:
+            return true;
+    }
+}
+
 void AirconditionModule::handleDebouncedModeChange()
 {
     if (_airConditionDriver == nullptr || _waitingForModeChange == 0 || millis() - _waitingForModeChange < 100)
@@ -432,6 +539,10 @@ void AirconditionModule::processInputKo(GroupObject& ko)
             case AIR_KoPower:
             {
                 bool power = ko.value(DPT_Switch);
+                if (!power)
+                {
+                    cancelSceneAutoOffTimer();
+                }
                 _airConditionDriver->setPower(power);
             }
             break;
@@ -457,6 +568,7 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                         break;
                     case 6: // Off
                         logInfoP("Set mode to Off");
+                        cancelSceneAutoOffTimer();
                         _airConditionDriver->setPower(false);
                         break;
                     case 9: // Fan
@@ -836,6 +948,69 @@ void AirconditionModule::outsideTemperaturChanged(float temperature)
     }
     logInfoP("AirCondition report outside temperature changed to %.1f °C", temperature);
     KoAIR_OutsideTemperatureState.valueCompare(temperature, DPT_Value_Temp);
+}
+
+void AirconditionModule::sceneApplied(const SceneParameters& params)
+{
+    if (params.onOff == PT_AIRSceneOnOff::On && params.autoOffActive && params.autoOffDelayTime > 0)
+    {
+        startSceneAutoOffTimer(params.autoOffDelayBase, params.autoOffDelayTime);
+    }
+    else
+    {
+        cancelSceneAutoOffTimer();
+    }
+}
+
+uint32_t AirconditionModule::sceneAutoOffDelayMs(PT_AIRSceneAutoOffDelayBase delayBase, uint8_t delayTime)
+{
+    const uint32_t time = delayTime == 0 ? 1 : delayTime;
+    switch (delayBase)
+    {
+        case PT_AIRSceneAutoOffDelayBase::Seconds:
+            return time * 1000UL;
+        case PT_AIRSceneAutoOffDelayBase::Minutes:
+            return time * 60UL * 1000UL;
+        case PT_AIRSceneAutoOffDelayBase::Hours:
+            return time * 60UL * 60UL * 1000UL;
+        default:
+            return time * 60UL * 1000UL;
+    }
+}
+
+void AirconditionModule::startSceneAutoOffTimer(PT_AIRSceneAutoOffDelayBase delayBase, uint8_t delayTime)
+{
+    const uint32_t delayMs = sceneAutoOffDelayMs(delayBase, delayTime);
+    _sceneAutoOffTimerEndMs = millis() + delayMs;
+    _sceneAutoOffTimerActive = true;
+    logInfoP("Scene auto-off timer started: %u ms", delayMs);
+}
+
+void AirconditionModule::cancelSceneAutoOffTimer()
+{
+    if (_sceneAutoOffTimerActive)
+    {
+        logInfoP("Scene auto-off timer canceled");
+    }
+    _sceneAutoOffTimerActive = false;
+}
+
+void AirconditionModule::processSceneAutoOffTimer()
+{
+    if (!_sceneAutoOffTimerActive)
+    {
+        return;
+    }
+
+    if ((long)(millis() - _sceneAutoOffTimerEndMs) >= 0)
+    {
+        _sceneAutoOffTimerActive = false;
+        logInfoP("Scene auto-off timer elapsed, switching air conditioner off");
+        if (_airConditionDriver != nullptr)
+        {
+            _airConditionDriver->setPower(false);
+        }
+    }
 }
 
 AirConditionDriverState AirconditionModule::getDriverState() const
