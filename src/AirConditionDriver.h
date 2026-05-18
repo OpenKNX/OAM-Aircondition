@@ -108,6 +108,13 @@ public:
     virtual void loop() = 0;
     virtual void processInputKo(GroupObject &ko) {}
     virtual bool processCommand(const std::string cmd, bool debugKo) { return false; }
+    virtual bool readLiveDataDump(std::string& rawDump, std::string& decodedDump, uint32_t timeoutMs = 2000)
+    {
+        (void)rawDump;
+        (void)decodedDump;
+        (void)timeoutMs;
+        return false;
+    }
 
     // Information about the air condition device
     virtual const std::string name() const = 0;

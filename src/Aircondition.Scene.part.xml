@@ -23,7 +23,14 @@
                                 <!-- Szene Function Ein / Aus -->
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+2%" Offset="2" BitOffset="0" Name="SC%SN%OnOff" ParameterType="%AID%_PT-AIRSceneOnOff" Text="Schalten" Value="255" />
 
-                                <!-- 2 Bytes reserve  -->
+                                <!-- Szene Auto-Aus -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+17%" Offset="3" BitOffset="0" Name="SC%SN%AutoOffActive" ParameterType="%AID%_PT-OnOffYesNo" Text="Auto-Aus (bei Einschalten)" Value="0" />
+                                <!-- Szene Auto-Aus Zeitbasis -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+18%" Offset="3" BitOffset="1" Name="SC%SN%AutoOffDelayBase" ParameterType="%AID%_PT-AIRSceneAutoOffDelayBase" Text="Auto-Aus Zeitbasis" Value="1" />
+                                <!-- Szene Auto-Aus Zeit -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+19%" Offset="4" BitOffset="0" Name="SC%SN%AutoOffDelayTime" ParameterType="%AID%_PT-AIRSceneAutoOffDelayTime" Text="Auto-Aus Zeit" Value="120" />
+
+                                <!-- 5 bits reserve  -->
                             </Union>
 
                             <!-- Tosiba--> 
@@ -99,6 +106,12 @@
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+1%_R-%TT%00%PPP+1%01" RefId="%AID%_UP-%TT%00%PPP+1%" />
                             <!-- Szene Function Ein / Aus -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+2%_R-%TT%00%PPP+2%01" RefId="%AID%_UP-%TT%00%PPP+2%" />
+                            <!-- Szene Auto-Aus -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" RefId="%AID%_UP-%TT%00%PPP+17%" />
+                            <!-- Szene Auto-Aus Zeitbasis -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+18%_R-%TT%00%PPP+18%01" RefId="%AID%_UP-%TT%00%PPP+18%" />
+                            <!-- Szene Auto-Aus Zeit -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+19%_R-%TT%00%PPP+19%01" RefId="%AID%_UP-%TT%00%PPP+19%" />
 
                             <!-- *** Daikin *** -->
                             <!-- Szene Function Operation Mode -->
@@ -156,6 +169,16 @@
 
                                         <!-- Ein- / Ausschalten-->
                                         <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+2%_R-%TT%00%PPP+2%01" IndentLevel="2" HelpContext="%DOC%" />
+                                        <!-- Auto-Aus: sichtbar sobald die Szene aktiv ist. Wirksam nur bei Schalten = Einschalten. -->
+                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" IndentLevel="2" HelpContext="AIR-Szene" />
+                                        <choose ParamRefId="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01">
+                                            <when test="1">
+                                                <!-- Auto-Aus Zeitbasis -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+18%_R-%TT%00%PPP+18%01" IndentLevel="3" HelpContext="AIR-Szene" />
+                                                <!-- Auto-Aus Zeit -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+19%_R-%TT%00%PPP+19%01" IndentLevel="3" HelpContext="AIR-Szene" />
+                                            </when>
+                                        </choose>
 
                                         <!-- Device Type -->
                                         <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
@@ -204,6 +227,24 @@
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+9%_R-%TT%00%PPP+9%01" IndentLevel="2" HelpContext="%DOC%" />
                                                 <!-- Luftreinigung -->
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+10%_R-%TT%00%PPP+10%01" IndentLevel="2" HelpContext="%DOC%" />
+                                            </when>
+                                            <when test="5"><!-- TCL -->
+                                                <!-- Betriebsmodus -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+3%_R-%TT%00%PPP+3%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Solltemperatur -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+4%_R-%TT%00%PPP+4%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Lüfter -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+5%_R-%TT%00%PPP+5%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Lamellen Bewegung -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <choose ParamRefId="%AID%_UP-%TT%00%PPP+6%_R-%TT%00%PPP+6%01">
+                                                    <when test="255 0">
+                                                        <!-- Bewegung: Keine Änderung, Aus -->
+
+                                                        <!-- Vertikale Lamellenstellung -->
+                                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+7%_R-%TT%00%PPP+7%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                    </when>
+                                                </choose>
                                             </when>
                                         </choose>
                                     </when>

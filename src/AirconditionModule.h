@@ -1,9 +1,8 @@
 #pragma once
 #include "AirConditionDriver.h"
+#include "SceneHandler.h"
 
-class SceneHandler;
-
-class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedback
+class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedback, public SceneHandlerCallback
 {
     const int retryConnectDelay = 60000; // 60 seconds delay before retrying connection after an error
     AirConditionMode _lastMode = AirConditionMode::AirConditionModeAuto;
@@ -31,8 +30,17 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     unsigned long _errorSince = 0;
     std::string _errorMessage = "";
     bool _initialDataNeeded = false;
+    std::string _onlineLiveRawDump;
+    std::string _onlineLiveDecodedDump;
+    bool _sceneAutoOffTimerActive = false;
+    unsigned long _sceneAutoOffTimerEndMs = 0;
    
     void setLocked(bool locked);
+    void startSceneAutoOffTimer(PT_AIRSceneAutoOffDelayBase delayBase, uint8_t delayTime);
+    void cancelSceneAutoOffTimer();
+    void processSceneAutoOffTimer();
+    uint32_t sceneAutoOffDelayMs(PT_AIRSceneAutoOffDelayBase delayBase, uint8_t delayTime);
+    void writeOnlineResultStringChunk(const std::string& text, uint16_t offset, uint8_t *resultData, uint8_t &resultLength);
     void handleDebouncedModeChange();
 
     void setTargetTemperaturToAircondition(float temperature);
@@ -43,9 +51,11 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     void showInformations() override;
     void showHelp() override;
     bool processCommand(const std::string cmd, bool debugKo) override;
+    bool processFunctionProperty(uint8_t objectIndex, uint8_t propertyId, uint8_t length, uint8_t *data, uint8_t *resultData, uint8_t &resultLength) override;
     void processInputKo(GroupObject &ko) override;
     void setup() override;
     void loop() override;
+    void sceneApplied(const SceneParameters& params) override;
    
 
     // AirConditionDriverStatusFeedback interface
