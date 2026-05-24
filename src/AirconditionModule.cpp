@@ -34,7 +34,7 @@ void AirconditionModule::setup()
             logInfoP("Initialize MideaDriver");
             _airConditionDriver = new MideaDriver(*this);
             break;
-        case (PT_AIRDeviceType)3: // PT_AIRDeviceType::Mitsubishi:
+        case PT_AIRDeviceType::Mitsubishi:
             logInfoP("Initialize MitsubishiDriver");
             _airConditionDriver = new MitsubishiDriver(*this);
             break;

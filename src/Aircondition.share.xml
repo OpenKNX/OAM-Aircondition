@@ -41,7 +41,7 @@
                   <Enumeration Text="Bitte wählen..." Value="0" Id="%ENID%" op:headerName="None" />
                   <Enumeration Text="Daikin" Value="1" Id="%ENID%" op:headerName="Daikin" />
                   <!--Enumeration Text="Midea" Value="2" Id="%ENID%" />-->
-                  <Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" op:headerName="Mitsubishi"  />
                   <Enumeration Text="Toshiba" Value="4" Id="%ENID%" op:headerName="Toshiba" />
                 </TypeRestriction>
               </ParameterType>
