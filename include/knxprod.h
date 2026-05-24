@@ -16,10 +16,10 @@
 #define ETS_ModuleId_AIR 5
 #define ETS_ModuleId_LOG 6
 #define ETS_ModuleId_FCB 7
-#define MAIN_FirmwareName "Klimaanlagen KNX Adapter (Beta)"
+#define MAIN_FirmwareName "Klimaanlagen KNX Adapter (Dev)"
 #define MAIN_OpenKnxId 0xAE
-#define MAIN_ApplicationNumber 54
-#define MAIN_ApplicationVersion 8
+#define MAIN_ApplicationNumber 53
+#define MAIN_ApplicationVersion 14
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9111
@@ -66,8 +66,8 @@
 #define     BASE_SummertimeKOShift 0
 #define BASE_TimezoneCustom                       5      // char*, 63 Byte
 #define     BASE_TimezoneCustomLength 63
-#define BASE_Latitude                            69      // float
-#define BASE_Longitude                           73      // float
+#define BASE_Latitude                            69      // float (4 Byte)
+#define BASE_Longitude                           73      // float (4 Byte)
 #define BASE_Diagnose                            78      // 1 Bit, Bit 7
 #define     BASE_DiagnoseMask 0x80
 #define     BASE_DiagnoseShift 7
@@ -826,6 +826,11 @@
 #define AIR_SCASceneSwingDaikin                 346      // 8 Bits, Bit 7-0
 #define AIR_SCASceneDeviceModeDaikin            349      // 8 Bits, Bit 7-0
 #define AIR_SCASceneAirPurificationDaikin       350      // 8 Bits, Bit 7-0
+#define AIR_SCAOperationModeMitsubishi          343      // 8 Bits, Bit 7-0
+#define AIR_SCASceneTemperatureMitsubishi       344      // 8 Bits, Bit 7-0
+#define AIR_SCASceneFanMitsubishi               345      // 8 Bits, Bit 7-0
+#define AIR_SCASceneSwingMitsubishi             346      // 8 Bits, Bit 7-0
+#define AIR_SCAScenePositionMitsubishi          347      // 8 Bits, Bit 7-0
 #define AIR_SCBActive                           358      // 1 Bit, Bit 7
 #define     AIR_SCBActiveMask 0x80
 #define     AIR_SCBActiveShift 7
@@ -847,6 +852,11 @@
 #define AIR_SCBSceneSwingDaikin                 366      // 8 Bits, Bit 7-0
 #define AIR_SCBSceneDeviceModeDaikin            369      // 8 Bits, Bit 7-0
 #define AIR_SCBSceneAirPurificationDaikin       370      // 8 Bits, Bit 7-0
+#define AIR_SCBOperationModeMitsubishi          363      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneTemperatureMitsubishi       364      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneFanMitsubishi               365      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneSwingMitsubishi             366      // 8 Bits, Bit 7-0
+#define AIR_SCBScenePositionMitsubishi          367      // 8 Bits, Bit 7-0
 #define AIR_SCCActive                           378      // 1 Bit, Bit 7
 #define     AIR_SCCActiveMask 0x80
 #define     AIR_SCCActiveShift 7
@@ -868,6 +878,11 @@
 #define AIR_SCCSceneSwingDaikin                 386      // 8 Bits, Bit 7-0
 #define AIR_SCCSceneDeviceModeDaikin            389      // 8 Bits, Bit 7-0
 #define AIR_SCCSceneAirPurificationDaikin       390      // 8 Bits, Bit 7-0
+#define AIR_SCCOperationModeMitsubishi          383      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneTemperatureMitsubishi       384      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneFanMitsubishi               385      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneSwingMitsubishi             386      // 8 Bits, Bit 7-0
+#define AIR_SCCScenePositionMitsubishi          387      // 8 Bits, Bit 7-0
 #define AIR_SCDActive                           398      // 1 Bit, Bit 7
 #define     AIR_SCDActiveMask 0x80
 #define     AIR_SCDActiveShift 7
@@ -889,6 +904,11 @@
 #define AIR_SCDSceneSwingDaikin                 406      // 8 Bits, Bit 7-0
 #define AIR_SCDSceneDeviceModeDaikin            409      // 8 Bits, Bit 7-0
 #define AIR_SCDSceneAirPurificationDaikin       410      // 8 Bits, Bit 7-0
+#define AIR_SCDOperationModeMitsubishi          403      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneTemperatureMitsubishi       404      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneFanMitsubishi               405      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneSwingMitsubishi             406      // 8 Bits, Bit 7-0
+#define AIR_SCDScenePositionMitsubishi          407      // 8 Bits, Bit 7-0
 #define AIR_SCEActive                           418      // 1 Bit, Bit 7
 #define     AIR_SCEActiveMask 0x80
 #define     AIR_SCEActiveShift 7
@@ -910,6 +930,11 @@
 #define AIR_SCESceneSwingDaikin                 426      // 8 Bits, Bit 7-0
 #define AIR_SCESceneDeviceModeDaikin            429      // 8 Bits, Bit 7-0
 #define AIR_SCESceneAirPurificationDaikin       430      // 8 Bits, Bit 7-0
+#define AIR_SCEOperationModeMitsubishi          423      // 8 Bits, Bit 7-0
+#define AIR_SCESceneTemperatureMitsubishi       424      // 8 Bits, Bit 7-0
+#define AIR_SCESceneFanMitsubishi               425      // 8 Bits, Bit 7-0
+#define AIR_SCESceneSwingMitsubishi             426      // 8 Bits, Bit 7-0
+#define AIR_SCEScenePositionMitsubishi          427      // 8 Bits, Bit 7-0
 #define AIR_SCFActive                           438      // 1 Bit, Bit 7
 #define     AIR_SCFActiveMask 0x80
 #define     AIR_SCFActiveShift 7
@@ -931,6 +956,11 @@
 #define AIR_SCFSceneSwingDaikin                 446      // 8 Bits, Bit 7-0
 #define AIR_SCFSceneDeviceModeDaikin            449      // 8 Bits, Bit 7-0
 #define AIR_SCFSceneAirPurificationDaikin       450      // 8 Bits, Bit 7-0
+#define AIR_SCFOperationModeMitsubishi          443      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneTemperatureMitsubishi       444      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneFanMitsubishi               445      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneSwingMitsubishi             446      // 8 Bits, Bit 7-0
+#define AIR_SCFScenePositionMitsubishi          447      // 8 Bits, Bit 7-0
 #define AIR_SCGActive                           458      // 1 Bit, Bit 7
 #define     AIR_SCGActiveMask 0x80
 #define     AIR_SCGActiveShift 7
@@ -952,6 +982,11 @@
 #define AIR_SCGSceneSwingDaikin                 466      // 8 Bits, Bit 7-0
 #define AIR_SCGSceneDeviceModeDaikin            469      // 8 Bits, Bit 7-0
 #define AIR_SCGSceneAirPurificationDaikin       470      // 8 Bits, Bit 7-0
+#define AIR_SCGOperationModeMitsubishi          463      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneTemperatureMitsubishi       464      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneFanMitsubishi               465      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneSwingMitsubishi             466      // 8 Bits, Bit 7-0
+#define AIR_SCGScenePositionMitsubishi          467      // 8 Bits, Bit 7-0
 #define AIR_SCHActive                           478      // 1 Bit, Bit 7
 #define     AIR_SCHActiveMask 0x80
 #define     AIR_SCHActiveShift 7
@@ -973,6 +1008,11 @@
 #define AIR_SCHSceneSwingDaikin                 486      // 8 Bits, Bit 7-0
 #define AIR_SCHSceneDeviceModeDaikin            489      // 8 Bits, Bit 7-0
 #define AIR_SCHSceneAirPurificationDaikin       490      // 8 Bits, Bit 7-0
+#define AIR_SCHOperationModeMitsubishi          483      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneTemperatureMitsubishi       484      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneFanMitsubishi               485      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneSwingMitsubishi             486      // 8 Bits, Bit 7-0
+#define AIR_SCHScenePositionMitsubishi          487      // 8 Bits, Bit 7-0
 #define AIR_SCIActive                           498      // 1 Bit, Bit 7
 #define     AIR_SCIActiveMask 0x80
 #define     AIR_SCIActiveShift 7
@@ -994,6 +1034,11 @@
 #define AIR_SCISceneSwingDaikin                 506      // 8 Bits, Bit 7-0
 #define AIR_SCISceneDeviceModeDaikin            509      // 8 Bits, Bit 7-0
 #define AIR_SCISceneAirPurificationDaikin       510      // 8 Bits, Bit 7-0
+#define AIR_SCIOperationModeMitsubishi          503      // 8 Bits, Bit 7-0
+#define AIR_SCISceneTemperatureMitsubishi       504      // 8 Bits, Bit 7-0
+#define AIR_SCISceneFanMitsubishi               505      // 8 Bits, Bit 7-0
+#define AIR_SCISceneSwingMitsubishi             506      // 8 Bits, Bit 7-0
+#define AIR_SCIScenePositionMitsubishi          507      // 8 Bits, Bit 7-0
 #define AIR_SCJActive                           518      // 1 Bit, Bit 7
 #define     AIR_SCJActiveMask 0x80
 #define     AIR_SCJActiveShift 7
@@ -1015,6 +1060,11 @@
 #define AIR_SCJSceneSwingDaikin                 526      // 8 Bits, Bit 7-0
 #define AIR_SCJSceneDeviceModeDaikin            529      // 8 Bits, Bit 7-0
 #define AIR_SCJSceneAirPurificationDaikin       530      // 8 Bits, Bit 7-0
+#define AIR_SCJOperationModeMitsubishi          523      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneTemperatureMitsubishi       524      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneFanMitsubishi               525      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneSwingMitsubishi             526      // 8 Bits, Bit 7-0
+#define AIR_SCJScenePositionMitsubishi          527      // 8 Bits, Bit 7-0
 
 // Hersteller
 #define ParamAIR_DeviceType                          (PT_AIRDeviceType)((knx.paramByte(AIR_DeviceType) & AIR_DeviceTypeMask) >> AIR_DeviceTypeShift)
@@ -1080,6 +1130,16 @@
 #define ParamAIR_SCASceneDeviceModeDaikin            (knx.paramByte(AIR_SCASceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCASceneAirPurificationDaikin       (knx.paramByte(AIR_SCASceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCAOperationModeMitsubishi          (knx.paramByte(AIR_SCAOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCASceneTemperatureMitsubishi       (knx.paramByte(AIR_SCASceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCASceneFanMitsubishi               (knx.paramByte(AIR_SCASceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCASceneSwingMitsubishi             (knx.paramByte(AIR_SCASceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCAScenePositionMitsubishi          (knx.paramByte(AIR_SCAScenePositionMitsubishi))
 // Szene B
 #define ParamAIR_SCBActive                           ((bool)(knx.paramByte(AIR_SCBActive) & AIR_SCBActiveMask))
 // Szenennummer
@@ -1114,6 +1174,16 @@
 #define ParamAIR_SCBSceneDeviceModeDaikin            (knx.paramByte(AIR_SCBSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCBSceneAirPurificationDaikin       (knx.paramByte(AIR_SCBSceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCBOperationModeMitsubishi          (knx.paramByte(AIR_SCBOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCBSceneTemperatureMitsubishi       (knx.paramByte(AIR_SCBSceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCBSceneFanMitsubishi               (knx.paramByte(AIR_SCBSceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCBSceneSwingMitsubishi             (knx.paramByte(AIR_SCBSceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCBScenePositionMitsubishi          (knx.paramByte(AIR_SCBScenePositionMitsubishi))
 // Szene C
 #define ParamAIR_SCCActive                           ((bool)(knx.paramByte(AIR_SCCActive) & AIR_SCCActiveMask))
 // Szenennummer
@@ -1148,6 +1218,16 @@
 #define ParamAIR_SCCSceneDeviceModeDaikin            (knx.paramByte(AIR_SCCSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCCSceneAirPurificationDaikin       (knx.paramByte(AIR_SCCSceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCCOperationModeMitsubishi          (knx.paramByte(AIR_SCCOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCCSceneTemperatureMitsubishi       (knx.paramByte(AIR_SCCSceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCCSceneFanMitsubishi               (knx.paramByte(AIR_SCCSceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCCSceneSwingMitsubishi             (knx.paramByte(AIR_SCCSceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCCScenePositionMitsubishi          (knx.paramByte(AIR_SCCScenePositionMitsubishi))
 // Szene D
 #define ParamAIR_SCDActive                           ((bool)(knx.paramByte(AIR_SCDActive) & AIR_SCDActiveMask))
 // Szenennummer
@@ -1182,6 +1262,16 @@
 #define ParamAIR_SCDSceneDeviceModeDaikin            (knx.paramByte(AIR_SCDSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCDSceneAirPurificationDaikin       (knx.paramByte(AIR_SCDSceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCDOperationModeMitsubishi          (knx.paramByte(AIR_SCDOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCDSceneTemperatureMitsubishi       (knx.paramByte(AIR_SCDSceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCDSceneFanMitsubishi               (knx.paramByte(AIR_SCDSceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCDSceneSwingMitsubishi             (knx.paramByte(AIR_SCDSceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCDScenePositionMitsubishi          (knx.paramByte(AIR_SCDScenePositionMitsubishi))
 // Szene E
 #define ParamAIR_SCEActive                           ((bool)(knx.paramByte(AIR_SCEActive) & AIR_SCEActiveMask))
 // Szenennummer
@@ -1216,6 +1306,16 @@
 #define ParamAIR_SCESceneDeviceModeDaikin            (knx.paramByte(AIR_SCESceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCESceneAirPurificationDaikin       (knx.paramByte(AIR_SCESceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCEOperationModeMitsubishi          (knx.paramByte(AIR_SCEOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCESceneTemperatureMitsubishi       (knx.paramByte(AIR_SCESceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCESceneFanMitsubishi               (knx.paramByte(AIR_SCESceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCESceneSwingMitsubishi             (knx.paramByte(AIR_SCESceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCEScenePositionMitsubishi          (knx.paramByte(AIR_SCEScenePositionMitsubishi))
 // Szene F
 #define ParamAIR_SCFActive                           ((bool)(knx.paramByte(AIR_SCFActive) & AIR_SCFActiveMask))
 // Szenennummer
@@ -1250,6 +1350,16 @@
 #define ParamAIR_SCFSceneDeviceModeDaikin            (knx.paramByte(AIR_SCFSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCFSceneAirPurificationDaikin       (knx.paramByte(AIR_SCFSceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCFOperationModeMitsubishi          (knx.paramByte(AIR_SCFOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCFSceneTemperatureMitsubishi       (knx.paramByte(AIR_SCFSceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCFSceneFanMitsubishi               (knx.paramByte(AIR_SCFSceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCFSceneSwingMitsubishi             (knx.paramByte(AIR_SCFSceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCFScenePositionMitsubishi          (knx.paramByte(AIR_SCFScenePositionMitsubishi))
 // Szene G
 #define ParamAIR_SCGActive                           ((bool)(knx.paramByte(AIR_SCGActive) & AIR_SCGActiveMask))
 // Szenennummer
@@ -1284,6 +1394,16 @@
 #define ParamAIR_SCGSceneDeviceModeDaikin            (knx.paramByte(AIR_SCGSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCGSceneAirPurificationDaikin       (knx.paramByte(AIR_SCGSceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCGOperationModeMitsubishi          (knx.paramByte(AIR_SCGOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCGSceneTemperatureMitsubishi       (knx.paramByte(AIR_SCGSceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCGSceneFanMitsubishi               (knx.paramByte(AIR_SCGSceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCGSceneSwingMitsubishi             (knx.paramByte(AIR_SCGSceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCGScenePositionMitsubishi          (knx.paramByte(AIR_SCGScenePositionMitsubishi))
 // Szene H
 #define ParamAIR_SCHActive                           ((bool)(knx.paramByte(AIR_SCHActive) & AIR_SCHActiveMask))
 // Szenennummer
@@ -1318,6 +1438,16 @@
 #define ParamAIR_SCHSceneDeviceModeDaikin            (knx.paramByte(AIR_SCHSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCHSceneAirPurificationDaikin       (knx.paramByte(AIR_SCHSceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCHOperationModeMitsubishi          (knx.paramByte(AIR_SCHOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCHSceneTemperatureMitsubishi       (knx.paramByte(AIR_SCHSceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCHSceneFanMitsubishi               (knx.paramByte(AIR_SCHSceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCHSceneSwingMitsubishi             (knx.paramByte(AIR_SCHSceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCHScenePositionMitsubishi          (knx.paramByte(AIR_SCHScenePositionMitsubishi))
 // Szene I
 #define ParamAIR_SCIActive                           ((bool)(knx.paramByte(AIR_SCIActive) & AIR_SCIActiveMask))
 // Szenennummer
@@ -1352,6 +1482,16 @@
 #define ParamAIR_SCISceneDeviceModeDaikin            (knx.paramByte(AIR_SCISceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCISceneAirPurificationDaikin       (knx.paramByte(AIR_SCISceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCIOperationModeMitsubishi          (knx.paramByte(AIR_SCIOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCISceneTemperatureMitsubishi       (knx.paramByte(AIR_SCISceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCISceneFanMitsubishi               (knx.paramByte(AIR_SCISceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCISceneSwingMitsubishi             (knx.paramByte(AIR_SCISceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCIScenePositionMitsubishi          (knx.paramByte(AIR_SCIScenePositionMitsubishi))
 // Szene J
 #define ParamAIR_SCJActive                           ((bool)(knx.paramByte(AIR_SCJActive) & AIR_SCJActiveMask))
 // Szenennummer
@@ -1386,6 +1526,16 @@
 #define ParamAIR_SCJSceneDeviceModeDaikin            (knx.paramByte(AIR_SCJSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCJSceneAirPurificationDaikin       (knx.paramByte(AIR_SCJSceneAirPurificationDaikin))
+// Betriebsmodus
+#define ParamAIR_SCJOperationModeMitsubishi          (knx.paramByte(AIR_SCJOperationModeMitsubishi))
+// Solltemperatur
+#define ParamAIR_SCJSceneTemperatureMitsubishi       (knx.paramByte(AIR_SCJSceneTemperatureMitsubishi))
+// Lüfter
+#define ParamAIR_SCJSceneFanMitsubishi               (knx.paramByte(AIR_SCJSceneFanMitsubishi))
+// Lamellenbewegung
+#define ParamAIR_SCJSceneSwingMitsubishi             (knx.paramByte(AIR_SCJSceneSwingMitsubishi))
+// Vertikale Lamellenstellung
+#define ParamAIR_SCJScenePositionMitsubishi          (knx.paramByte(AIR_SCJScenePositionMitsubishi))
 
 #define AIR_KoPower 400
 #define AIR_KoPowerState 401
@@ -2164,10 +2314,10 @@
 #define     LOG_fE1UseOtherKOShift 4
 #define LOG_fE1LowDelta                         13      // int32_t
 #define LOG_fE1HighDelta                        17      // int32_t
-#define LOG_fE1LowDeltaFloat                    13      // float
-#define LOG_fE1HighDeltaFloat                   17      // float
-#define LOG_fE1LowDeltaDouble                   13      // float
-#define LOG_fE1HighDeltaDouble                  17      // float
+#define LOG_fE1LowDeltaFloat                    13      // float (4 Byte)
+#define LOG_fE1HighDeltaFloat                   17      // float (4 Byte)
+#define LOG_fE1LowDeltaDouble                   13      // float (4 Byte)
+#define LOG_fE1HighDeltaDouble                  17      // float (4 Byte)
 #define LOG_fE1Low0Valid                        20      // 1 Bit, Bit 7
 #define     LOG_fE1Low0ValidMask 0x80
 #define     LOG_fE1Low0ValidShift 7
@@ -2266,18 +2416,18 @@
 #define LOG_fE1Low1Dpt8In                       15      // int16_t
 #define LOG_fE1Low2Dpt8In                       17      // int16_t
 #define LOG_fE1LowDpt8Fix                       13      // int16_t
-#define LOG_fE1LowDpt9                          13      // float
-#define LOG_fE1HighDpt9                         17      // float
-#define LOG_fE1LowDpt9Fix                       13      // float
+#define LOG_fE1LowDpt9                          13      // float (4 Byte)
+#define LOG_fE1HighDpt9                         17      // float (4 Byte)
+#define LOG_fE1LowDpt9Fix                       13      // float (4 Byte)
 #define LOG_fE1LowDpt12                         13      // uint32_t
 #define LOG_fE1HighDpt12                        17      // uint32_t
 #define LOG_fE1LowDpt12Fix                      13      // uint32_t
 #define LOG_fE1LowDpt13                         13      // int32_t
 #define LOG_fE1HighDpt13                        17      // int32_t
 #define LOG_fE1LowDpt13Fix                      13      // int32_t
-#define LOG_fE1LowDpt14                         13      // float
-#define LOG_fE1HighDpt14                        17      // float
-#define LOG_fE1LowDpt14Fix                      13      // float
+#define LOG_fE1LowDpt14                         13      // float (4 Byte)
+#define LOG_fE1HighDpt14                        17      // float (4 Byte)
+#define LOG_fE1LowDpt14Fix                      13      // float (4 Byte)
 #define LOG_fE1Low0Dpt17                        13      // 8 Bits, Bit 7-0
 #define LOG_fE1Low1Dpt17                        14      // 8 Bits, Bit 7-0
 #define LOG_fE1Low2Dpt17                        15      // 8 Bits, Bit 7-0
@@ -2334,10 +2484,10 @@
 #define     LOG_fE2UseOtherKOShift 4
 #define LOG_fE2LowDelta                         28      // int32_t
 #define LOG_fE2HighDelta                        32      // int32_t
-#define LOG_fE2LowDeltaFloat                    28      // float
-#define LOG_fE2HighDeltaFloat                   32      // float
-#define LOG_fE2LowDeltaDouble                   28      // float
-#define LOG_fE2HighDeltaDouble                  32      // float
+#define LOG_fE2LowDeltaFloat                    28      // float (4 Byte)
+#define LOG_fE2HighDeltaFloat                   32      // float (4 Byte)
+#define LOG_fE2LowDeltaDouble                   28      // float (4 Byte)
+#define LOG_fE2HighDeltaDouble                  32      // float (4 Byte)
 #define LOG_fE2Low0Valid                        35      // 1 Bit, Bit 7
 #define     LOG_fE2Low0ValidMask 0x80
 #define     LOG_fE2Low0ValidShift 7
@@ -2436,18 +2586,18 @@
 #define LOG_fE2Low1Dpt8In                       30      // int16_t
 #define LOG_fE2Low2Dpt8In                       32      // int16_t
 #define LOG_fE2LowDpt8Fix                       28      // int16_t
-#define LOG_fE2LowDpt9                          28      // float
-#define LOG_fE2HighDpt9                         32      // float
-#define LOG_fE2LowDpt9Fix                       28      // float
+#define LOG_fE2LowDpt9                          28      // float (4 Byte)
+#define LOG_fE2HighDpt9                         32      // float (4 Byte)
+#define LOG_fE2LowDpt9Fix                       28      // float (4 Byte)
 #define LOG_fE2LowDpt12                         28      // uint32_t
 #define LOG_fE2HighDpt12                        32      // uint32_t
 #define LOG_fE2LowDpt12Fix                      28      // uint32_t
 #define LOG_fE2LowDpt13                         28      // int32_t
 #define LOG_fE2HighDpt13                        32      // int32_t
 #define LOG_fE2LowDpt13Fix                      28      // int32_t
-#define LOG_fE2LowDpt14                         28      // float
-#define LOG_fE2HighDpt14                        32      // float
-#define LOG_fE2LowDpt14Fix                      28      // float
+#define LOG_fE2LowDpt14                         28      // float (4 Byte)
+#define LOG_fE2HighDpt14                        32      // float (4 Byte)
+#define LOG_fE2LowDpt14Fix                      28      // float (4 Byte)
 #define LOG_fE2Low0Dpt17                        28      // 8 Bits, Bit 7-0
 #define LOG_fE2Low1Dpt17                        29      // 8 Bits, Bit 7-0
 #define LOG_fE2Low2Dpt17                        30      // 8 Bits, Bit 7-0
@@ -2898,10 +3048,10 @@
 #define LOG_fOOnDpt6                            58      // int8_t
 #define LOG_fOOnDpt7                            58      // uint16_t
 #define LOG_fOOnDpt8                            58      // int16_t
-#define LOG_fOOnDpt9                            58      // float
+#define LOG_fOOnDpt9                            58      // float (4 Byte)
 #define LOG_fOOnDpt12                           58      // uint32_t
 #define LOG_fOOnDpt13                           58      // int32_t
-#define LOG_fOOnDpt14                           58      // float
+#define LOG_fOOnDpt14                           58      // float (4 Byte)
 #define LOG_fOOnDpt16                           58      // char*, 14 Byte
 #define     LOG_fOOnDpt16Length 14
 #define LOG_fOOnDpt17                           58      // 8 Bits, Bit 7-0
@@ -2948,10 +3098,10 @@
 #define LOG_fOOffDpt6                           73      // int8_t
 #define LOG_fOOffDpt7                           73      // uint16_t
 #define LOG_fOOffDpt8                           73      // int16_t
-#define LOG_fOOffDpt9                           73      // float
+#define LOG_fOOffDpt9                           73      // float (4 Byte)
 #define LOG_fOOffDpt12                          73      // uint32_t
 #define LOG_fOOffDpt13                          73      // int32_t
-#define LOG_fOOffDpt14                          73      // float
+#define LOG_fOOffDpt14                          73      // float (4 Byte)
 #define LOG_fOOffDpt16                          73      // char*, 14 Byte
 #define     LOG_fOOffDpt16Length 14
 #define LOG_fOOffDpt17                          73      // 8 Bits, Bit 7-0
@@ -4253,10 +4403,10 @@
 #define FCB_CHMonitoringWDDpt6                   7      // int8_t
 #define FCB_CHMonitoringWDDpt7                   7      // uint16_t
 #define FCB_CHMonitoringWDDpt8                   7      // int16_t
-#define FCB_CHMonitoringWDDpt9                   7      // float
+#define FCB_CHMonitoringWDDpt9                   7      // float (4 Byte)
 #define FCB_CHMonitoringWDDpt12                  7      // uint32_t
 #define FCB_CHMonitoringWDDpt13                  7      // int32_t
-#define FCB_CHMonitoringWDDpt14                  7      // float
+#define FCB_CHMonitoringWDDpt14                  7      // float (4 Byte)
 #define FCB_CHMonitoringWDDpt16                  7      // char*, 14 Byte
 #define     FCB_CHMonitoringWDDpt16Length 14
 #define FCB_CHMonitoringMin                     22      // 4 Bits, Bit 7-4
@@ -4270,10 +4420,10 @@
 #define FCB_CHMonitoringMinDpt6                 23      // int8_t
 #define FCB_CHMonitoringMinDpt7                 23      // uint16_t
 #define FCB_CHMonitoringMinDpt8                 23      // int16_t
-#define FCB_CHMonitoringMinDpt9                 23      // float
+#define FCB_CHMonitoringMinDpt9                 23      // float (4 Byte)
 #define FCB_CHMonitoringMinDpt12                23      // uint32_t
 #define FCB_CHMonitoringMinDpt13                23      // int32_t
-#define FCB_CHMonitoringMinDpt14                23      // float
+#define FCB_CHMonitoringMinDpt14                23      // float (4 Byte)
 #define FCB_CHMonitoringMax                     27      // 4 Bits, Bit 7-4
 #define     FCB_CHMonitoringMaxMask 0xF0
 #define     FCB_CHMonitoringMaxShift 4
@@ -4285,10 +4435,10 @@
 #define FCB_CHMonitoringMaxDpt6                 28      // int8_t
 #define FCB_CHMonitoringMaxDpt7                 28      // uint16_t
 #define FCB_CHMonitoringMaxDpt8                 28      // int16_t
-#define FCB_CHMonitoringMaxDpt9                 28      // float
+#define FCB_CHMonitoringMaxDpt9                 28      // float (4 Byte)
 #define FCB_CHMonitoringMaxDpt12                28      // uint32_t
 #define FCB_CHMonitoringMaxDpt13                28      // int32_t
-#define FCB_CHMonitoringMaxDpt14                28      // float
+#define FCB_CHMonitoringMaxDpt14                28      // float (4 Byte)
 #define FCB_CHMonitoringOutput                  32      // 4 Bits, Bit 7-4
 #define     FCB_CHMonitoringOutputMask 0xF0
 #define     FCB_CHMonitoringOutputShift 4
@@ -5039,6 +5189,7 @@ enum class PT_AIRDeviceType
 {
     None = 0,
     Daikin = 1,
+    Mitsubishi = 3,
     Toshiba = 4
 };
 

@@ -2,7 +2,7 @@
 <?xml-model href="../../Organization/knxprod-support/knx_project_20/knx-editor.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <KNX xmlns:op="http://github.com/OpenKNX/OpenKNXproducer"
   xmlns="http://knx.org/xml/project/20" CreatedBy="KNX MT" ToolVersion="5.1.255.16695">
-  
+
   <!-- Enable IPTool of ETS. This hide ip settings in network tab -->
   <op:config name="%NET_IPConfigTool%" value="0" />
   <op:config name="%NET_WifiTool%" value="0" />
@@ -22,7 +22,8 @@
 
           <op:part href="Aircondition.Scene.part.xml" name="Scene" instances="10">
             <!-- Parameter Offset -->
-            <op:param name="%PPP%" value="500" increment="20" />
+            <!-- 22 IDs je Instanz: +0..+2 gemeinsam, +3..+10 Toshiba, +11..+16 Daikin, +17..+21 Mitsubishi -->
+            <op:param name="%PPP%" value="500" increment="22" />
             <!-- Memory Offset -->
             <op:param name="%MO%" value="20" increment="20" digits="1"/>
             <!-- Szene number -->
@@ -40,7 +41,7 @@
                   <Enumeration Text="Bitte wählen..." Value="0" Id="%ENID%" op:headerName="None" />
                   <Enumeration Text="Daikin" Value="1" Id="%ENID%" op:headerName="Daikin" />
                   <!--Enumeration Text="Midea" Value="2" Id="%ENID%" />-->
-                  <!--<Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />-->
+                  <Enumeration Text="Mitsubishi" Value="3" Id="%ENID%" />
                   <Enumeration Text="Toshiba" Value="4" Id="%ENID%" op:headerName="Toshiba" />
                 </TypeRestriction>
               </ParameterType>
@@ -101,7 +102,7 @@
               </ParameterType>
 
               <!-- Template Operation Mode
-                If a specifc device needs more entries, add the here 
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneOperationMode" Name="AIRSceneOperationMode">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -136,9 +137,19 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRSceneOperationModeMitsubishi" Name="AIRSceneOperationModeMitsubishi" >
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Kühlen" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Heizen" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Trocknen" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Lüften" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
 
               <!-- Template Temperature
-                If a specifc device needs more entries, add the here    
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneTemperature" Name="AIRSceneTemperature">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -167,8 +178,8 @@
                   <Enumeration Text="28°" Value="28" Id="%ENID%" />
                   <Enumeration Text="28,5°" Value="128" Id="%ENID%" />
                   <Enumeration Text="29°" Value="29" Id="%ENID%" />
-                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />  
-                  <Enumeration Text="30°" Value="30" Id="%ENID%" /> 
+                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />
+                  <Enumeration Text="30°" Value="30" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
               -->
@@ -201,8 +212,8 @@
                   <Enumeration Text="28°" Value="28" Id="%ENID%" />
                   <Enumeration Text="28,5°" Value="128" Id="%ENID%" />
                   <Enumeration Text="29°" Value="29" Id="%ENID%" />
-                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />  
-                  <Enumeration Text="30°" Value="30" Id="%ENID%" /> 
+                  <Enumeration Text="29,5°" Value="129" Id="%ENID%" />
+                  <Enumeration Text="30°" Value="30" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
 
@@ -226,9 +237,29 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRSceneTemperatureMitsubishi" Name="AIRSceneTemperatureMitsubishi">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="16°" Value="16" Id="%ENID%" />
+                  <Enumeration Text="17°" Value="17" Id="%ENID%" />
+                  <Enumeration Text="18°" Value="18" Id="%ENID%" />
+                  <Enumeration Text="19°" Value="19" Id="%ENID%" />
+                  <Enumeration Text="20°" Value="20" Id="%ENID%" />
+                  <Enumeration Text="21°" Value="21" Id="%ENID%" />
+                  <Enumeration Text="22°" Value="22" Id="%ENID%" />
+                  <Enumeration Text="23°" Value="23" Id="%ENID%" />
+                  <Enumeration Text="24°" Value="24" Id="%ENID%" />
+                  <Enumeration Text="25°" Value="25" Id="%ENID%" />
+                  <Enumeration Text="26°" Value="26" Id="%ENID%" />
+                  <Enumeration Text="27°" Value="27" Id="%ENID%" />
+                  <Enumeration Text="28°" Value="28" Id="%ENID%" />
+                  <Enumeration Text="29°" Value="29" Id="%ENID%" />
+                  <Enumeration Text="30°" Value="30" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
 
               <!-- Template Fan
-                If a specifc device needs more entries, add the here    
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneFan" Name="AIRSceneFan">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -269,8 +300,20 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRSceneFanMitsubishi" Name="AIRSceneFanMitsubishi" >
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Geräuscharm" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Stufe 1" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Stufe 2" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Stufe 3" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Stufe 4" Value="5" Id="%ENID%" />
+                  <Enumeration Text="Stufe 5" Value="6" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
               <!-- Template Swing
-                If a specifc device needs more entries, add the here    
+                If a specifc device needs more entries, add the here
               <ParameterType Id="%AID%_PT-AIRSceneSwing" Name="AIRSceneSwing">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
@@ -293,6 +336,16 @@
               </ParameterType>
 
               <ParameterType Id="%AID%_PT-AIRSceneSwingDaikin" Name="AIRSceneSwingDaikin" >
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Aus" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Vertikal" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Horizontal" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Vertikal und Horizontal" Value="3" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
+
+              <ParameterType Id="%AID%_PT-AIRSceneSwingMitsubishi" Name="AIRSceneSwingMitsubishi" >
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="Aus" Value="0" Id="%ENID%" />
@@ -326,7 +379,17 @@
                   <Enumeration Text="Ganz Unten" Value="4" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
-              
+
+              <ParameterType Id="%AID%_PT-AIRSceneHorizontalPositionMitsubishi" Name="AIRSceneHorizontalPositioMitsubishi" >
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Ganz Oben" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Oben" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Mitte" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Unten" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Ganz Unten" Value="4" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
 
               <!-- Template Horizontal Position
                 If a specifc device needs more entries, add the here
@@ -395,7 +458,7 @@
               </ParameterType>
               -->
 
-                 <ParameterType Id="%AID%_PT-AIRSceneAirPurificationToshiba" Name="AIRSceneAirPurificationToshiba" >
+              <ParameterType Id="%AID%_PT-AIRSceneAirPurificationToshiba" Name="AIRSceneAirPurificationToshiba" >
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="Aus" Value="0" Id="%ENID%" />
@@ -422,10 +485,10 @@
             </ParameterTypes>
             <Parameters>
               <!-- Base Settings -->
-              
+
               <!-- Show external room temperatur input -->
               <Parameter Id="%AID%_P-%TT%10000" Name="ShowExternalRoomTemp" ParameterType="%AID%_PT-ValueDpt5" Text=""        Value="%AIR_ShowExternalRoomTempInput%" Access="None" />
-             
+
               <Union SizeInBit="40">
                 <Memory CodeSegment="%MID%" Offset="0" BitOffset="0" />
                 <!-- Device Type -->
@@ -451,13 +514,13 @@
                 <!-- Climate set temperatur  -->
                 <Parameter Id="%AID%_UP-%TT%00009" Offset="2" BitOffset="5" Name="ClimateSetTemperature" ParameterType="%AID%_PT-OnOffYesNo" Text="Gruppenobjekt 'Klimagerät Solltemperatur Ausgang' (für Diagnose)" Value="0" />
                 <!-- External room temperatur watchdog -->
-                <Parameter Id="%AID%_UP-%TT%00010" Offset="2" BitOffset="6" Name="ExternTempWatchdog" ParameterType="%AID%_PT-AIRExternTemperatureWatchdogBehavior" Text="Externe Raumtemperatur überwachen" Value="0" />      
+                <Parameter Id="%AID%_UP-%TT%00010" Offset="2" BitOffset="6" Name="ExternTempWatchdog" ParameterType="%AID%_PT-AIRExternTemperatureWatchdogBehavior" Text="Externe Raumtemperatur überwachen" Value="0" />
                 <!-- Watdchdog DelayBase -->
                 <Parameter Id="%AID%_UP-%TT%00011" Offset="3" BitOffset="0" Name="MonitoringWDTTimeoutDelayBase"   ParameterType="%AID%_PT-FCBDelayBaseMin" Text="Überwachung Zeitbasis" Value="1" />
                 <!-- Watdchdog DelayTime -->
                 <Parameter Id="%AID%_UP-%TT%00012" Offset="3" BitOffset="2" Name="MonitoringWDTTimeoutDelayTime"   ParameterType="%AID%_PT-DelayTimeMin1"    Text="Überwachung Zeit" Value="60" />
                 <!-- ^^^  Need 2 Bytes ^^^ -->
-         
+
 
               </Union>
 
@@ -472,7 +535,7 @@
             </Parameters>
             <ParameterRefs>
               <!-- Base Settings -->
-              
+
               <!-- Show extneral room temperuture intput option -->
               <ParameterRef Id="%AID%_P-%TT%10000_R-%TT%1000001" RefId="%AID%_P-%TT%10000" />
 
@@ -585,20 +648,20 @@
               <!-- Wifi LED -->
               <ComObject Id="%AID%_O-%TT%00035" Number="35" Name="WifiLED" Text="Wifi LED Schalten" FunctionText="AC: Eingang, Schalten, Wifi LED" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- 36 Reserved for second LED -->
-          
+
               <!-- Klimagerät Solltemperatur Status -->
-              <ComObject Id="%AID%_O-%TT%00037" Number="37" Name="ClimateTargetTemperatur" Text="Klimagerät Solltemperatur Ausgang" FunctionText="AC: Ausgang, °C (Diagnose)" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />             
+              <ComObject Id="%AID%_O-%TT%00037" Number="37" Name="ClimateTargetTemperatur" Text="Klimagerät Solltemperatur Ausgang" FunctionText="AC: Ausgang, °C (Diagnose)" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Klimagerät Power Alarm Status -->
-              <ComObject Id="%AID%_O-%TT%00040" Number="38" Name="PowerAlarm" Text="Klimagerät Stromausfall" FunctionText="AC: Ausgang, Alarm, kein Alarm=0/Alarm=1" ObjectSize="1 Bit" DatapointType="DPST-1-5" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />             
-         
+              <ComObject Id="%AID%_O-%TT%00040" Number="38" Name="PowerAlarm" Text="Klimagerät Stromausfall" FunctionText="AC: Ausgang, Alarm, kein Alarm=0/Alarm=1" ObjectSize="1 Bit" DatapointType="DPST-1-5" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+
 
               <!-- Luftreinigung -->
               <ComObject Id="%AID%_O-%TT%00038" Number="39" Name="AirPurification" Text="Luftreinigung" FunctionText="AC: Eingang, Schalten, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Luftreinigung Status -->
               <ComObject Id="%AID%_O-%TT%00039" Number="40" Name="AirPurificationState" Text="Luftreinigung Status" FunctionText="AC: Ausgang, Status, Aus=0 / Ein=1" ObjectSize="1 Bit" DatapointType="DPST-1-11" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-          
+
               <!-- 41-47 Reserved for specific -->
-              
+
               <!-- Leistungsbegrenzung -->
               <ComObject Id="%AID%_O-%TT%00048" Number="48" Name="PowerLimit" Text="Leistungsbegrenzung" FunctionText="AC: Eingang, Steuern, Prozent" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <!-- Leistungsbegrenzung Status -->
@@ -635,7 +698,7 @@
               <ComObject Id="%AID%_O-%TT%00064" Number="64" Name="HumidityModePercent" Text="Luftfeuchtigkeitsmodus" FunctionText="AC: Ausgang, Status, Prozent" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
                <!-- TotalEnergy -->
               <ComObject Id="%AID%_O-%TT%00065" Number="65" Name="TotalEnergy" Text="Gesamtenergieverbrauch" FunctionText="AC: Ausgang, Status, kWh" ObjectSize="4 Bytes" DatapointType="DPST-13-013" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
-              </ComObjectTable>
+            </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
               <ComObjectRef Id="%AID%_O-%TT%00000_R-%TT%0000001" RefId="%AID%_O-%TT%00000" />
@@ -761,7 +824,7 @@
             <Channel Id="%AID%_CH-%PREFIX%" Number="%PREFIX%" Name="Main" Text="Klimaanlage" Icon="air-conditioner" HelpContext="AIR-Klimaanlage">
               <ParameterBlock Id="%AID%_PB-nnn" Name="Basic" Text="Allgemein" Icon="cog-outline" HelpContext="AIR-Klimaanlage">
 
-                <!-- Invisible Parameter: Show external room temperature input option --> 
+                <!-- Invisible Parameter: Show external room temperature input option -->
                 <ParameterRefRef RefId="%AID%_P-%TT%10000_R-%TT%1000001" />
 
                 <ParameterSeparator Id="%AID%_PS-nnn" Text="Klimaanlage" UIHint="Headline" />
@@ -796,7 +859,7 @@
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="Basiseinstellungen" UIHint="Headline" />
                     <!-- Start Behavior -->
                     <!--<ParameterRefRef RefId="%AID%_UP-%TT%00001_R-%TT%0000101" IndentLevel="1" HelpContext="%DOC%"/>-->
-                    
+
                     <!-- Lock Release Ko -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00002_R-%TT%0000201" IndentLevel="1" HelpContext="%DOC%"/>
                     <choose ParamRefId="%AID%_UP-%TT%00002_R-%TT%0000201">
@@ -819,8 +882,13 @@
                       </when>
 
                     </choose>
+
                     <!-- Wifi LED -->
-                    <ParameterRefRef RefId="%AID%_UP-%TT%00007_R-%TT%0000701" IndentLevel="1" HelpContext="%DOC%" />
+                    <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                        <when test="!=3"><!-- Not Mitsubishi-->
+                            <ParameterRefRef RefId="%AID%_UP-%TT%00007_R-%TT%0000701" IndentLevel="1" HelpContext="%DOC%" />
+                        </when>
+                    </choose>
 
                     <!-- Show external room temperature input option -->
                     <choose ParamRefId="%AID%_P-%TT%10000_R-%TT%1000001">
@@ -829,12 +897,12 @@
                           <ParameterSeparator Id="%AID%_PS-nnn" Text="Externe Raumtemperaturmessung" UIHint="Headline" />
                           <!-- External Room Temperature -->
                           <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />
-                      </when>    
+                      </when>
                       <when test="0">
                         <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                           <when test="3">
                             <!-- Mitsubishi -->
-                            <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />  
+                            <ParameterSeparator Id="%AID%_PS-nnn" Text="" UIHint="HorizontalRuler" />
                             <ParameterSeparator Id="%AID%_PS-nnn" Text="Externe Raumtemperaturmessung" UIHint="Headline" />
                             <!-- External Room Temperature -->
                             <ParameterRefRef RefId="%AID%_UP-%TT%00008_R-%TT%0000801" IndentLevel="1" HelpContext="%DOC%" />
@@ -859,7 +927,7 @@
                         <ParameterRefRef RefId="%AID%_UP-%TT%00010_R-%TT%0001001" IndentLevel="1" HelpContext="%DOC%" />
                         <choose ParamRefId="%AID%_UP-%TT%00010_R-%TT%0001001">
                           <when test="1">
-                      
+
                           <ParameterBlock Id="%AID%_PB-nnn" Name="f%C%MonitoringWatchdogTime" Inline="true" Layout="Grid" HelpContext="AIR-Ueberwachungszeit">
                             <Rows>
                               <Row Id="%AID%_PB-nnn_R-1" Name="Row1" />
@@ -875,18 +943,18 @@
                             <!-- Watdchdog DelayBase -->
                             <ParameterRefRef  IndentLevel="2" RefId="%AID%_UP-%TT%00011_R-%TT%0001101" Cell="1,3" HelpContext="%DOC%" />
                           </ParameterBlock>
-                       
-                          </when> 
+
+                          </when>
                         </choose>
 
                         <!-- Climate set temperature -->
                         <ParameterRefRef RefId="%AID%_UP-%TT%00009_R-%TT%0000901" IndentLevel="1" HelpContext="%DOC%" />
-                     
+
                       </when>
                     </choose>
 
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Operation" Text="Betriebsmodus" Inline="true" ShowInComObjectTree="true">
-           
+
                       <!-- Power -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00000_R-%TT%0000001" />
                       <!-- Power Status -->
@@ -917,7 +985,7 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00013_R-%TT%0001301" />
                     </ParameterBlock>
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Luefter" Text="Lüfter" Inline="true" ShowInComObjectTree="true">
-           
+
                       <!-- Lüftergeschwindigkeit -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00014_R-%TT%0001401" />
                       <!-- Lüftergeschwindigkeit Status -->
@@ -926,12 +994,12 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00017_R-%TT%0001701" />
                     </ParameterBlock>
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Lamellen" Text="Lamellen" Inline="true" ShowInComObjectTree="true">
-           
+
                       <!-- Lamelle Vertikal Bewegen -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00018_R-%TT%0001801" />
                       <!-- Lamelle Vertikal Bewegen Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00019_R-%TT%0001901" />
-                      
+
                       <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                         <when test="2 3">
                           <!-- Midea, Mitsubishi -->
@@ -986,7 +1054,7 @@
                       </when>
                     </choose>
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Temperatur" Text="Temperatur" Inline="true" ShowInComObjectTree="true">
-          
+
                       <!-- Solltemperatur -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00028_R-%TT%0002801" />
                       <!-- Solltemperatur Status -->
@@ -1013,21 +1081,25 @@
                       </choose>
                     </ParameterBlock>
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Gerät" Text="Gerät" Inline="true" ShowInComObjectTree="true">
-          
+
                       <!-- Wifi LED -->
                       <choose ParamRefId="%AID%_UP-%TT%00007_R-%TT%0000701">
                         <when test="3">
                           <!-- Schaltbar über Gruppenobjekt -->
-                          
+
                           <!-- Wifi LED -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00035_R-%TT%0003501" />
                         </when>
                       </choose>
                     </ParameterBlock>
 
+                    <!-- GO 438-463 (PowerAlarm, Luftreinigung, Leistungsbegrenzung, Gerätemodus, Online) für Mitsubishi deaktivieren -->
+                    <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
+                      <when test="!=3"><!-- Not Mitsubishi -->
+
                     <!-- Klimagerät Power Alarm Status -->
                     <ComObjectRefRef RefId="%AID%_O-%TT%00040_R-%TT%0004001" />
-                    
+
 
                     <ParameterBlock Id="%AID%_PB-nnn" Name="Geraetemodus" Text="Gerätemodus" Inline="true" ShowInComObjectTree="true">
                       <!-- Luftreinigung -->
@@ -1063,7 +1135,7 @@
                       <ComObjectRefRef RefId="%AID%_O-%TT%00060_R-%TT%0006001" />
                       <!-- Gerätemodus Silent 2 Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00061_R-%TT%0006101" />
-                      <!-- Geräte Online Status -->   
+                      <!-- Geräte Online Status -->
                       <ComObjectRefRef RefId="%AID%_O-%TT%00063_R-%TT%0006301" />
 
                       <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
@@ -1075,12 +1147,14 @@
                           <!-- Luftfeuchtigkeitsmodus Percent -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
                           <!-- TotalEnergy -->
-                          <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" /> 
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" />
                         </when>
                       </choose>
-                    </ParameterBlock>                 
+                    </ParameterBlock>
+                      </when>
+                    </choose>
                   </when>
-                </choose>  
+                </choose>
               </ParameterBlock>
               <!-- Device Type -->
               <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
@@ -1093,7 +1167,7 @@
                     <ComObjectRefRef RefId="%AID%_O-%TT%00034_R-%TT%0003401" />
 
                     <ParameterSeparator Id="%AID%_PS-nnn" Text="Szenen" UIHint="Headline" />
-        
+
                     <!-- Szenen Configuration -->
                     <op:usePart name="Scene" xpath="//Dynamic/ChannelIndependentBlock/ParameterBlock[@Id='Scene']/*" />
 

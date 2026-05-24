@@ -87,7 +87,29 @@
                                 <!-- Szene Luftreinigung -->
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+16%" Offset="7" BitOffset="0" Name="SC%SN%SceneAirPurificationDaikin" ParameterType="%AID%_PT-AIRSceneAirPurificationDaikin" Text="Luftreinigung/Streamer" Value="255" />
 
-                                <!-- 7 Bytes free  -->  
+                                <!-- 7 Bytes free  -->
+                            </Union>
+
+                            <!-- Mitsubishi-->
+                            <Union SizeInBit="120" op:nowarn="true">
+                                <Memory CodeSegment="%MID%" Offset="%MO+5%" BitOffset="0" />
+
+                                <!-- Szene Function Operation Mode -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+17%" Offset="0" BitOffset="0" Name="SC%SN%OperationModeMitsubishi" ParameterType="%AID%_PT-AIRSceneOperationModeMitsubishi" Text="Betriebsmodus" Value="255" />
+
+                                <!-- Szene Function Temperature -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+18%" Offset="1" BitOffset="0" Name="SC%SN%SceneTemperatureMitsubishi" ParameterType="%AID%_PT-AIRSceneTemperatureMitsubishi" Text="Solltemperatur" Value="255" />
+
+                                <!-- Szene Function Fan -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+19%" Offset="2" BitOffset="0" Name="SC%SN%SceneFanMitsubishi" ParameterType="%AID%_PT-AIRSceneFanMitsubishi" Text="Lüfter" Value="255" />
+
+                                <!-- Szene Function Swing -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+20%" Offset="3" BitOffset="0" Name="SC%SN%SceneSwingMitsubishi" ParameterType="%AID%_PT-AIRSceneSwingMitsubishi" Text="Lamellenbewegung" Value="255" />
+
+                                <!-- Szene Function Veritcal Position -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+21%" Offset="4" BitOffset="0" Name="SC%SN%ScenePositionMitsubishi" ParameterType="%AID%_PT-AIRSceneHorizontalPositionMitsubishi" Text="Vertikale Lamellenstellung" Value="255" />
+
+                                <!-- 10 Bytes free  -->
                             </Union>
 
 
@@ -133,7 +155,19 @@
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+9%_R-%TT%00%PPP+9%01" RefId="%AID%_UP-%TT%00%PPP+9%" />
                             <!-- Szene Luftreinigung -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+10%_R-%TT%00%PPP+10%01" RefId="%AID%_UP-%TT%00%PPP+10%" />
-     
+
+                            <!-- *** Mitsubishi *** -->
+                            <!-- Szene Function Operation Mode -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" RefId="%AID%_UP-%TT%00%PPP+17%" />
+                            <!-- Szene Function Temperature -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+18%_R-%TT%00%PPP+18%01" RefId="%AID%_UP-%TT%00%PPP+18%" />
+                            <!-- Szene Function Fan -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+19%_R-%TT%00%PPP+19%01" RefId="%AID%_UP-%TT%00%PPP+19%" />
+                            <!-- Szene Function Swing -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+20%_R-%TT%00%PPP+20%01" RefId="%AID%_UP-%TT%00%PPP+20%" />
+                            <!-- Szene Function Veritcal Position -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+21%_R-%TT%00%PPP+21%01" RefId="%AID%_UP-%TT%00%PPP+21%" />
+
 
                         </ParameterRefs>
                     </Static>
@@ -176,6 +210,20 @@
                                             <when test="2"><!-- Midea -->
                                             </when>
                                             <when test="3"><!-- Mitsubishi -->
+                                                <!-- Betriebsmodus -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Solltemperatur -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+18%_R-%TT%00%PPP+18%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Lüfter -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+19%_R-%TT%00%PPP+19%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Lamellen Bewegung -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+20%_R-%TT%00%PPP+20%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <!-- Vertikale Lamellenstellung (nur wenn Swing aus / keine Änderung) -->
+                                                <choose ParamRefId="%AID%_UP-%TT%00%PPP+20%_R-%TT%00%PPP+20%01">
+                                                    <when test="255 0">
+                                                        <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+21%_R-%TT%00%PPP+21%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                    </when>
+                                                </choose>
                                             </when>
                                             <when test="4"><!-- Toshiba -->
                                                 <!-- Betriebsmodus -->
