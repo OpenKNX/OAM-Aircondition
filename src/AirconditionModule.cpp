@@ -276,7 +276,7 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
         {
             logInfoP("Request all data");
             _airConditionDriver->requestAllData();
-            logInfoP("Request all data");
+            _airConditionDriver->showInformations();
         }
         else
         {
@@ -339,6 +339,63 @@ bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
     {
         KoAIR_FanSpeedUpDown.valueNoSend(false, DPT_Switch);
         processInputKo(KoAIR_FanSpeedUpDown);
+        return true;
+    }
+    else if (cmd.length() >= 5 && cmd.substr(0, 5) == "mode ")
+    {
+        std::string m = cmd.substr(5);
+        GroupObject* target = nullptr;
+        if      (m == "auto") target = &KoAIR_OperationModeAutomatic;
+        else if (m == "cool") target = &KoAIR_OperationModeCooling;
+        else if (m == "heat") target = &KoAIR_OperationModeHeating;
+        else if (m == "fan")  target = &KoAIR_OperationModeVentilation;
+        else if (m == "dry")  target = &KoAIR_OperationModeDehumidification;
+        else
+        {
+            logErrorP("Unknown mode '%s'. Use: auto | cool | heat | fan | dry", m.c_str());
+            return true;
+        }
+        target->valueNoSend(true, DPT_Switch);
+        processInputKo(*target);
+        return true;
+    }
+    else if (cmd.length() >= 7 && cmd.substr(0, 7) == "driver ")
+    {
+        std::string which = cmd.substr(7);
+        AirConditionDriver* next = nullptr;
+        if (which == "daikin")
+            next = new DaikinDriver(*this);
+        else if (which == "mitsubishi")
+            next = new MitsubishiDriver(*this);
+        else if (which == "toshiba")
+            next = new ToshibaDriver(*this);
+        else
+        {
+            logErrorP("Unknown driver '%s'. Use: daikin | mitsubishi | toshiba", which.c_str());
+            return true;
+        }
+
+        logInfoP("Switching driver to %s", which.c_str());
+        if (_sceneHandler != nullptr)
+        {
+            delete _sceneHandler;
+            _sceneHandler = nullptr;
+        }
+        if (_airConditionDriver != nullptr)
+        {
+            delete _airConditionDriver;
+            _airConditionDriver = nullptr;
+        }
+
+        _airConditionDriver = next;
+        _sceneHandler = new SceneHandler(*_airConditionDriver);
+        _errorSince = 0;
+        _errorMessage.clear();
+        setLocked(false);
+        _airConditionDriver->setup();
+        driverStateChanged(AirConditionDriverState::AirConditionDriverStateStarting);
+        _airConditionDriver->startCommunication(false);
+        logInfoP("Driver %s started", which.c_str());
         return true;
     }
 
@@ -924,6 +981,8 @@ void AirconditionModule::showHelp()
     openknx.console.printHelpLine("all", "Request all data from the air condition");
     openknx.console.printHelpLine("acroom <value>", "Simulate room temperature feedback from aircondition (e.g., acroom 22)");
     openknx.console.printHelpLine("room <value>", "Set the room temperature (e.g., room 22)");
+    openknx.console.printHelpLine("mode <name>", "Set HVAC mode: auto | cool | heat | fan | dry");
+    openknx.console.printHelpLine("driver <name>", "Switch active driver at runtime: daikin | mitsubishi | toshiba");
 }
 
 void AirconditionModule::updatePower(bool power)
