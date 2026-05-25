@@ -304,12 +304,11 @@
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
                   <Enumeration Text="Automatik" Value="0" Id="%ENID%" />
-                  <Enumeration Text="Geräuscharm" Value="1" Id="%ENID%" />
-                  <Enumeration Text="Stufe 1" Value="2" Id="%ENID%" />
-                  <Enumeration Text="Stufe 2" Value="3" Id="%ENID%" />
-                  <Enumeration Text="Stufe 3" Value="4" Id="%ENID%" />
-                  <Enumeration Text="Stufe 4" Value="5" Id="%ENID%" />
-                  <Enumeration Text="Stufe 5" Value="6" Id="%ENID%" />
+                  <Enumeration Text="Stufe 1 (QUIET)" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Stufe 2" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Stufe 3" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Stufe 4" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Stufe 5" Value="5" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
               <!-- Template Swing
