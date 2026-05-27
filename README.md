@@ -6,6 +6,7 @@ Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Herstelle
   - HAORI (Getestet)
   - SHORAI EDGE (Getestet)
   - Viele andere Modelle mit WLAN-Modul sollten funktionieren. Bitte gerne Rückmeldung geben, wenn ein neues Modell getestet wurde.
+  - [Anschluss an UP1-GW-UART](doc/toshiba.md)
 
 - Daikin
   - S21-Protokoll mit automatischer Protokoll-/Feature-Erkennung (inkl. v3.30 Kernfunktionen)
@@ -19,6 +20,7 @@ Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Herstelle
 
 # Release notes
 
+- 0.9 Fix Szenen setzen bei Toshiba
 - 0.8 Spannungsüberwachung des Klimagerätes
 - 0.8 Umbennung der Gruppenobjekte auf OpenKNX Standard
 - 0.8 Daikin Support
@@ -63,7 +65,21 @@ Die Anwenderdokumentation ist [hier](./doc/Applikationsbeschreibung.md) zu finde
 
 Eine vorkompilierte Firmware ist [hier](https://github.com/OpenKNX/OAM-Aircondition/releases) zu finden. ZIP-Datei herunterladen, entpacken und der Anleitung im Readme folgen.
 
+Die vorkompilierte Firmware unterstützt:
+
+TP ohne WLAN:
+- [OpenKNX+UP1+UART+Gateway](https://openknx.atlassian.net/wiki/spaces/OpenKNX/pages/484802573/OpenKNX+UP1+UART+Gateway)  
+*Hinweis: diese Board unterstüzt kein WLAN/LAN, damit sind die Einstellungen in der ETS für Wifi und Webserver wirkungslos*
+
+WLAN:
+- AZDelivery ESP32 Board Dev Kit C V4  
+  *Hinweis: Diese Board unterstützt keine Web-Console und keinen Webserver, da der Speicher nicht ausreicht, daher ist die Einstellungen in der ETS für den Webserver wirkungslos* 
+
+- Adafruit_Feather_ESP32_V2
+
 ## Hardware
+
+Wer kein OpenKNX Gerät verwenden will, kann sich eine HW selber zusammenlöten. 
 
 ### Bauteilliste:
 

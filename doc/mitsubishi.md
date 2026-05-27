@@ -5,4 +5,4 @@
 - Anschluss wie im Bild dargestellt.
 - JP60 via Lötbrücke schließen
 
-![UP1-GW-UART and Mitsubishi CN105](up1-gw-uart_mitsubishi-cn105.png)
+![UP1-GW-UART and Mitsubishi CN105](mitsubishi-cn105_up1-gw-uart.png)
