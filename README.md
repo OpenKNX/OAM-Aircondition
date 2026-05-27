@@ -21,6 +21,8 @@ Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Herstelle
 # Release notes
 
 - 0.9 Fix Szenen setzen bei Toshiba
+- 0.9 Daikin Support
+- 0.9 Mitsubishi Support
 - 0.8 Spannungsüberwachung des Klimagerätes
 - 0.8 Umbennung der Gruppenobjekte auf OpenKNX Standard
 - 0.8 Daikin Support
