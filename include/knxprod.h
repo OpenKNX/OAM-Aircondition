@@ -16,13 +16,13 @@
 #define ETS_ModuleId_AIR 5
 #define ETS_ModuleId_LOG 6
 #define ETS_ModuleId_FCB 7
-#define MAIN_FirmwareName "Klimaanlagen KNX Adapter (Dev)"
+#define MAIN_FirmwareName "Klimaanlagen KNX Adapter"
 #define MAIN_OpenKnxId 0xAE
-#define MAIN_ApplicationNumber 53
-#define MAIN_ApplicationVersion 15
+#define MAIN_ApplicationNumber 54
+#define MAIN_ApplicationVersion 9
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
-#define MAIN_ParameterSize 9211
+#define MAIN_ParameterSize 9298
 #define MAIN_MaxKoNumber 465
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 24
@@ -226,6 +226,9 @@
 #define NET_OTAUpdate                           131      // 2 Bits, Bit 4-3
 #define     NET_OTAUpdateMask 0x18
 #define     NET_OTAUpdateShift 3
+#define NET_MQTT                                131      // 1 Bit, Bit 2
+#define     NET_MQTTMask 0x04
+#define     NET_MQTTShift 2
 #define NET_HostName                            132      // char*, 24 Byte
 #define     NET_HostNameLength 24
 #define NET_LanMode                             173      // 4 Bits, Bit 7-4
@@ -233,6 +236,21 @@
 #define     NET_LanModeShift 4
 #define NET_NTPServer                           174      // char*, 50 Byte
 #define     NET_NTPServerLength 50
+#define NET_MQTTServer                          225      // char*, 20 Byte
+#define     NET_MQTTServerLength 20
+#define NET_MQTTUsername                        246      // char*, 20 Byte
+#define     NET_MQTTUsernameLength 20
+#define NET_MQTTPassword                        267      // char*, 20 Byte
+#define     NET_MQTTPasswordLength 20
+#define NET_MQTTPrefix                          288      // char*, 20 Byte
+#define     NET_MQTTPrefixLength 20
+#define NET_MQTTPort                            309      // uint16_t
+#define NET_MQTTTPRawData                       311      // 1 Bit, Bit 7
+#define     NET_MQTTTPRawDataMask 0x80
+#define     NET_MQTTTPRawDataShift 7
+#define NET_MQTTMode                            311      // 1 Bit, Bit 6
+#define     NET_MQTTModeMask 0x40
+#define     NET_MQTTModeShift 6
 
 // IP-Adresse
 #define ParamNET_HostAddress                         (knx.paramInt(NET_HostAddress))
@@ -248,12 +266,14 @@
 #define ParamNET_StaticIP                            ((bool)(knx.paramByte(NET_StaticIP) & NET_StaticIPMask))
 // mDNS
 #define ParamNET_mDNS                                ((bool)(knx.paramByte(NET_mDNS) & NET_mDNSMask))
-// Weberver
+// Weberver (BETA)
 #define ParamNET_HTTP                                ((bool)(knx.paramByte(NET_HTTP) & NET_HTTPMask))
 // NTP-Client
 #define ParamNET_NTP                                 ((bool)(knx.paramByte(NET_NTP) & NET_NTPMask))
 // OTA-Update
 #define ParamNET_OTAUpdate                           ((knx.paramByte(NET_OTAUpdate) & NET_OTAUpdateMask) >> NET_OTAUpdateShift)
+// MQTT
+#define ParamNET_MQTT                                ((bool)(knx.paramByte(NET_MQTT) & NET_MQTTMask))
 // Hostname
 #define ParamNET_HostName                            (knx.paramData(NET_HostName))
 #define ParamNET_HostNameStr                         (knx.paramString(NET_HostName, NET_HostNameLength))
@@ -262,201 +282,219 @@
 // Zeitserver
 #define ParamNET_NTPServer                           (knx.paramData(NET_NTPServer))
 #define ParamNET_NTPServerStr                        (knx.paramString(NET_NTPServer, NET_NTPServerLength))
+// Server
+#define ParamNET_MQTTServer                          (knx.paramData(NET_MQTTServer))
+#define ParamNET_MQTTServerStr                       (knx.paramString(NET_MQTTServer, NET_MQTTServerLength))
+// Benutzer
+#define ParamNET_MQTTUsername                        (knx.paramData(NET_MQTTUsername))
+#define ParamNET_MQTTUsernameStr                     (knx.paramString(NET_MQTTUsername, NET_MQTTUsernameLength))
+// Passwort
+#define ParamNET_MQTTPassword                        (knx.paramData(NET_MQTTPassword))
+#define ParamNET_MQTTPasswordStr                     (knx.paramString(NET_MQTTPassword, NET_MQTTPasswordLength))
+// Prefix
+#define ParamNET_MQTTPrefix                          (knx.paramData(NET_MQTTPrefix))
+#define ParamNET_MQTTPrefixStr                       (knx.paramString(NET_MQTTPrefix, NET_MQTTPrefixLength))
+// Port
+#define ParamNET_MQTTPort                            (knx.paramWord(NET_MQTTPort))
+// Sende KNX TP Rohdaten
+#define ParamNET_MQTTTPRawData                       ((bool)(knx.paramByte(NET_MQTTTPRawData) & NET_MQTTTPRawDataMask))
+// Modus
+#define ParamNET_MQTTMode                            ((bool)(knx.paramByte(NET_MQTTMode) & NET_MQTTModeMask))
 
 
 
-#define SENS_Error                               225      // 1 Bit, Bit 7
+#define SENS_Error                               312      // 1 Bit, Bit 7
 #define     SENS_ErrorMask 0x80
 #define     SENS_ErrorShift 7
-#define SENS_Dewpoint                            225      // 1 Bit, Bit 6
+#define SENS_Dewpoint                            312      // 1 Bit, Bit 6
 #define     SENS_DewpointMask 0x40
 #define     SENS_DewpointShift 6
-#define SENS_Comfort                             225      // 1 Bit, Bit 5
+#define SENS_Comfort                             312      // 1 Bit, Bit 5
 #define     SENS_ComfortMask 0x20
 #define     SENS_ComfortShift 5
-#define SENS_Airquality                          225      // 1 Bit, Bit 4
+#define SENS_Airquality                          312      // 1 Bit, Bit 4
 #define     SENS_AirqualityMask 0x10
 #define     SENS_AirqualityShift 4
-#define SENS_Accuracy                            225      // 1 Bit, Bit 3
+#define SENS_Accuracy                            312      // 1 Bit, Bit 3
 #define     SENS_AccuracyMask 0x08
 #define     SENS_AccuracyShift 3
-#define SENS_DeleteData                          225      // 1 Bit, Bit 2
+#define SENS_DeleteData                          312      // 1 Bit, Bit 2
 #define     SENS_DeleteDataMask 0x04
 #define     SENS_DeleteDataShift 2
-#define SENS_TempOffset                          226      // int8_t
-#define SENS_TempCycleBase                       227      // 2 Bits, Bit 7-6
+#define SENS_TempOffset                          313      // int8_t
+#define SENS_TempCycleBase                       314      // 2 Bits, Bit 7-6
 #define     SENS_TempCycleBaseMask 0xC0
 #define     SENS_TempCycleBaseShift 6
-#define SENS_TempCycleTime                       227      // 14 Bits, Bit 13-0
+#define SENS_TempCycleTime                       314      // 14 Bits, Bit 13-0
 #define     SENS_TempCycleTimeMask 0x3FFF
 #define     SENS_TempCycleTimeShift 0
-#define SENS_TempDeltaAbs                        229      // uint16_t
-#define SENS_TempDeltaPercent                    231      // uint8_t
-#define SENS_TempSmooth                          232      // uint8_t
-#define SENS_TempExtCount                        233      // 2 Bits, Bit 1-0
+#define SENS_TempDeltaAbs                        316      // uint16_t
+#define SENS_TempDeltaPercent                    318      // uint8_t
+#define SENS_TempSmooth                          319      // uint8_t
+#define SENS_TempExtCount                        320      // 2 Bits, Bit 1-0
 #define     SENS_TempExtCountMask 0x03
 #define     SENS_TempExtCountShift 0
-#define SENS_TempExtRead                         233      // 1 Bit, Bit 2
+#define SENS_TempExtRead                         320      // 1 Bit, Bit 2
 #define     SENS_TempExtReadMask 0x04
 #define     SENS_TempExtReadShift 2
-#define SENS_TempIntPercent                      234      // uint8_t
-#define SENS_TempExt1Percent                     235      // uint8_t
-#define SENS_TempExt2Percent                     236      // uint8_t
-#define SENS_HumOffset                           237      // int8_t
-#define SENS_HumCycleBase                        238      // 2 Bits, Bit 7-6
+#define SENS_TempIntPercent                      321      // uint8_t
+#define SENS_TempExt1Percent                     322      // uint8_t
+#define SENS_TempExt2Percent                     323      // uint8_t
+#define SENS_HumOffset                           324      // int8_t
+#define SENS_HumCycleBase                        325      // 2 Bits, Bit 7-6
 #define     SENS_HumCycleBaseMask 0xC0
 #define     SENS_HumCycleBaseShift 6
-#define SENS_HumCycleTime                        238      // 14 Bits, Bit 13-0
+#define SENS_HumCycleTime                        325      // 14 Bits, Bit 13-0
 #define     SENS_HumCycleTimeMask 0x3FFF
 #define     SENS_HumCycleTimeShift 0
-#define SENS_HumDeltaAbs                         240      // uint16_t
-#define SENS_HumDeltaPercent                     242      // uint8_t
-#define SENS_HumSmooth                           243      // uint8_t
-#define SENS_HumExtCount                         244      // 2 Bits, Bit 1-0
+#define SENS_HumDeltaAbs                         327      // uint16_t
+#define SENS_HumDeltaPercent                     329      // uint8_t
+#define SENS_HumSmooth                           330      // uint8_t
+#define SENS_HumExtCount                         331      // 2 Bits, Bit 1-0
 #define     SENS_HumExtCountMask 0x03
 #define     SENS_HumExtCountShift 0
-#define SENS_HumExtRead                          244      // 1 Bit, Bit 2
+#define SENS_HumExtRead                          331      // 1 Bit, Bit 2
 #define     SENS_HumExtReadMask 0x04
 #define     SENS_HumExtReadShift 2
-#define SENS_HumIntPercent                       245      // uint8_t
-#define SENS_HumExt1Percent                      246      // uint8_t
-#define SENS_HumExt2Percent                      247      // uint8_t
-#define SENS_PreOffset                           248      // int8_t
-#define SENS_PreCycleBase                        249      // 2 Bits, Bit 7-6
+#define SENS_HumIntPercent                       332      // uint8_t
+#define SENS_HumExt1Percent                      333      // uint8_t
+#define SENS_HumExt2Percent                      334      // uint8_t
+#define SENS_PreOffset                           335      // int8_t
+#define SENS_PreCycleBase                        336      // 2 Bits, Bit 7-6
 #define     SENS_PreCycleBaseMask 0xC0
 #define     SENS_PreCycleBaseShift 6
-#define SENS_PreCycleTime                        249      // 14 Bits, Bit 13-0
+#define SENS_PreCycleTime                        336      // 14 Bits, Bit 13-0
 #define     SENS_PreCycleTimeMask 0x3FFF
 #define     SENS_PreCycleTimeShift 0
-#define SENS_PreDeltaAbs                         251      // uint16_t
-#define SENS_PreDeltaPercent                     253      // uint8_t
-#define SENS_PreSmooth                           254      // uint8_t
-#define SENS_PreExtCount                         255      // 2 Bits, Bit 1-0
+#define SENS_PreDeltaAbs                         338      // uint16_t
+#define SENS_PreDeltaPercent                     340      // uint8_t
+#define SENS_PreSmooth                           341      // uint8_t
+#define SENS_PreExtCount                         342      // 2 Bits, Bit 1-0
 #define     SENS_PreExtCountMask 0x03
 #define     SENS_PreExtCountShift 0
-#define SENS_PreExtRead                          255      // 1 Bit, Bit 2
+#define SENS_PreExtRead                          342      // 1 Bit, Bit 2
 #define     SENS_PreExtReadMask 0x04
 #define     SENS_PreExtReadShift 2
-#define SENS_PreIntPercent                       256      // uint8_t
-#define SENS_PreExt1Percent                      257      // uint8_t
-#define SENS_PreExt2Percent                      258      // uint8_t
-#define SENS_VocOffset                           259      // int8_t
-#define SENS_VocCycleBase                        260      // 2 Bits, Bit 7-6
+#define SENS_PreIntPercent                       343      // uint8_t
+#define SENS_PreExt1Percent                      344      // uint8_t
+#define SENS_PreExt2Percent                      345      // uint8_t
+#define SENS_VocOffset                           346      // int8_t
+#define SENS_VocCycleBase                        347      // 2 Bits, Bit 7-6
 #define     SENS_VocCycleBaseMask 0xC0
 #define     SENS_VocCycleBaseShift 6
-#define SENS_VocCycleTime                        260      // 14 Bits, Bit 13-0
+#define SENS_VocCycleTime                        347      // 14 Bits, Bit 13-0
 #define     SENS_VocCycleTimeMask 0x3FFF
 #define     SENS_VocCycleTimeShift 0
-#define SENS_VocDeltaAbs                         262      // uint16_t
-#define SENS_VocDeltaPercent                     264      // uint8_t
-#define SENS_VocSmooth                           265      // uint8_t
-#define SENS_VocExtCount                         266      // 2 Bits, Bit 1-0
+#define SENS_VocDeltaAbs                         349      // uint16_t
+#define SENS_VocDeltaPercent                     351      // uint8_t
+#define SENS_VocSmooth                           352      // uint8_t
+#define SENS_VocExtCount                         353      // 2 Bits, Bit 1-0
 #define     SENS_VocExtCountMask 0x03
 #define     SENS_VocExtCountShift 0
-#define SENS_VocExtRead                          266      // 1 Bit, Bit 2
+#define SENS_VocExtRead                          353      // 1 Bit, Bit 2
 #define     SENS_VocExtReadMask 0x04
 #define     SENS_VocExtReadShift 2
-#define SENS_VocIntPercent                       267      // uint8_t
-#define SENS_VocExt1Percent                      268      // uint8_t
-#define SENS_VocExt2Percent                      269      // uint8_t
-#define SENS_Co2Offset                           270      // int8_t
-#define SENS_Co2CycleBase                        271      // 2 Bits, Bit 7-6
+#define SENS_VocIntPercent                       354      // uint8_t
+#define SENS_VocExt1Percent                      355      // uint8_t
+#define SENS_VocExt2Percent                      356      // uint8_t
+#define SENS_Co2Offset                           357      // int8_t
+#define SENS_Co2CycleBase                        358      // 2 Bits, Bit 7-6
 #define     SENS_Co2CycleBaseMask 0xC0
 #define     SENS_Co2CycleBaseShift 6
-#define SENS_Co2CycleTime                        271      // 14 Bits, Bit 13-0
+#define SENS_Co2CycleTime                        358      // 14 Bits, Bit 13-0
 #define     SENS_Co2CycleTimeMask 0x3FFF
 #define     SENS_Co2CycleTimeShift 0
-#define SENS_Co2DeltaAbs                         273      // uint16_t
-#define SENS_Co2DeltaPercent                     275      // uint8_t
-#define SENS_Co2Smooth                           276      // uint8_t
-#define SENS_Co2ExtCount                         277      // 2 Bits, Bit 1-0
+#define SENS_Co2DeltaAbs                         360      // uint16_t
+#define SENS_Co2DeltaPercent                     362      // uint8_t
+#define SENS_Co2Smooth                           363      // uint8_t
+#define SENS_Co2ExtCount                         364      // 2 Bits, Bit 1-0
 #define     SENS_Co2ExtCountMask 0x03
 #define     SENS_Co2ExtCountShift 0
-#define SENS_Co2ExtRead                          277      // 1 Bit, Bit 2
+#define SENS_Co2ExtRead                          364      // 1 Bit, Bit 2
 #define     SENS_Co2ExtReadMask 0x04
 #define     SENS_Co2ExtReadShift 2
-#define SENS_Co2IntPercent                       278      // uint8_t
-#define SENS_Co2Ext1Percent                      279      // uint8_t
-#define SENS_Co2Ext2Percent                      280      // uint8_t
-#define SENS_DewOffset                           282      // int8_t
-#define SENS_DewCycleBase                        283      // 2 Bits, Bit 7-6
+#define SENS_Co2IntPercent                       365      // uint8_t
+#define SENS_Co2Ext1Percent                      366      // uint8_t
+#define SENS_Co2Ext2Percent                      367      // uint8_t
+#define SENS_DewOffset                           369      // int8_t
+#define SENS_DewCycleBase                        370      // 2 Bits, Bit 7-6
 #define     SENS_DewCycleBaseMask 0xC0
 #define     SENS_DewCycleBaseShift 6
-#define SENS_DewCycleTime                        283      // 14 Bits, Bit 13-0
+#define SENS_DewCycleTime                        370      // 14 Bits, Bit 13-0
 #define     SENS_DewCycleTimeMask 0x3FFF
 #define     SENS_DewCycleTimeShift 0
-#define SENS_DewDeltaAbs                         285      // uint16_t
-#define SENS_DewDeltaPercent                     287      // uint8_t
-#define SENS_DewSmooth                           288      // uint8_t
-#define SENS_LuxOffset                           289      // int8_t
-#define SENS_LuxCycleBase                        290      // 2 Bits, Bit 7-6
+#define SENS_DewDeltaAbs                         372      // uint16_t
+#define SENS_DewDeltaPercent                     374      // uint8_t
+#define SENS_DewSmooth                           375      // uint8_t
+#define SENS_LuxOffset                           376      // int8_t
+#define SENS_LuxCycleBase                        377      // 2 Bits, Bit 7-6
 #define     SENS_LuxCycleBaseMask 0xC0
 #define     SENS_LuxCycleBaseShift 6
-#define SENS_LuxCycleTime                        290      // 14 Bits, Bit 13-0
+#define SENS_LuxCycleTime                        377      // 14 Bits, Bit 13-0
 #define     SENS_LuxCycleTimeMask 0x3FFF
 #define     SENS_LuxCycleTimeShift 0
-#define SENS_LuxDeltaAbs                         292      // uint16_t
-#define SENS_LuxDeltaPercent                     294      // uint8_t
-#define SENS_LuxSmooth                           295      // uint8_t
-#define SENS_LuxExtCount                         296      // 2 Bits, Bit 1-0
+#define SENS_LuxDeltaAbs                         379      // uint16_t
+#define SENS_LuxDeltaPercent                     381      // uint8_t
+#define SENS_LuxSmooth                           382      // uint8_t
+#define SENS_LuxExtCount                         383      // 2 Bits, Bit 1-0
 #define     SENS_LuxExtCountMask 0x03
 #define     SENS_LuxExtCountShift 0
-#define SENS_LuxExtRead                          296      // 1 Bit, Bit 2
+#define SENS_LuxExtRead                          383      // 1 Bit, Bit 2
 #define     SENS_LuxExtReadMask 0x04
 #define     SENS_LuxExtReadShift 2
-#define SENS_LuxIntPercent                       297      // uint8_t
-#define SENS_LuxExt1Percent                      298      // uint8_t
-#define SENS_LuxExt2Percent                      299      // uint8_t
-#define SENS_TofOffset                           300      // int8_t
-#define SENS_TofCycleBase                        301      // 2 Bits, Bit 7-6
+#define SENS_LuxIntPercent                       384      // uint8_t
+#define SENS_LuxExt1Percent                      385      // uint8_t
+#define SENS_LuxExt2Percent                      386      // uint8_t
+#define SENS_TofOffset                           387      // int8_t
+#define SENS_TofCycleBase                        388      // 2 Bits, Bit 7-6
 #define     SENS_TofCycleBaseMask 0xC0
 #define     SENS_TofCycleBaseShift 6
-#define SENS_TofCycleTime                        301      // 14 Bits, Bit 13-0
+#define SENS_TofCycleTime                        388      // 14 Bits, Bit 13-0
 #define     SENS_TofCycleTimeMask 0x3FFF
 #define     SENS_TofCycleTimeShift 0
-#define SENS_TofDeltaAbs                         303      // uint16_t
-#define SENS_TofDeltaPercent                     305      // uint8_t
-#define SENS_TofSmooth                           306      // uint8_t
-#define SENS_TofExtCount                         307      // 2 Bits, Bit 1-0
+#define SENS_TofDeltaAbs                         390      // uint16_t
+#define SENS_TofDeltaPercent                     392      // uint8_t
+#define SENS_TofSmooth                           393      // uint8_t
+#define SENS_TofExtCount                         394      // 2 Bits, Bit 1-0
 #define     SENS_TofExtCountMask 0x03
 #define     SENS_TofExtCountShift 0
-#define SENS_TofExtRead                          307      // 1 Bit, Bit 2
+#define SENS_TofExtRead                          394      // 1 Bit, Bit 2
 #define     SENS_TofExtReadMask 0x04
 #define     SENS_TofExtReadShift 2
-#define SENS_TofIntPercent                       308      // uint8_t
-#define SENS_TofExt1Percent                      309      // uint8_t
-#define SENS_TofExt2Percent                      310      // uint8_t
-#define SENS_TempSensor                          311      // 4 Bits, Bit 7-4
+#define SENS_TofIntPercent                       395      // uint8_t
+#define SENS_TofExt1Percent                      396      // uint8_t
+#define SENS_TofExt2Percent                      397      // uint8_t
+#define SENS_TempSensor                          398      // 4 Bits, Bit 7-4
 #define     SENS_TempSensorMask 0xF0
 #define     SENS_TempSensorShift 4
-#define SENS_HumSensor                           311      // 4 Bits, Bit 3-0
+#define SENS_HumSensor                           398      // 4 Bits, Bit 3-0
 #define     SENS_HumSensorMask 0x0F
 #define     SENS_HumSensorShift 0
-#define SENS_PreSensor                           312      // 4 Bits, Bit 7-4
+#define SENS_PreSensor                           399      // 4 Bits, Bit 7-4
 #define     SENS_PreSensorMask 0xF0
 #define     SENS_PreSensorShift 4
-#define SENS_VocSensor                           312      // 4 Bits, Bit 3-0
+#define SENS_VocSensor                           399      // 4 Bits, Bit 3-0
 #define     SENS_VocSensorMask 0x0F
 #define     SENS_VocSensorShift 0
-#define SENS_Co2Sensor                           313      // 4 Bits, Bit 7-4
+#define SENS_Co2Sensor                           400      // 4 Bits, Bit 7-4
 #define     SENS_Co2SensorMask 0xF0
 #define     SENS_Co2SensorShift 4
-#define SENS_LuxSensor                           313      // 4 Bits, Bit 3-0
+#define SENS_LuxSensor                           400      // 4 Bits, Bit 3-0
 #define     SENS_LuxSensorMask 0x0F
 #define     SENS_LuxSensorShift 0
-#define SENS_TofSensor                           314      // 4 Bits, Bit 7-4
+#define SENS_TofSensor                           401      // 4 Bits, Bit 7-4
 #define     SENS_TofSensorMask 0xF0
 #define     SENS_TofSensorShift 4
-#define SENS_SCD41MeasureIntervalDelayBase       315      // 2 Bits, Bit 7-6
+#define SENS_SCD41MeasureIntervalDelayBase       402      // 2 Bits, Bit 7-6
 #define     SENS_SCD41MeasureIntervalDelayBaseMask 0xC0
 #define     SENS_SCD41MeasureIntervalDelayBaseShift 6
-#define SENS_SCD41MeasureIntervalDelayTime       315      // 14 Bits, Bit 13-0
+#define SENS_SCD41MeasureIntervalDelayTime       402      // 14 Bits, Bit 13-0
 #define     SENS_SCD41MeasureIntervalDelayTimeMask 0x3FFF
 #define     SENS_SCD41MeasureIntervalDelayTimeShift 0
-#define SENS_PT1000NumWires                      317      // 2 Bits, Bit 7-6
+#define SENS_PT1000NumWires                      404      // 2 Bits, Bit 7-6
 #define     SENS_PT1000NumWiresMask 0xC0
 #define     SENS_PT1000NumWiresShift 6
-#define SENS_PT100PT1000                         317      // 1 Bit, Bit 5
+#define SENS_PT100PT1000                         404      // 1 Bit, Bit 5
 #define     SENS_PT100PT1000Mask 0x20
 #define     SENS_PT100PT1000Shift 5
 
@@ -765,306 +803,306 @@
 // Kalibrierungfortschritt
 #define KoSENS_SensorAccuracy                      (knx.getGroupObject(SENS_KoSensorAccuracy))
 
-#define AIR_DeviceType                          318      // 4 Bits, Bit 7-4
+#define AIR_DeviceType                          405      // 4 Bits, Bit 7-4
 #define     AIR_DeviceTypeMask 0xF0
 #define     AIR_DeviceTypeShift 4
-#define AIR_StartBehavior                       318      // 2 Bits, Bit 3-2
+#define AIR_StartBehavior                       405      // 2 Bits, Bit 3-2
 #define     AIR_StartBehaviorMask 0x0C
 #define     AIR_StartBehaviorShift 2
-#define AIR_LockReleaseKo                       319      // 2 Bits, Bit 7-6
+#define AIR_LockReleaseKo                       406      // 2 Bits, Bit 7-6
 #define     AIR_LockReleaseKoMask 0xC0
 #define     AIR_LockReleaseKoShift 6
-#define AIR_ReleaseBehaviorOn                   319      // 2 Bits, Bit 5-4
+#define AIR_ReleaseBehaviorOn                   406      // 2 Bits, Bit 5-4
 #define     AIR_ReleaseBehaviorOnMask 0x30
 #define     AIR_ReleaseBehaviorOnShift 4
-#define AIR_ReleaseBehaviorOff                  319      // 2 Bits, Bit 3-2
+#define AIR_ReleaseBehaviorOff                  406      // 2 Bits, Bit 3-2
 #define     AIR_ReleaseBehaviorOffMask 0x0C
 #define     AIR_ReleaseBehaviorOffShift 2
-#define AIR_LockBehaviorOn                      319      // 2 Bits, Bit 1-0
+#define AIR_LockBehaviorOn                      406      // 2 Bits, Bit 1-0
 #define     AIR_LockBehaviorOnMask 0x03
 #define     AIR_LockBehaviorOnShift 0
-#define AIR_LockBehaviorOff                     320      // 2 Bits, Bit 7-6
+#define AIR_LockBehaviorOff                     407      // 2 Bits, Bit 7-6
 #define     AIR_LockBehaviorOffMask 0xC0
 #define     AIR_LockBehaviorOffShift 6
-#define AIR_WifiLED                             320      // 2 Bits, Bit 5-4
+#define AIR_WifiLED                             407      // 2 Bits, Bit 5-4
 #define     AIR_WifiLEDMask 0x30
 #define     AIR_WifiLEDShift 4
-#define AIR_ExternalRoomTemperature             320      // 1 Bit, Bit 3
+#define AIR_ExternalRoomTemperature             407      // 1 Bit, Bit 3
 #define     AIR_ExternalRoomTemperatureMask 0x08
 #define     AIR_ExternalRoomTemperatureShift 3
-#define AIR_ClimateSetTemperature               320      // 1 Bit, Bit 2
+#define AIR_ClimateSetTemperature               407      // 1 Bit, Bit 2
 #define     AIR_ClimateSetTemperatureMask 0x04
 #define     AIR_ClimateSetTemperatureShift 2
-#define AIR_ExternTempWatchdog                  320      // 2 Bits, Bit 1-0
+#define AIR_ExternTempWatchdog                  407      // 2 Bits, Bit 1-0
 #define     AIR_ExternTempWatchdogMask 0x03
 #define     AIR_ExternTempWatchdogShift 0
-#define AIR_MonitoringWDTTimeoutDelayBase       321      // 2 Bits, Bit 7-6
+#define AIR_MonitoringWDTTimeoutDelayBase       408      // 2 Bits, Bit 7-6
 #define     AIR_MonitoringWDTTimeoutDelayBaseMask 0xC0
 #define     AIR_MonitoringWDTTimeoutDelayBaseShift 6
-#define AIR_MonitoringWDTTimeoutDelayTime       321      // 14 Bits, Bit 13-0
+#define AIR_MonitoringWDTTimeoutDelayTime       408      // 14 Bits, Bit 13-0
 #define     AIR_MonitoringWDTTimeoutDelayTimeMask 0x3FFF
 #define     AIR_MonitoringWDTTimeoutDelayTimeShift 0
-#define AIR_Mit_MinTemp                         323      // 8 Bits, Bit 7-0
-#define AIR_SCAActive                           338      // 1 Bit, Bit 7
+#define AIR_Mit_MinTemp                         410      // 8 Bits, Bit 7-0
+#define AIR_SCAActive                           425      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
 #define     AIR_SCAActiveShift 7
-#define AIR_SCANumber                           339      // 7 Bits, Bit 7-1
+#define AIR_SCANumber                           426      // 7 Bits, Bit 7-1
 #define     AIR_SCANumberMask 0xFE
 #define     AIR_SCANumberShift 1
-#define AIR_SCAOnOff                            340      // 8 Bits, Bit 7-0
-#define AIR_SCAOperationMode                    343      // 8 Bits, Bit 7-0
-#define AIR_SCASceneTemperature                 344      // 8 Bits, Bit 7-0
-#define AIR_SCASceneFan                         345      // 8 Bits, Bit 7-0
-#define AIR_SCASceneSwing                       346      // 8 Bits, Bit 7-0
-#define AIR_SCAScenePosition                    347      // 8 Bits, Bit 7-0
-#define AIR_SCAScenePowerLimit                  348      // 8 Bits, Bit 7-0
-#define AIR_SCASceneDeviceMode                  349      // 8 Bits, Bit 7-0
-#define AIR_SCASceneAirPurification             350      // 8 Bits, Bit 7-0
-#define AIR_SCAOperationModeDaikin              343      // 8 Bits, Bit 7-0
-#define AIR_SCASceneTemperatureDaikin           344      // 8 Bits, Bit 7-0
-#define AIR_SCASceneFanDaikin                   345      // 8 Bits, Bit 7-0
-#define AIR_SCASceneSwingDaikin                 346      // 8 Bits, Bit 7-0
-#define AIR_SCASceneDeviceModeDaikin            349      // 8 Bits, Bit 7-0
-#define AIR_SCASceneAirPurificationDaikin       350      // 8 Bits, Bit 7-0
-#define AIR_SCAOperationModeMitsubishi          343      // 8 Bits, Bit 7-0
-#define AIR_SCASceneTemperatureMitsubishi       344      // 8 Bits, Bit 7-0
-#define AIR_SCASceneFanMitsubishi               345      // 8 Bits, Bit 7-0
-#define AIR_SCASceneSwingMitsubishi             346      // 8 Bits, Bit 7-0
-#define AIR_SCAScenePositionMitsubishi          347      // 8 Bits, Bit 7-0
-#define AIR_SCBActive                           358      // 1 Bit, Bit 7
+#define AIR_SCAOnOff                            427      // 8 Bits, Bit 7-0
+#define AIR_SCAOperationMode                    430      // 8 Bits, Bit 7-0
+#define AIR_SCASceneTemperature                 431      // 8 Bits, Bit 7-0
+#define AIR_SCASceneFan                         432      // 8 Bits, Bit 7-0
+#define AIR_SCASceneSwing                       433      // 8 Bits, Bit 7-0
+#define AIR_SCAScenePosition                    434      // 8 Bits, Bit 7-0
+#define AIR_SCAScenePowerLimit                  435      // 8 Bits, Bit 7-0
+#define AIR_SCASceneDeviceMode                  436      // 8 Bits, Bit 7-0
+#define AIR_SCASceneAirPurification             437      // 8 Bits, Bit 7-0
+#define AIR_SCAOperationModeDaikin              430      // 8 Bits, Bit 7-0
+#define AIR_SCASceneTemperatureDaikin           431      // 8 Bits, Bit 7-0
+#define AIR_SCASceneFanDaikin                   432      // 8 Bits, Bit 7-0
+#define AIR_SCASceneSwingDaikin                 433      // 8 Bits, Bit 7-0
+#define AIR_SCASceneDeviceModeDaikin            436      // 8 Bits, Bit 7-0
+#define AIR_SCASceneAirPurificationDaikin       437      // 8 Bits, Bit 7-0
+#define AIR_SCAOperationModeMitsubishi          430      // 8 Bits, Bit 7-0
+#define AIR_SCASceneTemperatureMitsubishi       431      // 8 Bits, Bit 7-0
+#define AIR_SCASceneFanMitsubishi               432      // 8 Bits, Bit 7-0
+#define AIR_SCASceneSwingMitsubishi             433      // 8 Bits, Bit 7-0
+#define AIR_SCAScenePositionMitsubishi          434      // 8 Bits, Bit 7-0
+#define AIR_SCBActive                           445      // 1 Bit, Bit 7
 #define     AIR_SCBActiveMask 0x80
 #define     AIR_SCBActiveShift 7
-#define AIR_SCBNumber                           359      // 7 Bits, Bit 7-1
+#define AIR_SCBNumber                           446      // 7 Bits, Bit 7-1
 #define     AIR_SCBNumberMask 0xFE
 #define     AIR_SCBNumberShift 1
-#define AIR_SCBOnOff                            360      // 8 Bits, Bit 7-0
-#define AIR_SCBOperationMode                    363      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneTemperature                 364      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneFan                         365      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneSwing                       366      // 8 Bits, Bit 7-0
-#define AIR_SCBScenePosition                    367      // 8 Bits, Bit 7-0
-#define AIR_SCBScenePowerLimit                  368      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneDeviceMode                  369      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneAirPurification             370      // 8 Bits, Bit 7-0
-#define AIR_SCBOperationModeDaikin              363      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneTemperatureDaikin           364      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneFanDaikin                   365      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneSwingDaikin                 366      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneDeviceModeDaikin            369      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneAirPurificationDaikin       370      // 8 Bits, Bit 7-0
-#define AIR_SCBOperationModeMitsubishi          363      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneTemperatureMitsubishi       364      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneFanMitsubishi               365      // 8 Bits, Bit 7-0
-#define AIR_SCBSceneSwingMitsubishi             366      // 8 Bits, Bit 7-0
-#define AIR_SCBScenePositionMitsubishi          367      // 8 Bits, Bit 7-0
-#define AIR_SCCActive                           378      // 1 Bit, Bit 7
+#define AIR_SCBOnOff                            447      // 8 Bits, Bit 7-0
+#define AIR_SCBOperationMode                    450      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneTemperature                 451      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneFan                         452      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneSwing                       453      // 8 Bits, Bit 7-0
+#define AIR_SCBScenePosition                    454      // 8 Bits, Bit 7-0
+#define AIR_SCBScenePowerLimit                  455      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneDeviceMode                  456      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneAirPurification             457      // 8 Bits, Bit 7-0
+#define AIR_SCBOperationModeDaikin              450      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneTemperatureDaikin           451      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneFanDaikin                   452      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneSwingDaikin                 453      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneDeviceModeDaikin            456      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneAirPurificationDaikin       457      // 8 Bits, Bit 7-0
+#define AIR_SCBOperationModeMitsubishi          450      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneTemperatureMitsubishi       451      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneFanMitsubishi               452      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneSwingMitsubishi             453      // 8 Bits, Bit 7-0
+#define AIR_SCBScenePositionMitsubishi          454      // 8 Bits, Bit 7-0
+#define AIR_SCCActive                           465      // 1 Bit, Bit 7
 #define     AIR_SCCActiveMask 0x80
 #define     AIR_SCCActiveShift 7
-#define AIR_SCCNumber                           379      // 7 Bits, Bit 7-1
+#define AIR_SCCNumber                           466      // 7 Bits, Bit 7-1
 #define     AIR_SCCNumberMask 0xFE
 #define     AIR_SCCNumberShift 1
-#define AIR_SCCOnOff                            380      // 8 Bits, Bit 7-0
-#define AIR_SCCOperationMode                    383      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneTemperature                 384      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneFan                         385      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneSwing                       386      // 8 Bits, Bit 7-0
-#define AIR_SCCScenePosition                    387      // 8 Bits, Bit 7-0
-#define AIR_SCCScenePowerLimit                  388      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneDeviceMode                  389      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneAirPurification             390      // 8 Bits, Bit 7-0
-#define AIR_SCCOperationModeDaikin              383      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneTemperatureDaikin           384      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneFanDaikin                   385      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneSwingDaikin                 386      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneDeviceModeDaikin            389      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneAirPurificationDaikin       390      // 8 Bits, Bit 7-0
-#define AIR_SCCOperationModeMitsubishi          383      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneTemperatureMitsubishi       384      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneFanMitsubishi               385      // 8 Bits, Bit 7-0
-#define AIR_SCCSceneSwingMitsubishi             386      // 8 Bits, Bit 7-0
-#define AIR_SCCScenePositionMitsubishi          387      // 8 Bits, Bit 7-0
-#define AIR_SCDActive                           398      // 1 Bit, Bit 7
+#define AIR_SCCOnOff                            467      // 8 Bits, Bit 7-0
+#define AIR_SCCOperationMode                    470      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneTemperature                 471      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneFan                         472      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneSwing                       473      // 8 Bits, Bit 7-0
+#define AIR_SCCScenePosition                    474      // 8 Bits, Bit 7-0
+#define AIR_SCCScenePowerLimit                  475      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneDeviceMode                  476      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneAirPurification             477      // 8 Bits, Bit 7-0
+#define AIR_SCCOperationModeDaikin              470      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneTemperatureDaikin           471      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneFanDaikin                   472      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneSwingDaikin                 473      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneDeviceModeDaikin            476      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneAirPurificationDaikin       477      // 8 Bits, Bit 7-0
+#define AIR_SCCOperationModeMitsubishi          470      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneTemperatureMitsubishi       471      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneFanMitsubishi               472      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneSwingMitsubishi             473      // 8 Bits, Bit 7-0
+#define AIR_SCCScenePositionMitsubishi          474      // 8 Bits, Bit 7-0
+#define AIR_SCDActive                           485      // 1 Bit, Bit 7
 #define     AIR_SCDActiveMask 0x80
 #define     AIR_SCDActiveShift 7
-#define AIR_SCDNumber                           399      // 7 Bits, Bit 7-1
+#define AIR_SCDNumber                           486      // 7 Bits, Bit 7-1
 #define     AIR_SCDNumberMask 0xFE
 #define     AIR_SCDNumberShift 1
-#define AIR_SCDOnOff                            400      // 8 Bits, Bit 7-0
-#define AIR_SCDOperationMode                    403      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneTemperature                 404      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneFan                         405      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneSwing                       406      // 8 Bits, Bit 7-0
-#define AIR_SCDScenePosition                    407      // 8 Bits, Bit 7-0
-#define AIR_SCDScenePowerLimit                  408      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneDeviceMode                  409      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneAirPurification             410      // 8 Bits, Bit 7-0
-#define AIR_SCDOperationModeDaikin              403      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneTemperatureDaikin           404      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneFanDaikin                   405      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneSwingDaikin                 406      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneDeviceModeDaikin            409      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneAirPurificationDaikin       410      // 8 Bits, Bit 7-0
-#define AIR_SCDOperationModeMitsubishi          403      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneTemperatureMitsubishi       404      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneFanMitsubishi               405      // 8 Bits, Bit 7-0
-#define AIR_SCDSceneSwingMitsubishi             406      // 8 Bits, Bit 7-0
-#define AIR_SCDScenePositionMitsubishi          407      // 8 Bits, Bit 7-0
-#define AIR_SCEActive                           418      // 1 Bit, Bit 7
+#define AIR_SCDOnOff                            487      // 8 Bits, Bit 7-0
+#define AIR_SCDOperationMode                    490      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneTemperature                 491      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneFan                         492      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneSwing                       493      // 8 Bits, Bit 7-0
+#define AIR_SCDScenePosition                    494      // 8 Bits, Bit 7-0
+#define AIR_SCDScenePowerLimit                  495      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneDeviceMode                  496      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneAirPurification             497      // 8 Bits, Bit 7-0
+#define AIR_SCDOperationModeDaikin              490      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneTemperatureDaikin           491      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneFanDaikin                   492      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneSwingDaikin                 493      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneDeviceModeDaikin            496      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneAirPurificationDaikin       497      // 8 Bits, Bit 7-0
+#define AIR_SCDOperationModeMitsubishi          490      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneTemperatureMitsubishi       491      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneFanMitsubishi               492      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneSwingMitsubishi             493      // 8 Bits, Bit 7-0
+#define AIR_SCDScenePositionMitsubishi          494      // 8 Bits, Bit 7-0
+#define AIR_SCEActive                           505      // 1 Bit, Bit 7
 #define     AIR_SCEActiveMask 0x80
 #define     AIR_SCEActiveShift 7
-#define AIR_SCENumber                           419      // 7 Bits, Bit 7-1
+#define AIR_SCENumber                           506      // 7 Bits, Bit 7-1
 #define     AIR_SCENumberMask 0xFE
 #define     AIR_SCENumberShift 1
-#define AIR_SCEOnOff                            420      // 8 Bits, Bit 7-0
-#define AIR_SCEOperationMode                    423      // 8 Bits, Bit 7-0
-#define AIR_SCESceneTemperature                 424      // 8 Bits, Bit 7-0
-#define AIR_SCESceneFan                         425      // 8 Bits, Bit 7-0
-#define AIR_SCESceneSwing                       426      // 8 Bits, Bit 7-0
-#define AIR_SCEScenePosition                    427      // 8 Bits, Bit 7-0
-#define AIR_SCEScenePowerLimit                  428      // 8 Bits, Bit 7-0
-#define AIR_SCESceneDeviceMode                  429      // 8 Bits, Bit 7-0
-#define AIR_SCESceneAirPurification             430      // 8 Bits, Bit 7-0
-#define AIR_SCEOperationModeDaikin              423      // 8 Bits, Bit 7-0
-#define AIR_SCESceneTemperatureDaikin           424      // 8 Bits, Bit 7-0
-#define AIR_SCESceneFanDaikin                   425      // 8 Bits, Bit 7-0
-#define AIR_SCESceneSwingDaikin                 426      // 8 Bits, Bit 7-0
-#define AIR_SCESceneDeviceModeDaikin            429      // 8 Bits, Bit 7-0
-#define AIR_SCESceneAirPurificationDaikin       430      // 8 Bits, Bit 7-0
-#define AIR_SCEOperationModeMitsubishi          423      // 8 Bits, Bit 7-0
-#define AIR_SCESceneTemperatureMitsubishi       424      // 8 Bits, Bit 7-0
-#define AIR_SCESceneFanMitsubishi               425      // 8 Bits, Bit 7-0
-#define AIR_SCESceneSwingMitsubishi             426      // 8 Bits, Bit 7-0
-#define AIR_SCEScenePositionMitsubishi          427      // 8 Bits, Bit 7-0
-#define AIR_SCFActive                           438      // 1 Bit, Bit 7
+#define AIR_SCEOnOff                            507      // 8 Bits, Bit 7-0
+#define AIR_SCEOperationMode                    510      // 8 Bits, Bit 7-0
+#define AIR_SCESceneTemperature                 511      // 8 Bits, Bit 7-0
+#define AIR_SCESceneFan                         512      // 8 Bits, Bit 7-0
+#define AIR_SCESceneSwing                       513      // 8 Bits, Bit 7-0
+#define AIR_SCEScenePosition                    514      // 8 Bits, Bit 7-0
+#define AIR_SCEScenePowerLimit                  515      // 8 Bits, Bit 7-0
+#define AIR_SCESceneDeviceMode                  516      // 8 Bits, Bit 7-0
+#define AIR_SCESceneAirPurification             517      // 8 Bits, Bit 7-0
+#define AIR_SCEOperationModeDaikin              510      // 8 Bits, Bit 7-0
+#define AIR_SCESceneTemperatureDaikin           511      // 8 Bits, Bit 7-0
+#define AIR_SCESceneFanDaikin                   512      // 8 Bits, Bit 7-0
+#define AIR_SCESceneSwingDaikin                 513      // 8 Bits, Bit 7-0
+#define AIR_SCESceneDeviceModeDaikin            516      // 8 Bits, Bit 7-0
+#define AIR_SCESceneAirPurificationDaikin       517      // 8 Bits, Bit 7-0
+#define AIR_SCEOperationModeMitsubishi          510      // 8 Bits, Bit 7-0
+#define AIR_SCESceneTemperatureMitsubishi       511      // 8 Bits, Bit 7-0
+#define AIR_SCESceneFanMitsubishi               512      // 8 Bits, Bit 7-0
+#define AIR_SCESceneSwingMitsubishi             513      // 8 Bits, Bit 7-0
+#define AIR_SCEScenePositionMitsubishi          514      // 8 Bits, Bit 7-0
+#define AIR_SCFActive                           525      // 1 Bit, Bit 7
 #define     AIR_SCFActiveMask 0x80
 #define     AIR_SCFActiveShift 7
-#define AIR_SCFNumber                           439      // 7 Bits, Bit 7-1
+#define AIR_SCFNumber                           526      // 7 Bits, Bit 7-1
 #define     AIR_SCFNumberMask 0xFE
 #define     AIR_SCFNumberShift 1
-#define AIR_SCFOnOff                            440      // 8 Bits, Bit 7-0
-#define AIR_SCFOperationMode                    443      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneTemperature                 444      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneFan                         445      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneSwing                       446      // 8 Bits, Bit 7-0
-#define AIR_SCFScenePosition                    447      // 8 Bits, Bit 7-0
-#define AIR_SCFScenePowerLimit                  448      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneDeviceMode                  449      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneAirPurification             450      // 8 Bits, Bit 7-0
-#define AIR_SCFOperationModeDaikin              443      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneTemperatureDaikin           444      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneFanDaikin                   445      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneSwingDaikin                 446      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneDeviceModeDaikin            449      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneAirPurificationDaikin       450      // 8 Bits, Bit 7-0
-#define AIR_SCFOperationModeMitsubishi          443      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneTemperatureMitsubishi       444      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneFanMitsubishi               445      // 8 Bits, Bit 7-0
-#define AIR_SCFSceneSwingMitsubishi             446      // 8 Bits, Bit 7-0
-#define AIR_SCFScenePositionMitsubishi          447      // 8 Bits, Bit 7-0
-#define AIR_SCGActive                           458      // 1 Bit, Bit 7
+#define AIR_SCFOnOff                            527      // 8 Bits, Bit 7-0
+#define AIR_SCFOperationMode                    530      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneTemperature                 531      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneFan                         532      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneSwing                       533      // 8 Bits, Bit 7-0
+#define AIR_SCFScenePosition                    534      // 8 Bits, Bit 7-0
+#define AIR_SCFScenePowerLimit                  535      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneDeviceMode                  536      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneAirPurification             537      // 8 Bits, Bit 7-0
+#define AIR_SCFOperationModeDaikin              530      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneTemperatureDaikin           531      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneFanDaikin                   532      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneSwingDaikin                 533      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneDeviceModeDaikin            536      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneAirPurificationDaikin       537      // 8 Bits, Bit 7-0
+#define AIR_SCFOperationModeMitsubishi          530      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneTemperatureMitsubishi       531      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneFanMitsubishi               532      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneSwingMitsubishi             533      // 8 Bits, Bit 7-0
+#define AIR_SCFScenePositionMitsubishi          534      // 8 Bits, Bit 7-0
+#define AIR_SCGActive                           545      // 1 Bit, Bit 7
 #define     AIR_SCGActiveMask 0x80
 #define     AIR_SCGActiveShift 7
-#define AIR_SCGNumber                           459      // 7 Bits, Bit 7-1
+#define AIR_SCGNumber                           546      // 7 Bits, Bit 7-1
 #define     AIR_SCGNumberMask 0xFE
 #define     AIR_SCGNumberShift 1
-#define AIR_SCGOnOff                            460      // 8 Bits, Bit 7-0
-#define AIR_SCGOperationMode                    463      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneTemperature                 464      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneFan                         465      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneSwing                       466      // 8 Bits, Bit 7-0
-#define AIR_SCGScenePosition                    467      // 8 Bits, Bit 7-0
-#define AIR_SCGScenePowerLimit                  468      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneDeviceMode                  469      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneAirPurification             470      // 8 Bits, Bit 7-0
-#define AIR_SCGOperationModeDaikin              463      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneTemperatureDaikin           464      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneFanDaikin                   465      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneSwingDaikin                 466      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneDeviceModeDaikin            469      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneAirPurificationDaikin       470      // 8 Bits, Bit 7-0
-#define AIR_SCGOperationModeMitsubishi          463      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneTemperatureMitsubishi       464      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneFanMitsubishi               465      // 8 Bits, Bit 7-0
-#define AIR_SCGSceneSwingMitsubishi             466      // 8 Bits, Bit 7-0
-#define AIR_SCGScenePositionMitsubishi          467      // 8 Bits, Bit 7-0
-#define AIR_SCHActive                           478      // 1 Bit, Bit 7
+#define AIR_SCGOnOff                            547      // 8 Bits, Bit 7-0
+#define AIR_SCGOperationMode                    550      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneTemperature                 551      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneFan                         552      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneSwing                       553      // 8 Bits, Bit 7-0
+#define AIR_SCGScenePosition                    554      // 8 Bits, Bit 7-0
+#define AIR_SCGScenePowerLimit                  555      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneDeviceMode                  556      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneAirPurification             557      // 8 Bits, Bit 7-0
+#define AIR_SCGOperationModeDaikin              550      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneTemperatureDaikin           551      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneFanDaikin                   552      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneSwingDaikin                 553      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneDeviceModeDaikin            556      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneAirPurificationDaikin       557      // 8 Bits, Bit 7-0
+#define AIR_SCGOperationModeMitsubishi          550      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneTemperatureMitsubishi       551      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneFanMitsubishi               552      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneSwingMitsubishi             553      // 8 Bits, Bit 7-0
+#define AIR_SCGScenePositionMitsubishi          554      // 8 Bits, Bit 7-0
+#define AIR_SCHActive                           565      // 1 Bit, Bit 7
 #define     AIR_SCHActiveMask 0x80
 #define     AIR_SCHActiveShift 7
-#define AIR_SCHNumber                           479      // 7 Bits, Bit 7-1
+#define AIR_SCHNumber                           566      // 7 Bits, Bit 7-1
 #define     AIR_SCHNumberMask 0xFE
 #define     AIR_SCHNumberShift 1
-#define AIR_SCHOnOff                            480      // 8 Bits, Bit 7-0
-#define AIR_SCHOperationMode                    483      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneTemperature                 484      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneFan                         485      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneSwing                       486      // 8 Bits, Bit 7-0
-#define AIR_SCHScenePosition                    487      // 8 Bits, Bit 7-0
-#define AIR_SCHScenePowerLimit                  488      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneDeviceMode                  489      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneAirPurification             490      // 8 Bits, Bit 7-0
-#define AIR_SCHOperationModeDaikin              483      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneTemperatureDaikin           484      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneFanDaikin                   485      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneSwingDaikin                 486      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneDeviceModeDaikin            489      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneAirPurificationDaikin       490      // 8 Bits, Bit 7-0
-#define AIR_SCHOperationModeMitsubishi          483      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneTemperatureMitsubishi       484      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneFanMitsubishi               485      // 8 Bits, Bit 7-0
-#define AIR_SCHSceneSwingMitsubishi             486      // 8 Bits, Bit 7-0
-#define AIR_SCHScenePositionMitsubishi          487      // 8 Bits, Bit 7-0
-#define AIR_SCIActive                           498      // 1 Bit, Bit 7
+#define AIR_SCHOnOff                            567      // 8 Bits, Bit 7-0
+#define AIR_SCHOperationMode                    570      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneTemperature                 571      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneFan                         572      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneSwing                       573      // 8 Bits, Bit 7-0
+#define AIR_SCHScenePosition                    574      // 8 Bits, Bit 7-0
+#define AIR_SCHScenePowerLimit                  575      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneDeviceMode                  576      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneAirPurification             577      // 8 Bits, Bit 7-0
+#define AIR_SCHOperationModeDaikin              570      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneTemperatureDaikin           571      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneFanDaikin                   572      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneSwingDaikin                 573      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneDeviceModeDaikin            576      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneAirPurificationDaikin       577      // 8 Bits, Bit 7-0
+#define AIR_SCHOperationModeMitsubishi          570      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneTemperatureMitsubishi       571      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneFanMitsubishi               572      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneSwingMitsubishi             573      // 8 Bits, Bit 7-0
+#define AIR_SCHScenePositionMitsubishi          574      // 8 Bits, Bit 7-0
+#define AIR_SCIActive                           585      // 1 Bit, Bit 7
 #define     AIR_SCIActiveMask 0x80
 #define     AIR_SCIActiveShift 7
-#define AIR_SCINumber                           499      // 7 Bits, Bit 7-1
+#define AIR_SCINumber                           586      // 7 Bits, Bit 7-1
 #define     AIR_SCINumberMask 0xFE
 #define     AIR_SCINumberShift 1
-#define AIR_SCIOnOff                            500      // 8 Bits, Bit 7-0
-#define AIR_SCIOperationMode                    503      // 8 Bits, Bit 7-0
-#define AIR_SCISceneTemperature                 504      // 8 Bits, Bit 7-0
-#define AIR_SCISceneFan                         505      // 8 Bits, Bit 7-0
-#define AIR_SCISceneSwing                       506      // 8 Bits, Bit 7-0
-#define AIR_SCIScenePosition                    507      // 8 Bits, Bit 7-0
-#define AIR_SCIScenePowerLimit                  508      // 8 Bits, Bit 7-0
-#define AIR_SCISceneDeviceMode                  509      // 8 Bits, Bit 7-0
-#define AIR_SCISceneAirPurification             510      // 8 Bits, Bit 7-0
-#define AIR_SCIOperationModeDaikin              503      // 8 Bits, Bit 7-0
-#define AIR_SCISceneTemperatureDaikin           504      // 8 Bits, Bit 7-0
-#define AIR_SCISceneFanDaikin                   505      // 8 Bits, Bit 7-0
-#define AIR_SCISceneSwingDaikin                 506      // 8 Bits, Bit 7-0
-#define AIR_SCISceneDeviceModeDaikin            509      // 8 Bits, Bit 7-0
-#define AIR_SCISceneAirPurificationDaikin       510      // 8 Bits, Bit 7-0
-#define AIR_SCIOperationModeMitsubishi          503      // 8 Bits, Bit 7-0
-#define AIR_SCISceneTemperatureMitsubishi       504      // 8 Bits, Bit 7-0
-#define AIR_SCISceneFanMitsubishi               505      // 8 Bits, Bit 7-0
-#define AIR_SCISceneSwingMitsubishi             506      // 8 Bits, Bit 7-0
-#define AIR_SCIScenePositionMitsubishi          507      // 8 Bits, Bit 7-0
-#define AIR_SCJActive                           518      // 1 Bit, Bit 7
+#define AIR_SCIOnOff                            587      // 8 Bits, Bit 7-0
+#define AIR_SCIOperationMode                    590      // 8 Bits, Bit 7-0
+#define AIR_SCISceneTemperature                 591      // 8 Bits, Bit 7-0
+#define AIR_SCISceneFan                         592      // 8 Bits, Bit 7-0
+#define AIR_SCISceneSwing                       593      // 8 Bits, Bit 7-0
+#define AIR_SCIScenePosition                    594      // 8 Bits, Bit 7-0
+#define AIR_SCIScenePowerLimit                  595      // 8 Bits, Bit 7-0
+#define AIR_SCISceneDeviceMode                  596      // 8 Bits, Bit 7-0
+#define AIR_SCISceneAirPurification             597      // 8 Bits, Bit 7-0
+#define AIR_SCIOperationModeDaikin              590      // 8 Bits, Bit 7-0
+#define AIR_SCISceneTemperatureDaikin           591      // 8 Bits, Bit 7-0
+#define AIR_SCISceneFanDaikin                   592      // 8 Bits, Bit 7-0
+#define AIR_SCISceneSwingDaikin                 593      // 8 Bits, Bit 7-0
+#define AIR_SCISceneDeviceModeDaikin            596      // 8 Bits, Bit 7-0
+#define AIR_SCISceneAirPurificationDaikin       597      // 8 Bits, Bit 7-0
+#define AIR_SCIOperationModeMitsubishi          590      // 8 Bits, Bit 7-0
+#define AIR_SCISceneTemperatureMitsubishi       591      // 8 Bits, Bit 7-0
+#define AIR_SCISceneFanMitsubishi               592      // 8 Bits, Bit 7-0
+#define AIR_SCISceneSwingMitsubishi             593      // 8 Bits, Bit 7-0
+#define AIR_SCIScenePositionMitsubishi          594      // 8 Bits, Bit 7-0
+#define AIR_SCJActive                           605      // 1 Bit, Bit 7
 #define     AIR_SCJActiveMask 0x80
 #define     AIR_SCJActiveShift 7
-#define AIR_SCJNumber                           519      // 7 Bits, Bit 7-1
+#define AIR_SCJNumber                           606      // 7 Bits, Bit 7-1
 #define     AIR_SCJNumberMask 0xFE
 #define     AIR_SCJNumberShift 1
-#define AIR_SCJOnOff                            520      // 8 Bits, Bit 7-0
-#define AIR_SCJOperationMode                    523      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneTemperature                 524      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneFan                         525      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneSwing                       526      // 8 Bits, Bit 7-0
-#define AIR_SCJScenePosition                    527      // 8 Bits, Bit 7-0
-#define AIR_SCJScenePowerLimit                  528      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneDeviceMode                  529      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneAirPurification             530      // 8 Bits, Bit 7-0
-#define AIR_SCJOperationModeDaikin              523      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneTemperatureDaikin           524      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneFanDaikin                   525      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneSwingDaikin                 526      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneDeviceModeDaikin            529      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneAirPurificationDaikin       530      // 8 Bits, Bit 7-0
-#define AIR_SCJOperationModeMitsubishi          523      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneTemperatureMitsubishi       524      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneFanMitsubishi               525      // 8 Bits, Bit 7-0
-#define AIR_SCJSceneSwingMitsubishi             526      // 8 Bits, Bit 7-0
-#define AIR_SCJScenePositionMitsubishi          527      // 8 Bits, Bit 7-0
+#define AIR_SCJOnOff                            607      // 8 Bits, Bit 7-0
+#define AIR_SCJOperationMode                    610      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneTemperature                 611      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneFan                         612      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneSwing                       613      // 8 Bits, Bit 7-0
+#define AIR_SCJScenePosition                    614      // 8 Bits, Bit 7-0
+#define AIR_SCJScenePowerLimit                  615      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneDeviceMode                  616      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneAirPurification             617      // 8 Bits, Bit 7-0
+#define AIR_SCJOperationModeDaikin              610      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneTemperatureDaikin           611      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneFanDaikin                   612      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneSwingDaikin                 613      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneDeviceModeDaikin            616      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneAirPurificationDaikin       617      // 8 Bits, Bit 7-0
+#define AIR_SCJOperationModeMitsubishi          610      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneTemperatureMitsubishi       611      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneFanMitsubishi               612      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneSwingMitsubishi             613      // 8 Bits, Bit 7-0
+#define AIR_SCJScenePositionMitsubishi          614      // 8 Bits, Bit 7-0
 
 // Hersteller
 #define ParamAIR_DeviceType                          (PT_AIRDeviceType)((knx.paramByte(AIR_DeviceType) & AIR_DeviceTypeMask) >> AIR_DeviceTypeShift)
@@ -1710,272 +1748,272 @@
 // Gesamtenergieverbrauch
 #define KoAIR_TotalEnergy                         (knx.getGroupObject(AIR_KoTotalEnergy))
 
-#define LOG_VisibleChannels                     538      // uint8_t
-#define LOG_VacationKo                          539      // 1 Bit, Bit 7
+#define LOG_VisibleChannels                     625      // uint8_t
+#define LOG_VacationKo                          626      // 1 Bit, Bit 7
 #define     LOG_VacationKoMask 0x80
 #define     LOG_VacationKoShift 7
-#define LOG_HolidayKo                           539      // 1 Bit, Bit 6
+#define LOG_HolidayKo                           626      // 1 Bit, Bit 6
 #define     LOG_HolidayKoMask 0x40
 #define     LOG_HolidayKoShift 6
-#define LOG_VacationRead                        539      // 1 Bit, Bit 5
+#define LOG_VacationRead                        626      // 1 Bit, Bit 5
 #define     LOG_VacationReadMask 0x20
 #define     LOG_VacationReadShift 5
-#define LOG_HolidaySend                         539      // 1 Bit, Bit 4
+#define LOG_HolidaySend                         626      // 1 Bit, Bit 4
 #define     LOG_HolidaySendMask 0x10
 #define     LOG_HolidaySendShift 4
-#define LOG_Neujahr                             540      // 1 Bit, Bit 7
+#define LOG_Neujahr                             627      // 1 Bit, Bit 7
 #define     LOG_NeujahrMask 0x80
 #define     LOG_NeujahrShift 7
-#define LOG_DreiKoenige                         540      // 1 Bit, Bit 6
+#define LOG_DreiKoenige                         627      // 1 Bit, Bit 6
 #define     LOG_DreiKoenigeMask 0x40
 #define     LOG_DreiKoenigeShift 6
-#define LOG_Weiberfastnacht                     540      // 1 Bit, Bit 5
+#define LOG_Weiberfastnacht                     627      // 1 Bit, Bit 5
 #define     LOG_WeiberfastnachtMask 0x20
 #define     LOG_WeiberfastnachtShift 5
-#define LOG_Rosenmontag                         540      // 1 Bit, Bit 4
+#define LOG_Rosenmontag                         627      // 1 Bit, Bit 4
 #define     LOG_RosenmontagMask 0x10
 #define     LOG_RosenmontagShift 4
-#define LOG_Fastnachtsdienstag                  540      // 1 Bit, Bit 3
+#define LOG_Fastnachtsdienstag                  627      // 1 Bit, Bit 3
 #define     LOG_FastnachtsdienstagMask 0x08
 #define     LOG_FastnachtsdienstagShift 3
-#define LOG_Aschermittwoch                      540      // 1 Bit, Bit 2
+#define LOG_Aschermittwoch                      627      // 1 Bit, Bit 2
 #define     LOG_AschermittwochMask 0x04
 #define     LOG_AschermittwochShift 2
-#define LOG_Frauentag                           540      // 1 Bit, Bit 1
+#define LOG_Frauentag                           627      // 1 Bit, Bit 1
 #define     LOG_FrauentagMask 0x02
 #define     LOG_FrauentagShift 1
-#define LOG_Gruendonnerstag                     540      // 1 Bit, Bit 0
+#define LOG_Gruendonnerstag                     627      // 1 Bit, Bit 0
 #define     LOG_GruendonnerstagMask 0x01
 #define     LOG_GruendonnerstagShift 0
-#define LOG_Karfreitag                          541      // 1 Bit, Bit 7
+#define LOG_Karfreitag                          628      // 1 Bit, Bit 7
 #define     LOG_KarfreitagMask 0x80
 #define     LOG_KarfreitagShift 7
-#define LOG_Ostersonntag                        541      // 1 Bit, Bit 6
+#define LOG_Ostersonntag                        628      // 1 Bit, Bit 6
 #define     LOG_OstersonntagMask 0x40
 #define     LOG_OstersonntagShift 6
-#define LOG_Ostermontag                         541      // 1 Bit, Bit 5
+#define LOG_Ostermontag                         628      // 1 Bit, Bit 5
 #define     LOG_OstermontagMask 0x20
 #define     LOG_OstermontagShift 5
-#define LOG_TagDerArbeit                        541      // 1 Bit, Bit 4
+#define LOG_TagDerArbeit                        628      // 1 Bit, Bit 4
 #define     LOG_TagDerArbeitMask 0x10
 #define     LOG_TagDerArbeitShift 4
-#define LOG_Himmelfahrt                         541      // 1 Bit, Bit 3
+#define LOG_Himmelfahrt                         628      // 1 Bit, Bit 3
 #define     LOG_HimmelfahrtMask 0x08
 #define     LOG_HimmelfahrtShift 3
-#define LOG_Pfingstsonntag                      541      // 1 Bit, Bit 2
+#define LOG_Pfingstsonntag                      628      // 1 Bit, Bit 2
 #define     LOG_PfingstsonntagMask 0x04
 #define     LOG_PfingstsonntagShift 2
-#define LOG_Pfingstmontag                       541      // 1 Bit, Bit 1
+#define LOG_Pfingstmontag                       628      // 1 Bit, Bit 1
 #define     LOG_PfingstmontagMask 0x02
 #define     LOG_PfingstmontagShift 1
-#define LOG_Fronleichnam                        541      // 1 Bit, Bit 0
+#define LOG_Fronleichnam                        628      // 1 Bit, Bit 0
 #define     LOG_FronleichnamMask 0x01
 #define     LOG_FronleichnamShift 0
-#define LOG_Friedensfest                        542      // 1 Bit, Bit 7
+#define LOG_Friedensfest                        629      // 1 Bit, Bit 7
 #define     LOG_FriedensfestMask 0x80
 #define     LOG_FriedensfestShift 7
-#define LOG_MariaHimmelfahrt                    542      // 1 Bit, Bit 6
+#define LOG_MariaHimmelfahrt                    629      // 1 Bit, Bit 6
 #define     LOG_MariaHimmelfahrtMask 0x40
 #define     LOG_MariaHimmelfahrtShift 6
-#define LOG_DeutscheEinheit                     542      // 1 Bit, Bit 5
+#define LOG_DeutscheEinheit                     629      // 1 Bit, Bit 5
 #define     LOG_DeutscheEinheitMask 0x20
 #define     LOG_DeutscheEinheitShift 5
-#define LOG_Reformationstag                     542      // 1 Bit, Bit 4
+#define LOG_Reformationstag                     629      // 1 Bit, Bit 4
 #define     LOG_ReformationstagMask 0x10
 #define     LOG_ReformationstagShift 4
-#define LOG_Allerheiligen                       542      // 1 Bit, Bit 3
+#define LOG_Allerheiligen                       629      // 1 Bit, Bit 3
 #define     LOG_AllerheiligenMask 0x08
 #define     LOG_AllerheiligenShift 3
-#define LOG_BussBettag                          542      // 1 Bit, Bit 2
+#define LOG_BussBettag                          629      // 1 Bit, Bit 2
 #define     LOG_BussBettagMask 0x04
 #define     LOG_BussBettagShift 2
-#define LOG_Advent1                             542      // 1 Bit, Bit 1
+#define LOG_Advent1                             629      // 1 Bit, Bit 1
 #define     LOG_Advent1Mask 0x02
 #define     LOG_Advent1Shift 1
-#define LOG_Advent2                             542      // 1 Bit, Bit 0
+#define LOG_Advent2                             629      // 1 Bit, Bit 0
 #define     LOG_Advent2Mask 0x01
 #define     LOG_Advent2Shift 0
-#define LOG_Advent3                             543      // 1 Bit, Bit 7
+#define LOG_Advent3                             630      // 1 Bit, Bit 7
 #define     LOG_Advent3Mask 0x80
 #define     LOG_Advent3Shift 7
-#define LOG_Advent4                             543      // 1 Bit, Bit 6
+#define LOG_Advent4                             630      // 1 Bit, Bit 6
 #define     LOG_Advent4Mask 0x40
 #define     LOG_Advent4Shift 6
-#define LOG_Heiligabend                         543      // 1 Bit, Bit 5
+#define LOG_Heiligabend                         630      // 1 Bit, Bit 5
 #define     LOG_HeiligabendMask 0x20
 #define     LOG_HeiligabendShift 5
-#define LOG_Weihnachtstag1                      543      // 1 Bit, Bit 4
+#define LOG_Weihnachtstag1                      630      // 1 Bit, Bit 4
 #define     LOG_Weihnachtstag1Mask 0x10
 #define     LOG_Weihnachtstag1Shift 4
-#define LOG_Weihnachtstag2                      543      // 1 Bit, Bit 3
+#define LOG_Weihnachtstag2                      630      // 1 Bit, Bit 3
 #define     LOG_Weihnachtstag2Mask 0x08
 #define     LOG_Weihnachtstag2Shift 3
-#define LOG_Silvester                           543      // 1 Bit, Bit 2
+#define LOG_Silvester                           630      // 1 Bit, Bit 2
 #define     LOG_SilvesterMask 0x04
 #define     LOG_SilvesterShift 2
-#define LOG_Nationalfeiertag                    543      // 1 Bit, Bit 1
+#define LOG_Nationalfeiertag                    630      // 1 Bit, Bit 1
 #define     LOG_NationalfeiertagMask 0x02
 #define     LOG_NationalfeiertagShift 1
-#define LOG_MariaEmpfaengnis                    543      // 1 Bit, Bit 0
+#define LOG_MariaEmpfaengnis                    630      // 1 Bit, Bit 0
 #define     LOG_MariaEmpfaengnisMask 0x01
 #define     LOG_MariaEmpfaengnisShift 0
-#define LOG_NationalfeiertagSchweiz             544      // 1 Bit, Bit 7
+#define LOG_NationalfeiertagSchweiz             631      // 1 Bit, Bit 7
 #define     LOG_NationalfeiertagSchweizMask 0x80
 #define     LOG_NationalfeiertagSchweizShift 7
-#define LOG_Totensonntag                        544      // 1 Bit, Bit 6
+#define LOG_Totensonntag                        631      // 1 Bit, Bit 6
 #define     LOG_TotensonntagMask 0x40
 #define     LOG_TotensonntagShift 6
-#define LOG_Weltkindertag                       544      // 1 Bit, Bit 5
+#define LOG_Weltkindertag                       631      // 1 Bit, Bit 5
 #define     LOG_WeltkindertagMask 0x20
 #define     LOG_WeltkindertagShift 5
-#define LOG_UserFormula1                        545      // char*, 99 Byte
+#define LOG_UserFormula1                        632      // char*, 99 Byte
 #define     LOG_UserFormula1Length 99
-#define LOG_UserFormula1Active                  644      // 1 Bit, Bit 7
+#define LOG_UserFormula1Active                  731      // 1 Bit, Bit 7
 #define     LOG_UserFormula1ActiveMask 0x80
 #define     LOG_UserFormula1ActiveShift 7
-#define LOG_UserFormula2                        645      // char*, 99 Byte
+#define LOG_UserFormula2                        732      // char*, 99 Byte
 #define     LOG_UserFormula2Length 99
-#define LOG_UserFormula2Active                  744      // 1 Bit, Bit 7
+#define LOG_UserFormula2Active                  831      // 1 Bit, Bit 7
 #define     LOG_UserFormula2ActiveMask 0x80
 #define     LOG_UserFormula2ActiveShift 7
-#define LOG_UserFormula3                        745      // char*, 99 Byte
+#define LOG_UserFormula3                        832      // char*, 99 Byte
 #define     LOG_UserFormula3Length 99
-#define LOG_UserFormula3Active                  844      // 1 Bit, Bit 7
+#define LOG_UserFormula3Active                  931      // 1 Bit, Bit 7
 #define     LOG_UserFormula3ActiveMask 0x80
 #define     LOG_UserFormula3ActiveShift 7
-#define LOG_UserFormula4                        845      // char*, 99 Byte
+#define LOG_UserFormula4                        932      // char*, 99 Byte
 #define     LOG_UserFormula4Length 99
-#define LOG_UserFormula4Active                  944      // 1 Bit, Bit 7
+#define LOG_UserFormula4Active                  1031      // 1 Bit, Bit 7
 #define     LOG_UserFormula4ActiveMask 0x80
 #define     LOG_UserFormula4ActiveShift 7
-#define LOG_UserFormula5                        945      // char*, 99 Byte
+#define LOG_UserFormula5                        1032      // char*, 99 Byte
 #define     LOG_UserFormula5Length 99
-#define LOG_UserFormula5Active                  1044      // 1 Bit, Bit 7
+#define LOG_UserFormula5Active                  1131      // 1 Bit, Bit 7
 #define     LOG_UserFormula5ActiveMask 0x80
 #define     LOG_UserFormula5ActiveShift 7
-#define LOG_UserFormula6                        1045      // char*, 99 Byte
+#define LOG_UserFormula6                        1132      // char*, 99 Byte
 #define     LOG_UserFormula6Length 99
-#define LOG_UserFormula6Active                  1144      // 1 Bit, Bit 7
+#define LOG_UserFormula6Active                  1231      // 1 Bit, Bit 7
 #define     LOG_UserFormula6ActiveMask 0x80
 #define     LOG_UserFormula6ActiveShift 7
-#define LOG_UserFormula7                        1145      // char*, 99 Byte
+#define LOG_UserFormula7                        1232      // char*, 99 Byte
 #define     LOG_UserFormula7Length 99
-#define LOG_UserFormula7Active                  1244      // 1 Bit, Bit 7
+#define LOG_UserFormula7Active                  1331      // 1 Bit, Bit 7
 #define     LOG_UserFormula7ActiveMask 0x80
 #define     LOG_UserFormula7ActiveShift 7
-#define LOG_UserFormula8                        1245      // char*, 99 Byte
+#define LOG_UserFormula8                        1332      // char*, 99 Byte
 #define     LOG_UserFormula8Length 99
-#define LOG_UserFormula8Active                  1344      // 1 Bit, Bit 7
+#define LOG_UserFormula8Active                  1431      // 1 Bit, Bit 7
 #define     LOG_UserFormula8ActiveMask 0x80
 #define     LOG_UserFormula8ActiveShift 7
-#define LOG_UserFormula9                        1345      // char*, 99 Byte
+#define LOG_UserFormula9                        1432      // char*, 99 Byte
 #define     LOG_UserFormula9Length 99
-#define LOG_UserFormula9Active                  1444      // 1 Bit, Bit 7
+#define LOG_UserFormula9Active                  1531      // 1 Bit, Bit 7
 #define     LOG_UserFormula9ActiveMask 0x80
 #define     LOG_UserFormula9ActiveShift 7
-#define LOG_UserFormula10                       1445      // char*, 99 Byte
+#define LOG_UserFormula10                       1532      // char*, 99 Byte
 #define     LOG_UserFormula10Length 99
-#define LOG_UserFormula10Active                 1544      // 1 Bit, Bit 7
+#define LOG_UserFormula10Active                 1631      // 1 Bit, Bit 7
 #define     LOG_UserFormula10ActiveMask 0x80
 #define     LOG_UserFormula10ActiveShift 7
-#define LOG_UserFormula11                       1545      // char*, 99 Byte
+#define LOG_UserFormula11                       1632      // char*, 99 Byte
 #define     LOG_UserFormula11Length 99
-#define LOG_UserFormula11Active                 1644      // 1 Bit, Bit 7
+#define LOG_UserFormula11Active                 1731      // 1 Bit, Bit 7
 #define     LOG_UserFormula11ActiveMask 0x80
 #define     LOG_UserFormula11ActiveShift 7
-#define LOG_UserFormula12                       1645      // char*, 99 Byte
+#define LOG_UserFormula12                       1732      // char*, 99 Byte
 #define     LOG_UserFormula12Length 99
-#define LOG_UserFormula12Active                 1744      // 1 Bit, Bit 7
+#define LOG_UserFormula12Active                 1831      // 1 Bit, Bit 7
 #define     LOG_UserFormula12ActiveMask 0x80
 #define     LOG_UserFormula12ActiveShift 7
-#define LOG_UserFormula13                       1745      // char*, 99 Byte
+#define LOG_UserFormula13                       1832      // char*, 99 Byte
 #define     LOG_UserFormula13Length 99
-#define LOG_UserFormula13Active                 1844      // 1 Bit, Bit 7
+#define LOG_UserFormula13Active                 1931      // 1 Bit, Bit 7
 #define     LOG_UserFormula13ActiveMask 0x80
 #define     LOG_UserFormula13ActiveShift 7
-#define LOG_UserFormula14                       1845      // char*, 99 Byte
+#define LOG_UserFormula14                       1932      // char*, 99 Byte
 #define     LOG_UserFormula14Length 99
-#define LOG_UserFormula14Active                 1944      // 1 Bit, Bit 7
+#define LOG_UserFormula14Active                 2031      // 1 Bit, Bit 7
 #define     LOG_UserFormula14ActiveMask 0x80
 #define     LOG_UserFormula14ActiveShift 7
-#define LOG_UserFormula15                       1945      // char*, 99 Byte
+#define LOG_UserFormula15                       2032      // char*, 99 Byte
 #define     LOG_UserFormula15Length 99
-#define LOG_UserFormula15Active                 2044      // 1 Bit, Bit 7
+#define LOG_UserFormula15Active                 2131      // 1 Bit, Bit 7
 #define     LOG_UserFormula15ActiveMask 0x80
 #define     LOG_UserFormula15ActiveShift 7
-#define LOG_UserFormula16                       2045      // char*, 99 Byte
+#define LOG_UserFormula16                       2132      // char*, 99 Byte
 #define     LOG_UserFormula16Length 99
-#define LOG_UserFormula16Active                 2144      // 1 Bit, Bit 7
+#define LOG_UserFormula16Active                 2231      // 1 Bit, Bit 7
 #define     LOG_UserFormula16ActiveMask 0x80
 #define     LOG_UserFormula16ActiveShift 7
-#define LOG_UserFormula17                       2145      // char*, 99 Byte
+#define LOG_UserFormula17                       2232      // char*, 99 Byte
 #define     LOG_UserFormula17Length 99
-#define LOG_UserFormula17Active                 2244      // 1 Bit, Bit 7
+#define LOG_UserFormula17Active                 2331      // 1 Bit, Bit 7
 #define     LOG_UserFormula17ActiveMask 0x80
 #define     LOG_UserFormula17ActiveShift 7
-#define LOG_UserFormula18                       2245      // char*, 99 Byte
+#define LOG_UserFormula18                       2332      // char*, 99 Byte
 #define     LOG_UserFormula18Length 99
-#define LOG_UserFormula18Active                 2344      // 1 Bit, Bit 7
+#define LOG_UserFormula18Active                 2431      // 1 Bit, Bit 7
 #define     LOG_UserFormula18ActiveMask 0x80
 #define     LOG_UserFormula18ActiveShift 7
-#define LOG_UserFormula19                       2345      // char*, 99 Byte
+#define LOG_UserFormula19                       2432      // char*, 99 Byte
 #define     LOG_UserFormula19Length 99
-#define LOG_UserFormula19Active                 2444      // 1 Bit, Bit 7
+#define LOG_UserFormula19Active                 2531      // 1 Bit, Bit 7
 #define     LOG_UserFormula19ActiveMask 0x80
 #define     LOG_UserFormula19ActiveShift 7
-#define LOG_UserFormula20                       2445      // char*, 99 Byte
+#define LOG_UserFormula20                       2532      // char*, 99 Byte
 #define     LOG_UserFormula20Length 99
-#define LOG_UserFormula20Active                 2544      // 1 Bit, Bit 7
+#define LOG_UserFormula20Active                 2631      // 1 Bit, Bit 7
 #define     LOG_UserFormula20ActiveMask 0x80
 #define     LOG_UserFormula20ActiveShift 7
-#define LOG_UserFormula21                       2545      // char*, 99 Byte
+#define LOG_UserFormula21                       2632      // char*, 99 Byte
 #define     LOG_UserFormula21Length 99
-#define LOG_UserFormula21Active                 2644      // 1 Bit, Bit 7
+#define LOG_UserFormula21Active                 2731      // 1 Bit, Bit 7
 #define     LOG_UserFormula21ActiveMask 0x80
 #define     LOG_UserFormula21ActiveShift 7
-#define LOG_UserFormula22                       2645      // char*, 99 Byte
+#define LOG_UserFormula22                       2732      // char*, 99 Byte
 #define     LOG_UserFormula22Length 99
-#define LOG_UserFormula22Active                 2744      // 1 Bit, Bit 7
+#define LOG_UserFormula22Active                 2831      // 1 Bit, Bit 7
 #define     LOG_UserFormula22ActiveMask 0x80
 #define     LOG_UserFormula22ActiveShift 7
-#define LOG_UserFormula23                       2745      // char*, 99 Byte
+#define LOG_UserFormula23                       2832      // char*, 99 Byte
 #define     LOG_UserFormula23Length 99
-#define LOG_UserFormula23Active                 2844      // 1 Bit, Bit 7
+#define LOG_UserFormula23Active                 2931      // 1 Bit, Bit 7
 #define     LOG_UserFormula23ActiveMask 0x80
 #define     LOG_UserFormula23ActiveShift 7
-#define LOG_UserFormula24                       2845      // char*, 99 Byte
+#define LOG_UserFormula24                       2932      // char*, 99 Byte
 #define     LOG_UserFormula24Length 99
-#define LOG_UserFormula24Active                 2944      // 1 Bit, Bit 7
+#define LOG_UserFormula24Active                 3031      // 1 Bit, Bit 7
 #define     LOG_UserFormula24ActiveMask 0x80
 #define     LOG_UserFormula24ActiveShift 7
-#define LOG_UserFormula25                       2945      // char*, 99 Byte
+#define LOG_UserFormula25                       3032      // char*, 99 Byte
 #define     LOG_UserFormula25Length 99
-#define LOG_UserFormula25Active                 3044      // 1 Bit, Bit 7
+#define LOG_UserFormula25Active                 3131      // 1 Bit, Bit 7
 #define     LOG_UserFormula25ActiveMask 0x80
 #define     LOG_UserFormula25ActiveShift 7
-#define LOG_UserFormula26                       3045      // char*, 99 Byte
+#define LOG_UserFormula26                       3132      // char*, 99 Byte
 #define     LOG_UserFormula26Length 99
-#define LOG_UserFormula26Active                 3144      // 1 Bit, Bit 7
+#define LOG_UserFormula26Active                 3231      // 1 Bit, Bit 7
 #define     LOG_UserFormula26ActiveMask 0x80
 #define     LOG_UserFormula26ActiveShift 7
-#define LOG_UserFormula27                       3145      // char*, 99 Byte
+#define LOG_UserFormula27                       3232      // char*, 99 Byte
 #define     LOG_UserFormula27Length 99
-#define LOG_UserFormula27Active                 3244      // 1 Bit, Bit 7
+#define LOG_UserFormula27Active                 3331      // 1 Bit, Bit 7
 #define     LOG_UserFormula27ActiveMask 0x80
 #define     LOG_UserFormula27ActiveShift 7
-#define LOG_UserFormula28                       3245      // char*, 99 Byte
+#define LOG_UserFormula28                       3332      // char*, 99 Byte
 #define     LOG_UserFormula28Length 99
-#define LOG_UserFormula28Active                 3344      // 1 Bit, Bit 7
+#define LOG_UserFormula28Active                 3431      // 1 Bit, Bit 7
 #define     LOG_UserFormula28ActiveMask 0x80
 #define     LOG_UserFormula28ActiveShift 7
-#define LOG_UserFormula29                       3345      // char*, 99 Byte
+#define LOG_UserFormula29                       3432      // char*, 99 Byte
 #define     LOG_UserFormula29Length 99
-#define LOG_UserFormula29Active                 3444      // 1 Bit, Bit 7
+#define LOG_UserFormula29Active                 3531      // 1 Bit, Bit 7
 #define     LOG_UserFormula29ActiveMask 0x80
 #define     LOG_UserFormula29ActiveShift 7
-#define LOG_UserFormula30                       3445      // char*, 99 Byte
+#define LOG_UserFormula30                       3532      // char*, 99 Byte
 #define     LOG_UserFormula30Length 99
-#define LOG_UserFormula30Active                 3544      // 1 Bit, Bit 7
+#define LOG_UserFormula30Active                 3631      // 1 Bit, Bit 7
 #define     LOG_UserFormula30ActiveMask 0x80
 #define     LOG_UserFormula30ActiveShift 7
 
@@ -2224,7 +2262,7 @@
 #define LOG_ChannelCount 50
 
 // Parameter per channel
-#define LOG_ParamBlockOffset 3545
+#define LOG_ParamBlockOffset 3632
 #define LOG_ParamBlockSize 89
 #define LOG_ParamCalcIndex(index) (index + LOG_ParamBlockOffset + _channelIndex * LOG_ParamBlockSize)
 
@@ -4129,7 +4167,7 @@
 // Ausgang
 #define KoLOG_KOfO                                (knx.getGroupObject(LOG_KoCalcNumber(LOG_KoKOfO)))
 
-#define FCB_VisibleChannels                     7995      // uint8_t
+#define FCB_VisibleChannels                     8082      // uint8_t
 
 // Verfügbare Kanäle
 #define ParamFCB_VisibleChannels                     (knx.paramByte(FCB_VisibleChannels))
@@ -4137,7 +4175,7 @@
 #define FCB_ChannelCount 15
 
 // Parameter per channel
-#define FCB_ParamBlockOffset 7996
+#define FCB_ParamBlockOffset 8083
 #define FCB_ParamBlockSize 81
 #define FCB_ParamCalcIndex(index) (index + FCB_ParamBlockOffset + _channelIndex * FCB_ParamBlockSize)
 
@@ -5209,7 +5247,7 @@
 #define BASE_KommentarModuleModuleParamSize 0
 #define BASE_KommentarModuleSubmodulesParamSize 0
 #define BASE_KommentarModuleParamSize 0
-#define BASE_KommentarModuleParamOffset 9211
+#define BASE_KommentarModuleParamOffset 9298
 #define BASE_KommentarModuleCalcIndex(index, m1) (index + BASE_KommentarModuleParamOffset + _channelIndex * BASE_KommentarModuleCount * BASE_KommentarModuleParamSize + m1 * BASE_KommentarModuleParamSize)
 
 

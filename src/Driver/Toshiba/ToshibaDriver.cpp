@@ -223,20 +223,20 @@ void ToshibaDriver::parseResponse(std::vector<uint8_t> rawData)
         {
             // if we have a command in queue, and it matches the received command, erase it
             _commandQueue.erase(_commandQueue.begin());
-            logDebugP("Response for command %d received", static_cast<int>(commandType));
+            logDebugP("Response for command %02X received", static_cast<unsigned int>(commandType));
             statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
             statusFeedback.updateOnlineStatus(true);
-            if (currentCommand.requestFeedback)
-            {
-                logInfoP("Request feedback not yet sent, ignore value");
-                _receivedMessage.clear();
-                return;
-            }
-            isFeedback = true;
+            // if (currentCommand.requestFeedback)
+            // {
+            //     logInfoP("Request feedback not yet sent, ignore value");
+            //     _receivedMessage.clear();
+            //     return;
+            // }
+            isFeedback = currentCommand.requestFeedback;
         }
         else
         {
-            logDebugP("Received command %d does not match the await command %d", static_cast<int>(commandType), static_cast<int>(currentCommand.cmd));
+            logDebugP("Received command %02X does not match the await command %02X", static_cast<unsigned int>(commandType), static_cast<unsigned int>(currentCommand.cmd));
         }
     }
 

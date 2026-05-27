@@ -191,7 +191,8 @@ void SceneHandler::applyParameters(int index)
 {
     logDebugP("Applying parameters for scene %c", index + 65);
     SceneParameters params = getSceneParameters(index);
-    
+    logDebugP("Scene parameters: onOff=%d, operationMode=%d, temperature=%d, fan=%d, swing=%d, position=%d, powerLimit=%d, deviceMode=%d, airPurification=%d",
+        params.onOff, params.operationMode, params.temperature, params.fan, params.swing, params.position, params.powerLimit, params.deviceMode, params.airPurification);
     // Apply mode, temperature, and fan settings FIRST before turning on power
     // This ensures the pending state is set correctly before the D1 command is sent
     
