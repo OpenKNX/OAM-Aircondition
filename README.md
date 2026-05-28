@@ -20,6 +20,7 @@ Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Herstelle
 
 # Release notes
 
+- 0.10 Fix issue for missing scene after upgrade from version 0.8
 - 0.9 Fix Szenen setzen bei Toshiba
 - 0.9 Daikin Support
 - 0.9 Mitsubishi Support

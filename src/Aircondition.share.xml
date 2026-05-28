@@ -22,8 +22,8 @@
 
           <op:part href="Aircondition.Scene.part.xml" name="Scene" instances="10">
             <!-- Parameter Offset -->
-            <!-- 22 IDs je Instanz: +0..+2 gemeinsam, +3..+10 Toshiba, +11..+16 Daikin, +17..+21 Mitsubishi -->
-            <op:param name="%PPP%" value="500" increment="22" />
+            <!-- 20 IDs je Instanz: +0..+2 gemeinsam, +3..+10 Toshiba, +11..+16 Daikin, +200..+204 Mitsubishi -->
+            <op:param name="%PPP%" value="500" increment="20" />
             <!-- Memory Offset -->
             <op:param name="%MO%" value="20" increment="20" digits="1"/>
             <!-- Szene number -->
