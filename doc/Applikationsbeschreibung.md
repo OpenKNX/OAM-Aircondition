@@ -32,6 +32,7 @@ Auswahl des Herstellers der Klimaanlage:
 
 - Daikin
 - Toshiba
+- Mitsubishi
 
 <!-- DOCEND -->
 ### Mitsubishi
@@ -41,7 +42,7 @@ Folgende Einstellungen stehen nur für Mitsubishi Klimageräte zur Verfügung:
 <!-- DOC -->
 #### Minimale Soll-Temperatur
 
-Hier muss die für das Klimagerät passende minimale Solltemperatur eingestellt werden.
+Hier muss die für das Klimagerät passende minimale Solltemperatur eingestellt werden (16°C oder 19°C).
 
 <!-- DOC -->
 ## Basiseinstellungen
@@ -224,6 +225,13 @@ Konzepte (Timing, Query-Reihenfolge, Interpretation von F*/R*/Rz*-Kommandos) ori
 
 Für jeden Betriebsmodus stehen auch separate Gruppenobjekte für das Schalten und den aktuellen Status zur Verfügung.
 
+### Mitsubishi
+
+Folgende Sonder-Einstellungen und Funktionen stehen für Mitsubishi Klimageräte zur Verfügung.
+
+- TODO: Externe Ziel-Temperatur
+- TODO: Horizontale Lamellen-Position
+
 <!-- DOC -->
 ## Szenen
 
@@ -271,6 +279,15 @@ Optionen für Toshiba:
 - Trocknen
 - Lüfter
 
+Optionen für Mitsubishi:
+
+- Keine Änderung
+- Automatik
+- Kühlen
+- Heizen
+- Trocknen
+- Lüfter
+
 <!-- DOC -->
 ### Solltemperatur
 
@@ -290,6 +307,16 @@ Optionen für Toshiba:
 - Automatik
 - Leise
 - Stufe 1
+- Stufe 2
+- Stufe 3
+- Stufe 4
+- Stufe 5
+
+Optionen für Mitsubishi:
+
+- Keine Änderung
+- Automatik
+- Stufe 1 / Leise
 - Stufe 2
 - Stufe 3
 - Stufe 4
@@ -323,6 +350,15 @@ Optionen für Toshiba:
 - Unten
 - Ganz Unten
 
+Optionen für Mitsubishi:
+
+- Keine Änderung
+- Ganz Oben
+- Oben
+- Mitte
+- Unten
+- Ganz Unten
+
 Für Daikin steht diese Option nicht zur Verfügung.
 
 <!-- DOC -->
@@ -337,7 +373,7 @@ Optionen für Toshiba:
 - 75%
 - 100%
 
-Für Daikin steht diese Option nicht zur Verfügung.
+Für Daikin und Mitsubishi steht diese Option nicht zur Verfügung.
 
 <!-- DOC -->
 #### Gerätemodus
@@ -358,6 +394,8 @@ Optionen für Toshiba:
 - Außengerät Leise 1
 - Außengerät Leise 2
 
+Für Mitsubishi steht diese Option nicht zur Verfügung.
+
 <!-- DOC -->
 #### Luftreinigung
 
@@ -367,4 +405,4 @@ Verfügbare Einstellungen:
 - Aus
 - Ein
 
-Für Daikin steht diese Option nicht zur Verfügung.
+Für Daikin und Mitsubishi steht diese Option nicht zur Verfügung.

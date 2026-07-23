@@ -2,21 +2,34 @@
 
 Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Hersteller.
 
-- Toshiba
+Feedback zu weiteren funktionierenden Geräten folgender Hersteller gerne [KNX-User-Forum](https://knx-user-forum.de/forum/projektforen/openknx/2051393-openknx-klimaanlagen-knx-adapter-toshiba-daikin-mitsubishi-dich-kühlen-soll) hinterlassen, dann ergänzen wir die jeweilige List
+
+## Toshiba
   - HAORI (Getestet)
   - SHORAI EDGE (Getestet)
   - Viele andere Modelle mit WLAN-Modul sollten funktionieren. Bitte gerne Rückmeldung geben, wenn ein neues Modell getestet wurde.
   - [Anschluss an UP1-GW-UART](doc/toshiba.md)
 
-- Daikin
+## Daikin
   - S21-Protokoll mit automatischer Protokoll-/Feature-Erkennung (inkl. v3.30 Kernfunktionen)
   - Unterstützung für viele Modelle mit S21-Schnittstelle (HA-Anschluss), abhängig von Gerätefähigkeiten/Firmware
   - Features: Grundsteuerung, Spezialmodi (Powerful, Econo, Quiet, Comfort, Streamer), Intelligent Eye Sensor, Humidity-Mode-Rückmeldung, Swing-Modi
   - Getestet mit verschiedenen FTXM/FTXF Serien
 
-- Mitsubishi
-  - CN105 Connector
+## Mitsubishi (Mitsubishi Electric)
+  - Geräte: Es sollten alle Geräte unterstützt werden, die den CN105 Connector haben
+    - `MSZ-APxxx` (mit dieser Serie wurde der Treiber entwickelt und getestet)
+    - `MSZ-*` sollten mit sehr hoher Wahrscheinlichkeit funktionieren 
   - [Anschluss an UP1-GW-UART](doc/mitsubishi.md)
+  - Features:
+    - Ein/Aus-Steuerung
+    - Betriebsmodi: Automatik, Kühlen, Heizen, Trocknen, Lüfter
+    - Temperatursteuerung: Solltemperatur-Einstellung (16/19-30°C, 1°C Schritte)
+    - Lüftergeschwindigkeit: Automatik + 5 manuelle Stufen
+    - Lamellenkontrolle: Vertikale und horizontale Schwenkbewegung
+    - Lamellenposition: Vertikale Position. TODO: horizontale Position
+    - TODO: Externe Ist-Temperatur​
+
 
 # Release notes
 
@@ -59,6 +72,7 @@ Dieses Modul erlaubt die Steuerung von Klimageräten unterschiedlicher Herstelle
 
 Hinweis: Nicht jedes Daikin-Gerät unterstützt jeden S21-Befehl. Nicht verfügbare Features werden automatisch erkannt und entsprechend übersprungen.
 Hinweis: Leistungsbegrenzung (Power Limit in %) wird aktuell nicht aktiv an Daikin-Geräte geschrieben.
+
 
 ## Anwenderdokumentation
 
@@ -128,6 +142,11 @@ Verbindung über den S21/HA-Anschluss des Innengeräts. Meistens ein 5-poliger S
 
 **Wichtig**: Vor Anschluss Spannungslevel prüfen! Manche Geräte nutzen 12V, andere 5V.
 Die S21-Schnittstelle arbeitet mit 2400 baud, even parity, 2 stop bits.
+
+#### Mitsubishi
+
+Analog zu "[Anschluss an UP1-GW-UART](doc/mitsubishi.md)"
+
 
 ### Adum1201 (1) / ESP32 Board
 
