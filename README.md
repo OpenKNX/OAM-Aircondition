@@ -19,6 +19,7 @@ Feedback zu weiteren funktionierenden Geräten folgender Hersteller gerne [KNX-U
 ## Mitsubishi (Mitsubishi Electric)
   - Geräte: Es sollten alle Geräte unterstützt werden, die den CN105 Connector haben
     - `MSZ-APxxx` (mit dieser Serie wurde der Treiber entwickelt und getestet)
+    - `MSZ-EFxxx` Siehe [KNX-User-Forum](https://knx-user-forum.de/forum/projektforen/openknx/2051393-openknx-klimaanlagen-knx-adapter-toshiba-daikin-mitsubishi-dich-kühlen-soll?p=2110824#post2110824)
     - `MSZ-*` sollten mit sehr hoher Wahrscheinlichkeit funktionieren 
   - [Anschluss an UP1-GW-UART](doc/mitsubishi.md)
   - Features:
