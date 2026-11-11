@@ -46,10 +46,13 @@ inline bool validResponse(std::string_view c,const uint8_t* d,size_t n) {
     if(!d || !n || n>32 || (expected && n!=expected)) return false;
     for(size_t i=0;i<n;i++) if(forbidden(d[i])) return false;
     if(c=="RH" || c=="RI" || c=="RX" || c=="Ra" || c=="RM" || c=="RN" || c=="RC") return decimal(d,n,true);
-    if(c=="Rd" || c=="Re" || c=="RK" || c=="RL" || c=="RD" || c=="RE" || c=="Rb" || c=="Rm" || c=="Rt") return decimal(d,n);
+    if(c=="Rd" || c=="Re" || c=="RK" || c=="RL" || c=="RD" || c=="RE" || c=="Rm" || c=="Rt") return decimal(d,n);
     if(c=="RA" || c=="Rg") return d[0]=='0' || d[0]=='1';
     if(c=="RB") return std::string_view{"0123467"}.find(char(d[0]))!=std::string_view::npos;
     if(c=="RG") return std::string_view{"AB34567"}.find(char(d[0]))!=std::string_view::npos;
+    if(c=="Rb" && !decimal(d,n)) return false;
+    if(c=="Rb" && ((d[0]-'0')+(d[1]-'0')*10+(d[2]-'0')*100)>15) return false;
+    if(c=="FC") for(size_t i=0;i<n;i++) if(d[i]<0x20 || d[i]>0x7E) return false;
     if(c=="F1") return (d[0]=='0' || d[0]=='1') && std::string_view{"0123467"}.find(char(d[1]))!=std::string_view::npos &&
         ((d[2]>=0x30 && d[2]<=0x7F) || (d[1]=='2' && d[2]==0x80) || (d[1]=='4' && d[2]==0xC0)) &&
         std::string_view{"AB34567"}.find(char(d[3]))!=std::string_view::npos;

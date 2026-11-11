@@ -15,6 +15,7 @@
 #undef private
 #undef protected
 #include "hal/SerialHAL_Factory.h"
+#include "s21_protocol.h"
 
 struct FakeHAL : daikin::hal::SerialHAL {
     std::deque<uint8_t> rx;
@@ -144,7 +145,7 @@ void test_d6() {
     assert(tx[1]=='D' && tx[2]=='6');
     assert(tx[3]==0x72 && tx[4]==0xB0 && tx[5]==0x31 && tx[6]==0x34);
     d.handle_serial_result(Result::Nak,nullptr,0);
-    assert(d.d6_.write==DaikinDriver::CommandSupport::Unsupported);
+    assert(d.d6_.write==DaikinDriver::CommandSupport::Unknown && d.writeOutcome("F6")==DaikinDriver::WriteOutcome::Rejected);
     assert(!d.supportExternalRoomTemperatureSensor());
 }
 void test_econo() {
@@ -276,21 +277,21 @@ void test_rz_identity() {
     d.protocol_version_={3,20}; d.initializeQueries();
     for(auto cmd : {"Rz52","Rz72"}) {
         auto it=std::find_if(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==cmd;});
-        assert(it!=d.queries_.end() && it->is_static && !it->handler);
+        assert(it!=d.queries_.end() && !it->is_static && it->interval_ms==60000 && !it->handler);
     }
 }
 void test_query_rates() {
     Feedback f; DaikinDriver d(f); d.setup(); d.protocol_version_={3,40}; d.initializeQueries();
     for(const auto& q : d.queries_) {
         if(q.command=="FX60") assert(!q.is_static && q.interval_ms==10000);
-        if(q.command=="FU05" || q.command=="FU35" || q.command=="FX00") assert(q.is_static);
+        if(q.command=="FU05" || q.command=="FU35") assert(q.is_static);
     }
 }
 void test_read_write_capabilities() {
     Feedback f; DaikinDriver d(f); d.setup(); d.queries_.emplace_back("F6");
     using A=DaikinDriver::FeatureAccess;
     assert(d.commandAccess("F6")==A::Unknown);
-    d.queries_[0].acked=true; assert(d.commandAccess("F6")==A::ReadOnly);
+    d.queries_[0].acked=true; assert(d.commandAccess("F6")==A::ReadSupported);
     d.d6_.write=DaikinDriver::CommandSupport::Unsupported; assert(d.commandAccess("F6")==A::ReadOnly);
     d.d6_.write=DaikinDriver::CommandSupport::Supported; assert(d.commandAccess("F6")==A::Writable);
     d.query_state_=DaikinDriver::QueryState::WaitingForAck;
@@ -310,7 +311,7 @@ void test_timer_lamp() {
 }
 void test_vertical_position() {
     Feedback f; DaikinDriver d(f); d.setup(); uint8_t gr[]={'0','0','0','0'};
-    d.handle_fr_response(gr,4); assert(d.getMaximumVerticalFixPosition()==0);
+    d.handle_fr_response(gr,4); assert(d.getMaximumVerticalFixPosition()==5 && !d.telemetry().verticalPositionVerified);
     d.setSwingVerticalFixPosition(3);
     auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
     assert(tx[1]=='D' && tx[2]=='R' && tx[3]=='3');
@@ -387,7 +388,7 @@ void test_energy_counters() {
     assert(d.telemetry().fu04_valid && d.telemetry().fu04_cooling_wh==58000 && d.telemetry().fu04_heating_wh==1106700);
     gu.replace(0,8,"EFFFFFFF"); d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&gu[0]),32);
     assert(d.telemetry().fu04_cooling_wh==429496729400ULL);
-    gu.replace(0,8,"FFFFFFFF"); d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&gu[0]),32); assert(!d.telemetry().fu04_valid);
+    gu.replace(0,8,"FFFFFFFF"); d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&gu[0]),32); assert(d.telemetry().fu04_valid && d.telemetry().fu04_cooling_wh==429496729500ULL);
     gu.replace(0,8,"10000000"); d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&gu[0]),32); assert(d.telemetry().fu04_cooling_wh==100);
     uint8_t gm[]={'F','F','F','F'}; d.handle_fm_response(gm,4); assert(d.telemetry().totalEnergyWh==6553500);
     gm[0]='0'; gm[1]=gm[2]=gm[3]='0'; d.handle_fm_response(gm,4); assert(d.telemetry().totalEnergyWh==0);
@@ -395,14 +396,14 @@ void test_energy_counters() {
 void test_live_power() {
     Feedback f; DaikinDriver d(f); uint8_t gx[]={'2','3','0','0'};
     d.handle_fu_fx_response("FX60",gx,4); assert(d.telemetry().fx60_valid && d.telemetry().fx60_raw==0x32 && d.telemetry().fx60_power_w==500);
-    gx[0]=gx[1]=gx[2]=gx[3]='F'; d.handle_fu_fx_response("FX60",gx,4); assert(!d.telemetry().fx60_valid);
+    gx[0]=gx[1]=gx[2]=gx[3]='F'; d.handle_fu_fx_response("FX60",gx,4); assert(d.telemetry().fx60_valid && d.telemetry().fx60_power_w==655350);
     gx[0]='X'; d.handle_fu_fx_response("FX60",gx,4); assert(!d.telemetry().fx60_valid);
 }
 void test_unknown_extension_pages() {
     Feedback f; DaikinDriver d(f); d.setup(); d.queries_.emplace_back("FX40");
     d.query_state_=DaikinDriver::QueryState::WaitingForAck;
-    uint8_t gx[]={'G','X','4','0',0xFF,0x80,'0','7'}; d.handle_serial_result(Result::Frame,gx,sizeof(gx));
-    assert((d.diagnosticResponse("FX40")==std::vector<uint8_t>{0xFF,0x80,'0','7'}));
+    uint8_t gx[]={'G','X','4','0',0xFF,0x80}; d.handle_serial_result(Result::Frame,gx,sizeof(gx));
+    assert((d.diagnosticResponse("FX40")==std::vector<uint8_t>{0xFF,0x80}));
     assert(!d.telemetry().fx60_valid && !d.telemetry().fu04_valid);
 }
 void test_real_timers() {
@@ -440,7 +441,7 @@ void test_decoder_lengths() {
         std::vector<uint8_t> wire(header.begin(),header.end()); wire.push_back('0');
         d.query_state_=DaikinDriver::QueryState::WaitingForAck;
         d.handle_serial_result(Result::Frame,wire.data(),wire.size());
-        assert(d.query_index_==0 && !d.queries_[0].acked);
+        assert(d.query_index_==1 && !d.queries_[0].acked);
     }
     uint8_t sd[]={'4','5','0'}, se[]={'9','7','0'};
     d.handle_rd_response(sd,3); d.handle_re_response(se,3);
@@ -481,7 +482,7 @@ void test_unknown_sensor_led_gate() {
     d.handle_f6_response(g6,4); assert(d.telemetry().ledState==daikin::LedState::Unknown);
     d.setWifiLed(false); auto& hal=*static_cast<FakeHAL*>(d.serial_->serial_hal_.get()); assert(hal.tx.empty());
     uint8_t gk[]={0x30,0x30,0x34,0x30}; d.handle_fk_response(gk,4); d.sendLedCommand();
-    assert(hal.tx[2]=='6' && hal.tx[6]==0x3C);
+    assert(hal.tx.empty() && !d.pending_.activate_led); // already Off after hardware discovery
 }
 void test_compatibility_fixtures() {
     std::ifstream fixtures("tests/daikin/compatibility.tsv"); assert(fixtures);
@@ -528,18 +529,12 @@ void test_large_pages_and_tx_failures() {
     bad.receive({2,'G','1','1','4','F','A',0x64,3}); assert(bad.results.back()==Result::Error);
 }
 void test_optional_query_configuration() {
-    Feedback f; DaikinDriver d(f); d.setup(); d.protocol_version_={3,40}; d.initializeQueries();
-    auto has=[&](std::string_view cmd){return std::any_of(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==cmd;});};
-#ifdef DAIKIN_EXTRA_DIAGNOSTICS
-    assert(has("RA") && has("RB") && has("RC") && has("RF") && has("RD") && has("RE") && has("Rb"));
-#else
-    assert(!has("RA") && !has("RB") && !has("RC") && !has("RF") && !has("RD") && !has("RE") && !has("Rb"));
-#endif
-#ifdef DAIKIN_PRODUCTION_DIAGNOSTICS
-    assert(has("FU15") && has("FU25") && has("FU35") && has("FU45"));
-#else
-    assert(!has("FU15") && !has("FU25") && !has("FU35") && !has("FU45"));
-#endif
+    Feedback f;DaikinDriver d(f);d.setup();d.protocol_version_={3,40};d.initializeQueries();
+    auto has=[&](std::string_view c){return std::any_of(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==c;});};
+    for(auto c:{"RA","RB","RC","RF","RD","RE","Rb","FU15","FU25","FU35","FU45"}) assert(has(c));
+    d.enableExtendedPolling(false);assert(!d.isQuerySupported("RA"));d.enableExtendedPolling(true);assert(d.isQuerySupported("RA"));
+    d.enableProductionDiagnostics(false);assert(!d.isQuerySupported("FU35"));d.enableProductionDiagnostics(true);assert(d.isQuerySupported("FU35"));
+    assert(!d.isQuerySupported("RW"));d.enableResearchPolling(true);assert(d.isQuerySupported("RW"));
 }
 void test_unknown_optional_state() {
     Feedback f; DaikinDriver d(f); d.gate_publish_until_full_sample_=false;
@@ -584,4 +579,104 @@ void test_audit_regressions() {
     for(int i=0;i<6000;i++){test_now+=10;silent.loop();}
     assert(silent.protocol_detection_failed_reported_);
 }
-int main() { test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_legacy_and_diagnostic_transactions() {
+    Transport t;assert(t.serial.send_frame("M"));assert((t.hal().tx==std::vector<uint8_t>{2,'M','M',3}));
+    t.receive({6,2,'M','3','5','E','3',0x2D,3});assert(t.results.back()==Result::Frame && t.hal().tx.back()==6);
+    t.hal().tx.clear();uint8_t address[]={'1','0','0','0'};assert(t.serial.send_frame("A",address,4));
+    assert((t.hal().tx==std::vector<uint8_t>{2,'A','1','0','0','0',4,3}));
+    t.receive({6,2,'C','1','0','0','D','4',0x4C,3});assert(t.results.back()==Result::Frame);
+    t.hal().tx.clear();uint8_t forbidden[]={10};assert(!t.serial.send_frame("D2",forbidden,1) && t.hal().tx.empty());
+    assert(t.serial.send_frame("RG"));t.receive({6,2,'S','G',6,0xA0,3});assert(t.results.back()==Result::Error && t.hal().tx.back()==3);
+    Feedback f;DaikinDriver d(f);d.setup();assert(d.processCommand("s21 raw M",false));assert(!d.processCommand("s21 raw M",true));
+    d.serviceDiagnostic();auto& hal=*static_cast<FakeHAL*>(d.serial_->serial_hal_.get());
+    for(auto b:{6,2,int('M'),int('3'),int('5'),int('E'),int('3'),0x2D,3})hal.rx.push_back(b);
+    while(!hal.rx.empty())d.serial_->loop();assert(d.diagnosticResult().status==DaikinDriver::DiagnosticStatus::Frame);
+    assert((d.diagnosticResult().payload==std::vector<uint8_t>{'3','5','E','3'}));
+    for(auto c:{"D2","DH","DJ","DL","DY10","DY20"}) {
+        DaikinDriver raw(f);raw.setup();std::vector<uint8_t> payload(std::string(c)=="D2"?1:std::string(c)=="DY10"?8:4,'0');
+        assert(raw.queueDiagnosticCommand(c,payload));raw.serviceDiagnostic();
+        auto& h=*static_cast<FakeHAL*>(raw.serial_->serial_hal_.get());h.rx.push_back(6);raw.serial_->loop();
+        assert(raw.diagnosticResult().status==DaikinDriver::DiagnosticStatus::Ack && raw.isInPostWriteSettle());
+    }
+    DaikinDriver bounded(f);for(int i=0;i<4;i++)assert(bounded.queueDiagnosticCommand("F1"));assert(!bounded.queueDiagnosticCommand("F1"));
+    assert(!d.queueDiagnosticCommand("A",{}) && !d.queueDiagnosticCommand("D2",{6}));
+}
+void test_compound_and_queued_humidity() {
+    Feedback f;DaikinDriver d(f);d.setup();uint8_t g2[]={0x3C,0x32,0,0x92};d.handle_f2_response(g2,4);
+    uint8_t g1[]={'1','3',0x4C,'A'},g5[]={'0','0','0',0x80};d.handle_f1_response(g1,4);d.handle_f5_response(g5,4);
+    assert(d.setClimateVariant(daikin::ClimateVariant::SararaDry));auto& h=*static_cast<FakeHAL*>(d.serial_->serial_hal_.get());assert(h.tx[4]=='2' && h.tx[5]==0x80);
+    d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;g1[1]='2';g1[2]=0x80;d.handle_f1_response(g1,4);d.handle_f5_response(g5,4);
+    size_t n=h.tx.size();d.setFanSpeed(2);assert(h.tx[n+5]==0x80);
+    DaikinDriver u(f);u.setup();u.handle_f2_response(g2,4);g1[1]='4';g1[2]=0x4C;u.handle_f1_response(g1,4);u.handle_f5_response(g5,4);
+    assert(u.setClimateVariant(daikin::ClimateVariant::UruruHumidify));auto& uh=*static_cast<FakeHAL*>(u.serial_->serial_hal_.get());assert(uh.tx[4]=='4' && uh.tx[5]==0xC0);
+    u.serial_->force_framed_mode();u.query_state_=DaikinDriver::QueryState::Idle;g1[2]=0xC0;u.handle_f1_response(g1,4);n=uh.tx.size();u.setPower(false);assert(uh.tx[n+5]==0xC0);
+    DaikinDriver q(f);q.setup();q.handle_f2_response(g2,4);g1[1]='4';g1[2]=0x4C;q.handle_f1_response(g1,4);q.handle_f5_response(g5,4);
+    q.query_state_=DaikinDriver::QueryState::PostWriteSettle;assert(q.setHumidityMode(daikin::HumidityMode::Low));
+    g1[1]='3';q.handle_f1_response(g1,4);q.query_state_=DaikinDriver::QueryState::Idle;q.sendSwingCommand();
+    auto& qh=*static_cast<FakeHAL*>(q.serial_->serial_hal_.get());assert(qh.tx[5]==0x3A);
+    DaikinDriver a(f);a.setup();a.handle_f2_response(g2,4);g1[1]='7';a.handle_f1_response(g1,4);a.handle_f5_response(g5,4);
+    assert(a.setHumidityMode(daikin::HumidityMode::Low));assert(static_cast<FakeHAL*>(a.serial_->serial_hal_.get())->tx[5]==0x38);
+    assert(a.configureTemperatureLimits(daikin::Mode::Heat,10,40));a.state_.mode=daikin::Mode::Heat;assert(a.getMaximumTargetTemperature()==40);
+    assert(!a.configureTemperatureLimits(daikin::Mode::Heat,10.2f,40));
+}
+void test_confirmed_combined_capabilities() {
+    using W=DaikinDriver::WriteOutcome;using A=DaikinDriver::FeatureAccess;
+    Feedback f;DaikinDriver d(f);d.setup();uint8_t g6[]={0x30,0x30,0x30,0x3C};d.handle_f6_response(g6,4);
+    d.pending_.activate_powerful=true;d.pending_.climate.powerful=true;d.sendPowerfulCommand();
+    assert(d.writeOutcome("F6")==W::AwaitingAck);d.handle_serial_result(Result::Ack,nullptr,0);
+    assert(d.writeOutcome("F6")==W::AwaitingReadback && d.commandAccess("F6")==A::ReadSupported);
+    d.handle_f6_response(g6,4);assert(d.writeOutcome("F6")==W::Mismatch);
+    d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;
+    d.pending_.activate_powerful=true;d.pending_.climate.powerful=true;d.sendPowerfulCommand();d.handle_serial_result(Result::Ack,nullptr,0);g6[0]=0x32;d.handle_f6_response(g6,4);
+    assert(d.commandAccess("F6")==A::Writable && d.fieldWriteVerified("F6",0,2) && !d.fieldWriteVerified("F6",1,0x80));
+    d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;d.setAirPurification(true);d.handle_serial_result(Result::Nak,nullptr,0);
+    assert(d.writeOutcome("F6")==W::Rejected && d.commandAccess("F6")==A::Writable);
+    d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;d.handle_f6_response(g6,4);size_t n=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx.size();
+    d.pending_.activate_quiet=true;d.pending_.climate.quiet=true;d.sendQuietCommand();assert(static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx.size()>n);
+    DaikinDriver v(f);v.setup();uint8_t gr[]={'0','0','0','0'};v.handle_fr_response(gr,4);assert(v.getMaximumVerticalFixPosition()==5);
+    v.setSwingVerticalFixPosition(5);v.handle_serial_result(Result::Ack,nullptr,0);gr[0]='5';v.handle_fr_response(gr,4);assert(v.verifiedVerticalPositions()==0x20);
+    v.serial_->force_framed_mode();v.query_state_=DaikinDriver::QueryState::Idle;assert(v.setVerticalPositionCode('?'));
+    assert(static_cast<FakeHAL*>(v.serial_->serial_hal_.get())->tx[static_cast<FakeHAL*>(v.serial_->serial_hal_.get())->tx.size()-6]=='?');
+}
+void test_metadata_schema_and_model_discovery() {
+    Feedback f;DaikinDriver d(f);d.setup();uint8_t fc[]={'1','2','A','B'},fn[]={'1','2','3','4'},fs[]={'2','A','0','0'},ft[]={'3','2','1','0'};
+    d.handle_fc_response(fc,4);d.handle_metadata("FN",fn,4);d.handle_metadata("FS",fs,4);d.handle_metadata("FT",ft,4);
+    assert(d.identification().modelCode=="BA21" && d.identification().itelc=="4321");
+    assert(d.identification().wifiMode=='2' && d.identification().wifiCounter==10 && d.identification().ftRawDecimal==123);
+    uint8_t ir[]={'A','B','C','D'};d.handle_fg_response(ir,4);ir[3]='E';d.handle_fg_response(ir,4);assert(d.state_.irCounterRaw[3]=='E' && d.state_.irObservedChanges==1);
+    uint8_t pull[]={'5','1','0'};d.handle_aux_sensor("Rb",pull,3);assert(d.state_.pull==15);
+    uint8_t fk[]={0x39,0x3D,0x3D,0x31};d.protocol_version_={3,40};d.handle_fk_response(fk,4);
+    assert(d.identification().laundryAvailable && d.identification().japaneseTemperatureRange && d.identification().destinationRaw);
+    std::array<uint8_t,32> prod;prod.fill(0xFF);const std::string data="AB1201234567SERIAL123456";std::copy(data.begin(),data.end(),prod.begin());
+    d.handle_fu_fx_response("FU35",prod.data(),32);assert(d.identification().production.indoor.siteCode=="AB" && d.identification().production.indoor.dateCode=="01234567");
+    for(auto version:{daikin::ProtocolVersion{0,0},daikin::ProtocolVersion{1,0},daikin::ProtocolVersion{2,0},daikin::ProtocolVersion{3,1}}) {
+        d.protocol_version_=version;d.initializeQueries();auto has=[&](std::string_view c){return std::any_of(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==c;});};
+        assert(has("M") && has("V") && has("RzB2") && has("RzC3"));if(version.major==1)assert(has("FC"));if(version.major==3)assert(has("FU02"));
+    }
+    uint8_t fx[]={0x30,0x30,0x30,0x30};assert(!daikin::s21::validResponse("FX40",fx,4));assert(daikin::s21::validResponse("FX40",fx,2));
+    uint8_t fw[]={'1','0','1','7','1','0','2','2','M','0','0','0','0','X'};assert(!daikin::s21::validResponse("VS000M",fw,14));
+    d.queries_.clear();d.query_index_=0;d.queries_.emplace_back("FU00",nullptr,true);d.query_state_=DaikinDriver::QueryState::WaitingForAck;
+    std::vector<uint8_t> bad={'G','U','0','0'};bad.insert(bad.end(),32,'4');d.handle_serial_result(Result::Frame,bad.data(),bad.size());assert(!d.queries_[0].acked);
+}
+void test_timing_reprobe_and_missing_samples() {
+    Feedback f;DaikinDriver d(f);d.setup();d.state_.insideTemperatureValid=true;d.support_.inside_temperature_query=true;
+    d.queries_.emplace_back("RH",[&](uint8_t* p,size_t n){d.handle_rh_response(p,n);});d.query_state_=DaikinDriver::QueryState::WaitingForAck;
+    uint8_t malformed[]={'S','H','0'};d.handle_serial_result(Result::Frame,malformed,3);assert(!d.state_.insideTemperatureValid && !d.queries_[0].acked);
+    DaikinDriver::TimingProfile profile;profile.ack_ms=0;assert(!d.configureTiming(profile));profile.ack_ms=500;profile.rx_ms=500;profile.reprobe_ms=1000;assert(d.configureTiming(profile));
+    d.queries_.clear();d.queries_.emplace_back("F1");d.query_index_=0;d.queries_[0].bad=true;d.queries_[0].last_nak_ms=test_now;
+    d.query_state_=DaikinDriver::QueryState::WaitingToSend;test_now+=1100;d.updateQueryStateMachine();assert(!d.queries_[0].bad && d.serial_->busy());
+    d.state_.basicValid=true;d.state_.power=true;d.state_.online=true;d.state_.mode=daikin::Mode::Cool;d.state_.compressorOnValid=true;d.state_.compressorOn=false;
+    assert(d.calculateCurrentAction()==daikin::Action::Idle);d.state_.compressorOn=true;assert(d.calculateCurrentAction()==daikin::Action::Cooling);
+}
+void test_temperature_numeric_edges() {
+    using daikin::DaikinC10;
+    assert(static_cast<int16_t>(DaikinC10(-12.36f))==-124);
+    assert(static_cast<int16_t>(DaikinC10(12.36f))==124);
+    assert(DaikinC10(50.0f).valid() && DaikinC10(50.0f).f_degc()==50.0f);
+    assert(!DaikinC10(NAN).valid() && !DaikinC10(INFINITY).valid());
+    assert(!DaikinC10(40000).valid() && !DaikinC10(65536u).valid());
+    assert(!(DaikinC10(100)/DaikinC10(0)).valid());
+    assert(!(DaikinC10(32767)+DaikinC10(1)).valid());
+    assert(!(daikin::TEMPERATURE_INVALID+DaikinC10(100)).valid());
+}
+int main() { test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

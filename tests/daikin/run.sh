@@ -6,7 +6,7 @@ trap 'rm -rf "$BUILD_DIR"' EXIT
 for TEST_MODE in default diagnostics; do
   TEST_FLAGS=""
   if [ "$TEST_MODE" = diagnostics ]; then
-    TEST_FLAGS="-DDAIKIN_EXTRA_DIAGNOSTICS -DDAIKIN_PRODUCTION_DIAGNOSTICS"
+    TEST_FLAGS="-DDAIKIN_PRODUCTION_DIAGNOSTICS"
   fi
   c++ -std=c++17 -g -fsanitize=address,undefined -fno-omit-frame-pointer $TEST_FLAGS \
     -Itests/daikin/stubs -Isrc/Driver/Daikin \

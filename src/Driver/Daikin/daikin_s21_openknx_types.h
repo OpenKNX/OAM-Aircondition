@@ -1,7 +1,10 @@
 #pragma once
 
 #include "daikin_s21_openknx_fan_modes.h"
-#include <compare>
+#include <cstdint>
+#include <cmath>
+#include <array>
+#include <string>
 #include <functional>
 #include <limits>
 #include <type_traits>
@@ -129,16 +132,24 @@ namespace daikin
      */
     class DaikinC10
     {
+        template<typename T> static constexpr int16_t fromIntegral(T v) {
+            if constexpr(std::is_signed_v<T>) {
+                if(v<std::numeric_limits<int16_t>::min() || v>std::numeric_limits<int16_t>::max()) return nan_sentinel;
+            } else if(v>static_cast<unsigned>(std::numeric_limits<int16_t>::max())) return nan_sentinel;
+            return static_cast<int16_t>(v);
+        }
       public:
-        static constexpr auto nan_sentinel = 500; // internal Daikin 0x80
+        static constexpr int16_t nan_sentinel = std::numeric_limits<int16_t>::min();
 
         constexpr DaikinC10() = default;
 
         template <typename T, typename std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
-        constexpr DaikinC10(const T valf) : value((static_cast<int16_t>(valf * 10 * 2) + 1) / 2) {} // round to nearest 0.1C
+        constexpr DaikinC10(const T valf) : value(
+            valf!=valf || valf>3276.7L || valf<-3276.7L ? nan_sentinel :
+            static_cast<int16_t>(valf*10 + (valf>=0 ? 0.5L : -0.5L))) {} // round to nearest 0.1C
 
         template <typename T, typename std::enable_if_t<std::is_integral_v<T>, bool> = true>
-        constexpr DaikinC10(const T vali) : value(vali) {}
+        constexpr DaikinC10(const T vali) : value(fromIntegral(vali)) {}
 
         explicit constexpr operator float() const { return (value == nan_sentinel) ? NAN : (value / 10.0F); }
         explicit constexpr operator int16_t() const { return value; }
@@ -152,12 +163,13 @@ namespace daikin
         constexpr bool operator>(const DaikinC10 &other) const { return value > other.value; }
         constexpr bool operator>=(const DaikinC10 &other) const { return value >= other.value; }
 
-        constexpr DaikinC10 operator+(const DaikinC10 &arg) const { return this->value + arg.value; }
-        constexpr DaikinC10 operator-(const DaikinC10 &arg) const { return this->value - arg.value; }
-        constexpr DaikinC10 operator*(const DaikinC10 &arg) const { return this->value * arg.value; }
-        constexpr DaikinC10 operator/(const DaikinC10 &arg) const { return this->value / arg.value; }
+        constexpr DaikinC10 operator+(const DaikinC10 &arg) const { return valid() && arg.valid() ? DaikinC10(this->value + arg.value) : DaikinC10(nan_sentinel); }
+        constexpr DaikinC10 operator-(const DaikinC10 &arg) const { return valid() && arg.valid() ? DaikinC10(this->value - arg.value) : DaikinC10(nan_sentinel); }
+        constexpr DaikinC10 operator*(const DaikinC10 &arg) const { return valid() && arg.valid() ? DaikinC10(this->value * arg.value) : DaikinC10(nan_sentinel); }
+        constexpr DaikinC10 operator/(const DaikinC10 &arg) const { return valid() && arg.valid() && arg.value!=0 ? DaikinC10(this->value / arg.value) : DaikinC10(nan_sentinel); }
 
-        static DaikinC10 diff(const DaikinC10 &a, const DaikinC10 &b) { return std::abs(a.value - b.value); }
+        constexpr bool valid() const { return value!=nan_sentinel; }
+        static DaikinC10 diff(const DaikinC10 &a, const DaikinC10 &b) { return a.valid() && b.valid() ? DaikinC10(std::abs(a.value-b.value)) : DaikinC10(nan_sentinel); }
 
       private:
         int16_t value{};
@@ -207,6 +219,23 @@ namespace daikin
     };
 
     enum class LedState : uint8_t { Unknown, On, Dark, Off };
+
+    enum class ClimateVariant : uint8_t { Auto, Cool, DryCooling, Heat, HumidHeating, SararaDry, UruruHumidify, FanOnly };
+    struct ProductionInfo {
+        bool valid{false};
+        std::string siteCode, lineCode, orderCode;
+        struct Unit { bool valid{false}; std::string siteCode, dateCode, serialCode; uint8_t baseCode{0}, deviceCode{0}; } indoor, outdoor;
+    };
+    struct Identification {
+        std::string modelCode, legacyModelWire, legacyVersionWire, itelc;
+        bool wifiValid{false}, ftValid{false};
+        char wifiMode{'0'}; uint8_t wifiCounter{0}; uint16_t ftRawDecimal{0};
+        bool fkValid{false}, laundryAvailable{false}, simpleHumidify{false};
+        bool japaneseTemperatureRange{false};
+        uint8_t acledRaw{0}, electricityRaw{0}, destinationRaw{0}, displayDryRaw{0};
+        std::array<uint8_t,4> fkRaw{};
+        ProductionInfo production;
+    };
 
     struct ClimateSettings
     {
@@ -261,7 +290,7 @@ namespace daikin
         float targetOffsetC{NAN};
         uint8_t setpointRaw{0};
         bool setpointRawValid{false};
-        ProtocolVersion protocol{};
+        ProtocolVersion protocol{ProtocolUndetected};
         // Basic state
         bool online{false};
         bool power{false};
@@ -329,7 +358,12 @@ namespace daikin
         bool totalEnergyValid{false};
         uint32_t totalEnergyWh{0}; // Total energy consumption in Watt-hours (from FM command)
         uint16_t compressorHz{0};
-        uint16_t irCounter{0};
+        std::array<uint8_t,4> irCounterRaw{}; // field encoding is undocumented; never invent a number
+        bool irCounterValid{false}; uint32_t irObservedChanges{0};
+        bool pullValid{false}, rmRawValid{false}, rtRawValid{false};
+        uint8_t pull{0}; uint16_t rmRaw{0}, rtRaw{0};
+        ClimateVariant climateVariant{ClimateVariant::Auto};
+        bool climateVariantValid{false}, simpleHumidifyAvailable{false};
 
         // v3.20+/v3.40+ extension pages (FU/FX):
         bool fu04_valid{false};
@@ -343,7 +377,7 @@ namespace daikin
         // System status
         DaikinUnitState unitState{};
         DaikinSystemState systemState{};
-        uint8_t protocolVersion{0};
+        uint8_t protocolVersion{0xFF};
     };
 
     /**

@@ -5,6 +5,8 @@
 #include <bitset>
 #include <cctype>
 #include <numeric>
+#include <cstdlib>
+#include "s21_protocol.h"
 
 // Implements the Faikout S21 protocol (ba4eb32) (https://github.com/revk/ESP32-Faikout/wiki/S21-Protocol)
 
@@ -37,32 +39,7 @@ namespace
         return !sign || data[3] == '+' || data[3] == '-';
     }
 
-    bool s21_valid_response(std::string_view cmd, const uint8_t* data, size_t size)
-    {
-        size_t expected = 4;
-        if (cmd.substr(0,2)=="FU") expected=32;
-        else if (cmd=="FY10") expected=8;
-        else if (cmd=="VS000M") expected=14;
-        else if (cmd.substr(0,2)=="FX" && cmd!="FX60") return size>0 && size<=32;
-        else if (cmd.substr(0,2)=="Rz") expected=2;
-        else if (cmd=="RA" || cmd=="RB" || cmd=="RG" || cmd=="Rg") expected=1;
-        else if (cmd=="RF") expected=2;
-        else if (cmd=="RK" || cmd=="RL" || cmd=="Rd" || cmd=="Re" || cmd=="Rb" || cmd=="RD" || cmd=="RE") expected=3;
-        if (size != expected) return false;
-        if (cmd=="F1") {
-            if (data[0]!='0' && data[0]!='1') return false;
-            if (std::string_view{"0123467"}.find(char(data[1]))==std::string_view::npos) return false;
-            if (std::string_view{"0AB34567"}.find(char(data[3]))==std::string_view::npos) return false;
-        }
-        if (cmd=="F6") for(size_t i=0;i<4;i++) if ((data[i]&0x30)!=0x30) return false;
-        if (cmd=="F7" && (data[0]<0x30 || data[0]>0x94 || (data[1]!='0' && data[1]!='2'))) return false;
-        if (cmd=="FY00") for(size_t i=0;i<4;i++) if (data[i]<'0' || data[i]>'9') return false;
-        if (cmd=="RH" || cmd=="RI" || cmd=="RX" || cmd=="Ra" || cmd=="RM" || cmd=="RN" || cmd=="RC")
-            return s21_valid_decimal(data,size,true);
-        if (cmd=="Rd" || cmd=="Re" || cmd=="RK" || cmd=="RL" || cmd=="RD" || cmd=="RE")
-            return s21_valid_decimal(data,size,false);
-        return true;
-    }
+    bool s21_valid_response(std::string_view cmd,const uint8_t* data,size_t size) { return daikin::s21::validResponse(cmd,data,size); }
 
     // s21_decode_target_temp function
     float s21_decode_target_temp(uint8_t v)
@@ -273,6 +250,7 @@ void DaikinDriver::setup()
 
     logDebugP("DaikinSerial object created, initializing serial port...");
     serial_->begin();
+    if (!serial_->initialized()) { statusFeedback.driverStateChanged(AirConditionDriverStateError,"UART initialization failed"); serial_.reset(); return; }
     statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
 }
 
@@ -291,7 +269,8 @@ void DaikinDriver::startCommunication(bool restart)
     {
         // Reset state for restart
         state_ = {};
-        model_name_.clear(); firmware_version_.clear();
+        model_name_.clear(); firmware_version_.clear(); identification_={};
+        diagnostic_active_=false;diagnostic_queue_.clear();variant_pending_=false;
         publication_initialized_=false;
         serial_->force_framed_mode();
         online_=false; last_rx_ok_ms_=0;
@@ -391,7 +370,7 @@ void DaikinDriver::loop()
     last_loop_time_ = now;
 
     serial_->loop(); // Process serial communication (non-blocking)
-    if (!serial_->busy() && !isInPostWriteSettle()) {
+    if (!serial_->busy() && !diagnostic_active_ && !isInPostWriteSettle()) {
         if (pending_.activate_climate) sendClimateCommand();
         if (pending_.activate_swing_mode || humidity_pending_) sendSwingCommand();
         if (pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
@@ -402,7 +381,11 @@ void DaikinDriver::loop()
         if (timer_pending_) sendTimerCommand();
     }
 
-    updateQueryStateMachine(); // non-blocking state machine
+    if (!serial_->busy() && (query_state_==QueryState::Idle || query_state_==QueryState::WaitingToSend)) serviceDiagnostic();
+    if (!diagnostic_active_) updateQueryStateMachine(); // non-blocking state machine
+    if (climate_confirmation_started_ && millis()-climate_confirmation_started_>30000) {climate_outcome_=WriteOutcome::Timeout;rejectClimateWrite();}
+    for(auto* c:{&d3_,&d5_,&d6_,&d7_,&dr_}) if(c->awaiting_readback && millis()-c->sent_ms>30000) {c->awaiting_readback=false;c->outcome=WriteOutcome::Timeout;}
+    if(version_changed_ && !serial_->busy() && !diagnostic_active_) {version_changed_=false;startCommunication(true);}
 
     // Check online timeout (independent of query state machine)
     checkOnlineTimeout();
@@ -436,33 +419,206 @@ std::vector<uint8_t> DaikinDriver::diagnosticResponse(std::string_view command) 
     return q == queries_.end() ? std::vector<uint8_t>{} : q->response_data;
 }
 
-DaikinDriver::FeatureAccess DaikinDriver::commandAccess(std::string_view read_command) const
+DaikinDriver::CombinedCommand* DaikinDriver::combinedFor(std::string_view c)
 {
-    const CombinedCommand* combined = read_command == "F5" ? &d5_ : read_command == "F6" ? &d6_ : read_command == "F7" ? &d7_ : read_command == "FR" ? &dr_ : nullptr;
-    auto query = std::find_if(queries_.begin(), queries_.end(), [&](const DaikinQueryState& q) { return q.command == read_command; });
-    if (query == queries_.end()) return FeatureAccess::Unknown;
-    if (query->bad) return FeatureAccess::Unsupported;
-    if (combined && combined->write == CommandSupport::Supported) return FeatureAccess::Writable;
-    if (query->acked) return FeatureAccess::ReadOnly;
+    if(c=="D1" || c=="F1") return nullptr;
+    if(c=="D3" || c=="F3") return &d3_;
+    if(c=="D5" || c=="F5") return &d5_;
+    if(c=="D6" || c=="F6") return &d6_;
+    if(c=="D7" || c=="F7") return &d7_;
+    if(c=="DR" || c=="FR") return &dr_;
+    return nullptr;
+}
+const DaikinDriver::CombinedCommand* DaikinDriver::combinedFor(std::string_view c) const { return const_cast<DaikinDriver*>(this)->combinedFor(c); }
+DaikinDriver::FeatureAccess DaikinDriver::commandAccess(std::string_view c) const
+{
+    const auto* combined=combinedFor(c);
+    const auto query=std::find_if(queries_.begin(),queries_.end(),[&](const DaikinQueryState& q){return q.command==c;});
+    if(query!=queries_.end() && query->bad) return FeatureAccess::Unsupported;
+    if(combined && combined->write==CommandSupport::Supported) return FeatureAccess::Writable;
+    if(combined && combined->write==CommandSupport::Unsupported) return FeatureAccess::ReadOnly;
+    if((combined && combined->read_supported) || (query!=queries_.end() && query->acked)) return FeatureAccess::ReadSupported;
     return FeatureAccess::Unknown;
+}
+DaikinDriver::WriteOutcome DaikinDriver::writeOutcome(std::string_view c) const { if(c=="F1" || c=="D1") return climate_outcome_;const auto* p=combinedFor(c);return p?p->outcome:WriteOutcome::None; }
+bool DaikinDriver::fieldWriteVerified(std::string_view c,size_t byte,uint8_t mask) const {
+    const auto* p=combinedFor(c);return p && byte<4 && (p->verified_mask[byte]&mask)==mask;
+}
+void DaikinDriver::retryRejectedWrites() {
+    for(auto* p:{&d3_,&d5_,&d6_,&d7_,&dr_}) {p->rejected_valid=false;p->last_rejection_ms=0;}
+}
+void DaikinDriver::confirmCombined(std::string_view c,const uint8_t* data)
+{
+    auto* p=combinedFor(c);if(!p) return;p->read_supported=true;
+    if(!p->awaiting_readback) return;
+    bool matches=true;for(size_t i=0;i<4;i++) if((data[i]&p->mask[i])!=(p->requested[i]&p->mask[i])) matches=false;
+    p->awaiting_readback=false;
+    p->outcome=matches?WriteOutcome::Confirmed:WriteOutcome::Mismatch;
+    if(matches) {
+        p->write=CommandSupport::Supported;
+        for(size_t i=0;i<4;i++) p->verified_mask[i]|=p->mask[i];
+        if(c=="DR" && data[0]>='0' && data[0]<='5') verified_vertical_positions_|=1U<<(data[0]-'0');
+    }
+}
+
+bool DaikinDriver::configureTiming(const TimingProfile& p)
+{
+    if(p.cycle_ms<100 || p.inter_query_ms<5 || p.high_load_ms<5 || p.ack_ms<50 || p.rx_ms<50 || p.ack_ms>30000 || p.rx_ms>30000 || p.offline_ms<2000 || p.offline_ms>3600000 || p.reprobe_ms<1000 || p.reprobe_ms>86400000 || p.post_write_f1_ms<50 || p.post_write_f1_ms>30000 ||
+       p.cycle_ms>3600000 || p.inter_query_ms>30000 || p.high_load_ms>30000 || p.d1_settle_ms>30000 || p.d5_settle_ms>30000 || p.other_settle_ms>30000 || p.v0_d1_settle_ms>30000 || p.v0_d5_settle_ms>30000 || p.v0_other_settle_ms>30000) return false;
+    if(serial_ && serial_->busy()) return false;
+    timing_=p;return !serial_ || serial_->configureTimeouts(p.ack_ms,p.rx_ms);
+}
+
+bool DaikinDriver::processCommand(const std::string command,bool debugKo)
+{
+    if(command.size()>160 || command.substr(0,4)!="s21 ") return false;
+    std::vector<std::string_view> words;
+    std::string_view rest(command.data()+4,command.size()-4);
+    while(!rest.empty() && words.size()<40) {
+        const auto start=rest.find_first_not_of(" \t");if(start==std::string_view::npos) break;rest.remove_prefix(start);
+        const auto end=rest.find_first_of(" \t");words.push_back(rest.substr(0,end));if(end==std::string_view::npos) {rest={};break;}rest.remove_prefix(end);
+    }
+    if(words.empty()) return false;
+    auto integer=[&](size_t i,unsigned& out){if(i>=words.size() || words[i].empty()) return false;out=0;for(char c:words[i]){if(c<'0'||c>'9'||out>10000)return false;out=out*10+c-'0';}return true;};
+    auto floating=[&](size_t i,float& out){if(i>=words.size())return false;std::string text(words[i]);char* end=nullptr;out=std::strtof(text.c_str(),&end);return end==text.c_str()+text.size() && std::isfinite(out);};
+    auto onoff=[&](bool& value){if(words.size()!=2 || (words[1]!="on" && words[1]!="off"))return false;value=words[1]=="on";return true;};
+    if(words[0]=="raw" && words.size()>=2) {
+        if(debugKo) return false; // raw probing is a local console/API operation
+        std::vector<uint8_t> data;
+        for(size_t i=2;i<words.size();i++){if(words[i].size()%2) return false;for(size_t n=0;n<words[i].size();n+=2){int hi=daikin::s21::hex(words[i][n]),lo=daikin::s21::hex(words[i][n+1]);if(hi<0||lo<0)return false;data.push_back((hi<<4)|lo);}}
+        return queueDiagnosticCommand(std::string(words[1]),data);
+    }
+    if(words[0]=="result" && words.size()==1) {
+        if(debugKo) return false;
+        logInfoP("S21 diagnostic %s status=%u bytes=%zu",diagnostic_result_.command.c_str(),unsigned(diagnostic_result_.status),diagnostic_result_.payload.size());
+        logInfoP("S21 diagnostic payload: %s",toHexString(diagnostic_result_.payload).c_str());return true;
+    }
+    bool value=false;
+    if(words[0]=="comfort" && onoff(value)){setComfort(value);return true;}
+    if(words[0]=="eye" && onoff(value)){setIntelligentEye(value);return true;}
+    if(words[0]=="research" && onoff(value)){if(debugKo)return false;enableResearchPolling(value);return true;}
+    if(words[0]=="production" && onoff(value)){if(debugKo)return false;enableProductionDiagnostics(value);return true;}
+    if(words[0]=="rz-trust" && onoff(value)){if(debugKo)return false;trustRzStateReadings(value);return true;}
+    if(words[0]=="extended" && onoff(value)){enableExtendedPolling(value);return true;}
+    if(words[0]=="retry-writes" && words.size()==1){retryRejectedWrites();return true;}
+    if(words[0]=="led" && words.size()==2) {
+        if(words[1]!="on" && words[1]!="dark" && words[1]!="off")return false;
+        setLedState(words[1]=="on"?daikin::LedState::On:words[1]=="dark"?daikin::LedState::Dark:daikin::LedState::Off);return true;
+    }
+    if(words[0]=="humidity" && words.size()==2) {
+        using H=daikin::HumidityMode;
+        const H mode=words[1]=="off"?H::Off:words[1]=="low"?H::Low:words[1]=="standard"?H::Standard:words[1]=="high"?H::High:words[1]=="continuous"?H::Continuous:H::Unknown;
+        return mode!=H::Unknown && setHumidityMode(mode);
+    }
+    if(words[0]=="mode" && words.size()==2) {
+        using V=daikin::ClimateVariant;
+        const std::array<std::string_view,8> names={"auto","cool","dry-cooling","heat","humid-heating","sarara","ururu","fan"};
+        for(size_t i=0;i<names.size();i++)if(words[1]==names[i])return setClimateVariant(static_cast<V>(i));return false;
+    }
+    if(words[0]=="vane" && words.size()==2 && words[1].size()==1)return setVerticalPositionCode(words[1][0]);
+    unsigned a=0,b=0;
+    if(words[0]=="vane-scale" && words.size()==2 && integer(1,a) && a<=255)return configureVaneAngleScale(a);
+    if(words[0]=="demand" && words.size()==2 && integer(1,a) && a<=100){setMaxPowerLevel(a);return support_.demand || demand_configured_;}
+    if(words[0]=="demand-range" && words.size()==3 && integer(1,a) && integer(2,b) && a<=100 && b<=100)return configureDemandLimits(a,b);
+    if(words[0]=="timer-range" && words.size()==3 && integer(1,a) && integer(2,b) && a<=1440 && b<=1440)return configureTimerGranularity(a,b);
+    if(words[0]=="timers" && words.size()==3 && integer(1,a) && integer(2,b) && a<=1440 && b<=1440)return setTimers(a,b);
+    if(words[0]=="timer-lamp" && onoff(value))return setTimerLamp(value);
+    float minimum=0,maximum=0;
+    if(words[0]=="temp-range" && words.size()==4 && integer(1,a) && a<6 && floating(2,minimum) && floating(3,maximum))return configureTemperatureLimits(static_cast<daikin::Mode>(a),minimum,maximum);
+    return false;
+}
+
+bool DaikinDriver::queueDiagnosticCommand(std::string command, std::vector<uint8_t> payload)
+{
+    if (command.empty() || command.size()>6 || payload.size()>32 || diagnostic_queue_.size()>=4) return false;
+    for(char c:command) if(!std::isalnum(static_cast<unsigned char>(c))) return false;
+    for(auto b:payload) if(daikin::s21::forbidden(b)) return false;
+    if (command=="A" && payload.size()!=4) return false;
+    if (command=="D2" && payload.size()!=1) return false;
+    if ((command=="DH" || command=="DJ" || command=="DL" || command=="D7" || command=="D6" || command=="D5" || command=="D1" || command=="DR") && payload.size()!=4) return false;
+    if(command=="DY10" && payload.size()!=8) return false;
+    if(command=="DY20" && payload.size()!=4) return false;
+    if(command=="D3" && payload.size()!=3 && payload.size()!=4) return false;
+    if(command=="FB" && !payload.empty() && payload.size()!=4) return false;
+    diagnostic_queue_.push_back({std::move(command),std::move(payload)});
+    if(!diagnostic_active_) diagnostic_result_.status=DiagnosticStatus::Queued;
+    return true;
+}
+
+void DaikinDriver::serviceDiagnostic()
+{
+    if(diagnostic_active_ || diagnostic_queue_.empty() || !serial_ || serial_->busy() || isInPostWriteSettle()) return;
+    auto request=std::move(diagnostic_queue_.front()); diagnostic_queue_.erase(diagnostic_queue_.begin());
+    diagnostic_result_={request.command,{},DiagnosticStatus::Running};
+    diagnostic_ack_only_=request.command[0]=='D' || (request.command=="FB" && !request.payload.empty());
+    diagnostic_active_=true;
+    if(!serial_->send_frame(request.command,request.payload.data(),request.payload.size(),diagnostic_ack_only_)) {
+        diagnostic_active_=false; diagnostic_result_.status=DiagnosticStatus::Error;
+    }
+    last_send_time_=millis();
+}
+
+bool DaikinDriver::setTimerLamp(bool on)
+{
+    // FB's payload behavior is documented in the command table, not a fictitious DB.
+    return queueDiagnosticCommand("FB",{uint8_t(on?'1':'0'),'0','0','0'});
+}
+
+bool DaikinDriver::configureTemperatureLimits(daikin::Mode mode,float minimum,float maximum)
+{
+    const auto index=static_cast<size_t>(mode);
+    if(index>=configured_min_.size() || !std::isfinite(minimum) || !std::isfinite(maximum) || minimum<10 || maximum>49.5f || minimum>maximum || std::round(minimum*2)!=minimum*2 || std::round(maximum*2)!=maximum*2) return false;
+    configured_min_[index]=minimum;configured_max_[index]=maximum;configured_temperature_mask_|=1U<<index;return true;
+}
+
+bool DaikinDriver::setClimateVariant(daikin::ClimateVariant variant,daikin::HumidityMode humidity)
+{
+    if(!serial_) return false;
+    using V=daikin::ClimateVariant;using H=daikin::HumidityMode;
+    const bool compound=variant==V::DryCooling || variant==V::HumidHeating || variant==V::SararaDry || variant==V::UruruHumidify;
+    uint8_t mask=variant==V::DryCooling?2:variant==V::HumidHeating?4:variant==V::SararaDry?16:variant==V::UruruHumidify?32:0;
+    if(compound && support_.simple_humidify && variant!=V::UruruHumidify) return false;
+    if(compound && (!support_.f2_known || (!support_.simple_humidify && !(humidity_modes_&mask)) || (variant==V::UruruHumidify && !support_.humidify_operation))) return false;
+    if(compound && (humidity==H::Off || humidity==H::Unknown || ((variant==V::SararaDry || variant==V::UruruHumidify) && humidity==H::Low))) return false;
+    requested_variant_=variant;variant_pending_=true;
+    const auto mode=variant==V::Auto?AirConditionModeAuto:variant==V::FanOnly?AirConditionModeFan:variant==V::SararaDry?AirConditionModeDry:
+        (variant==V::Heat || variant==V::HumidHeating || variant==V::UruruHumidify)?AirConditionModeHeat:AirConditionModeCool;
+    setMode(mode);
+    if(!support_.simple_humidify || !compound) {
+        requested_humidity_mode_=compound?humidity:H::Off;
+        humidity_pending_=true;
+    }
+    return true;
+}
+
+bool DaikinDriver::setVerticalPositionCode(char position)
+{
+    if(position!='?' && (position<'0' || position>'5')) return false;
+    requested_vertical_position_=position=='?' ? 6 : position-'0';vertical_pending_=true;sendVerticalPositionCommand();return true;
 }
 
 // === Capability Queries ===
 float DaikinDriver::getMinimumTargetTemperature()
 {
     const auto mode = climate_dirty_ & DirtyMode ? pending_.climate.mode : state_.mode;
-    if (mode == daikin::Mode::Heat && state_.heatMinimumValid && state_.heatMinimumC <= getMaximumTargetTemperature())
+    const auto index=static_cast<size_t>(mode);
+    if(configured_temperature_mask_ & (1U<<index)) return configured_min_[index];
+    if (mode == daikin::Mode::Heat && state_.heatMinimumValid)
         return state_.heatMinimumC;
     return 18.0f; // conservative fallback where no absolute limit is documented
 }
 
 float DaikinDriver::getMaximumTargetTemperature()
 {
-    return 32.0f; // S21 protocol maximum temperature
+    const auto mode=climate_dirty_ & DirtyMode ? pending_.climate.mode : state_.mode;
+    const auto index=static_cast<size_t>(mode);
+    if(configured_temperature_mask_ & (1U<<index)) return configured_max_[index];
+    return std::max(32.0f, state_.heatMinimumValid && mode==daikin::Mode::Heat ? state_.heatMinimumC : 32.0f); // fallback policy, not a universal protocol limit
 }
 
 unsigned int DaikinDriver::getMaximumFanSpeed()
 {
+    if (support_.fan_capability_known && !support_.fan) return 0;
     return 6; // Allow Scene enumerations up to value 6 (0=Auto, 1=Silent, 2..6 -> Stufe 1..5)
 }
 
@@ -473,13 +629,13 @@ unsigned int DaikinDriver::getMaximumHorizontalFixPosition()
 
 unsigned int DaikinDriver::getMaximumVerticalFixPosition()
 {
-    return state_.verticalPositionVerified ? 5 : 0;
+    return dr_.read_supported ? 5 : 0; // addressable range, not certification of every position
 
 }
 
 unsigned int DaikinDriver::getMaximumHumidityModeLevels()
 {
-    return humidity_modes_ ? 5 : 0;
+    return humidity_modes_ && !support_.simple_humidify ? 5 : 0;
 }
 
 bool DaikinDriver::supportExternalRoomTemperatureSensor()
@@ -531,6 +687,7 @@ void DaikinDriver::setMode(AirConditionMode mode)
     // Update pending state - preserve current pending values, only change mode
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
     ++climate_generation_[1];
+    if (!variant_pending_) requested_variant_=daikin::ClimateVariant::Auto;
     climate_dirty_ |= DirtyMode;
     pending_.climate.mode = daikinMode; // UPDATE mode only
     pending_.activate_climate = true;
@@ -611,6 +768,7 @@ void DaikinDriver::setSwingHorizontal(bool swing)
         return;
     }
 
+    swing_dirty_ |= 2;
     pending_.climate.swing_v = wantV ? daikin::Swing::Vertical : daikin::Swing::Off;
     pending_.climate.swing_h = wantH ? daikin::Swing::Horizontal : daikin::Swing::Off;
     pending_.activate_swing_mode = true;
@@ -639,6 +797,7 @@ void DaikinDriver::setSwingVertical(bool swing)
         return;
     }
 
+    swing_dirty_ |= 1;
     pending_.climate.swing_v = wantV ? daikin::Swing::Vertical : daikin::Swing::Off;
     pending_.climate.swing_h = wantH ? daikin::Swing::Horizontal : daikin::Swing::Off;
     pending_.activate_swing_mode = true;
@@ -655,7 +814,7 @@ void DaikinDriver::setSwingHorizontalFixPosition(unsigned int position)
 
 void DaikinDriver::setSwingVerticalFixPosition(unsigned int position)
 {
-    if (position > 5 || dr_.write == CommandSupport::Unsupported) return;
+    if (position > 5) return;
     requested_vertical_position_ = position;
     vertical_pending_ = true;
     sendVerticalPositionCommand();
@@ -665,7 +824,8 @@ void DaikinDriver::sendVerticalPositionCommand()
 {
     if (!vertical_pending_ || !dr_.valid) return;
     PayloadBuffer payload = dr_.confirmed;
-    payload[0] = '0' + requested_vertical_position_;
+    payload[0] = requested_vertical_position_==6 ? '?' : '0' + requested_vertical_position_;
+    payload[1]=payload[2]=payload[3]='0';
     if (sendCombined("DR", payload)) vertical_pending_ = false;
 }
 
@@ -679,25 +839,32 @@ void DaikinDriver::setWifiLed(bool on)
     setLedState(on ? daikin::LedState::On : daikin::LedState::Off);
 }
 
+bool DaikinDriver::encodeHumidity(daikin::HumidityMode mode,uint8_t& wire) const
+{
+    using H=daikin::HumidityMode;
+    const auto operating=climate_dirty_ & DirtyMode ? pending_.climate.mode : state_.mode;
+    const bool heat=operating==daikin::Mode::Heat || (operating==daikin::Mode::Auto && state_.autoBias==daikin::AutoBias::Heating);
+    const bool cool=operating==daikin::Mode::Cool || operating==daikin::Mode::Dry || (operating==daikin::Mode::Auto && state_.autoBias==daikin::AutoBias::Cooling);
+    const bool humidify=(variant_pending_ && requested_variant_==daikin::ClimateVariant::UruruHumidify) || state_.climateVariant==daikin::ClimateVariant::UruruHumidify;
+    const uint8_t mask=humidify?32:operating==daikin::Mode::Auto?1:operating==daikin::Mode::Heat?4:operating==daikin::Mode::Cool?2:operating==daikin::Mode::Dry?16:0;
+    if (mode==H::Off) {wire='0';return true;}
+    if(support_.simple_humidify || !(humidity_modes_&mask) || (!heat && !cool) || ((operating==daikin::Mode::Dry || humidify) && mode==H::Low)) return false;
+    switch(mode) {
+        case H::Low:wire=heat?0x38:0x3A;break;
+        case H::Standard:wire=heat?0x39:0x3B;break;
+        case H::High:wire=heat?0x3A:0x3C;break;
+        case H::Continuous:wire=0xFF;break;
+        default:return false;
+    }
+    return true;
+}
+
 bool DaikinDriver::setHumidityMode(daikin::HumidityMode mode)
 {
-    using H = daikin::HumidityMode;
-    const bool heat = state_.mode == daikin::Mode::Heat;
-    const bool cool = state_.mode == daikin::Mode::Cool;
-    const bool dry = state_.mode == daikin::Mode::Dry;
-    const uint8_t mask = heat ? 4 : cool ? 2 : dry ? 16 : 0;
-    if (!(humidity_modes_ & mask) || mode == H::Unknown || (dry && mode == H::Low)) return false;
-    switch (mode) {
-        case H::Off: requested_humidity_ = '0'; break;
-        case H::Low: requested_humidity_ = heat ? 0x38 : 0x3A; break;
-        case H::Standard: requested_humidity_ = heat ? 0x39 : 0x3B; break;
-        case H::High: requested_humidity_ = heat ? 0x3A : 0x3C; break;
-        case H::Continuous: requested_humidity_ = 0xFF; break;
-        default: return false;
-    }
-    humidity_pending_ = true;
-    sendSwingCommand();
-    return true;
+    if(!serial_) return false;
+    uint8_t wire=0;if(!encodeHumidity(mode,wire)) return false;
+    requested_humidity_mode_=mode;requested_humidity_=wire;humidity_pending_=true;
+    sendSwingCommand();return true;
 }
 
 void DaikinDriver::setLedState(daikin::LedState led)
@@ -724,7 +891,7 @@ void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
 
 void DaikinDriver::setMaxPowerLevel(uint8_t percentage)
 {
-    if (!support_.demand || percentage > 100 || percentage < demand_minimum_ ||
+    if ((!support_.demand && !demand_configured_) || percentage > 100 || percentage < demand_minimum_ ||
         (100 - percentage) % demand_step_ != 0) {
         logInfoP("Demand percentage not verified for this model: %u", percentage);
         return;
@@ -737,6 +904,7 @@ void DaikinDriver::setMaxPowerLevel(uint8_t percentage)
 bool DaikinDriver::configureDemandLimits(uint8_t minimum, uint8_t step)
 {
     if (minimum > 100 || step == 0 || step > 100 || (100 - minimum) % step) return false;
+    demand_configured_=true;
     demand_minimum_ = minimum;
     demand_step_ = step;
     return true;
@@ -786,159 +954,68 @@ void DaikinDriver::initializeProtocolDetection()
 
 void DaikinDriver::initializeQueries()
 {
-    logDebugP("Initializing S21 queries for protocol v%d.%d", protocol_version_.major, protocol_version_.minor);
-
-    // Clear existing queries
-    queries_.clear();
-    query_index_ = 0;
-    protocol_detection_phase_ = false;
-
-    // Add ONLY supported queries based on detected protocol version
-    // F1 - Basic status (supported by all protocols)
-    queries_.emplace_back(StateQuery::Basic, [this](uint8_t* data, size_t data_size) { handle_f1_response(data, data_size); });
-
-    // F2 - Optional features (supported by all protocols) - static query (read once)
-    queries_.emplace_back(StateQuery::OptionalFeatures, [this](uint8_t* data, size_t data_size) { handle_f2_response(data, data_size); }, true);
-
-    // F5 - Swing/Humidity (supported by all protocols)
-    queries_.emplace_back(StateQuery::SwingOrHumidity, [this](uint8_t* data, size_t data_size) { handle_f5_response(data, data_size); });
-
-    queries_.emplace_back("F4", [this](uint8_t* data, size_t n) { handle_f4_response(data,n); });
-    queries_.emplace_back(StateQuery::OnOffTimer, [this](uint8_t* data, size_t n) { handle_f3_response(data,n); });
-    // F6 is read-only on some v0/v2 models. Probe it; discover support via NAK.
-    queries_.emplace_back(StateQuery::SpecialModes, [this](uint8_t* data, size_t n) { handle_f6_response(data,n); });
-
-    // Protocol version-specific queries
-    uint8_t major = protocol_version_.major;
-    uint8_t minor = protocol_version_.minor;
-
-    if (major >= 1)
-    { // New protocol v1.0+
-        queries_.emplace_back("FB", [this](uint8_t* data, size_t n) { handle_fb_response(data,n); });
-            queries_.emplace_back(StateQuery::InsideOutsideTemperatures, [this](uint8_t* data, size_t data_size) { handle_f9_response(data, data_size); });
-
-
-        if (major >= 2)
-        { // Protocol v2.0+
-            queries_.emplace_back("FR", [this](uint8_t* data, size_t n) { handle_fr_response(data,n); });
-            queries_.emplace_back(StateQuery::DemandAndEcono, [this](uint8_t* data, size_t data_size) { handle_f7_response(data, data_size); });
-            queries_.emplace_back(StateQuery::ModelCode, [this](uint8_t* data, size_t data_size) { handle_fc_response(data, data_size); });
-            queries_.emplace_back(StateQuery::IRCounter, [this](uint8_t* data, size_t data_size) { handle_fg_response(data, data_size); });
-            queries_.emplace_back(StateQuery::PowerConsumption, [this](uint8_t* data, size_t data_size) { handle_fm_response(data, data_size); });
-
-            // additional capability discovery queries - static (read once)
-            queries_.emplace_back(StateQuery::CapabilityN, [this](uint8_t* data, size_t data_size) { handle_fn_response(data, data_size); }, true);
-            queries_.emplace_back(StateQuery::CapabilityP, [this](uint8_t* data, size_t data_size) { handle_fp_response(data, data_size); }, true);
-            queries_.emplace_back(StateQuery::CapabilityQ, [this](uint8_t* data, size_t data_size) { handle_fq_response(data, data_size); }, true);
-            queries_.emplace_back(StateQuery::CapabilityS, [this](uint8_t* data, size_t data_size) { handle_fs_response(data, data_size); }, true);
-            queries_.emplace_back(StateQuery::CapabilityT, [this](uint8_t* data, size_t data_size) { handle_ft_response(data, data_size); }, true);
-            // FK is optional - only add for newer versions - static (read once)
-            if (major >= 2)
-            {
-                queries_.emplace_back(StateQuery::CapabilityK, [this](uint8_t* data, size_t data_size) { handle_fk_response(data, data_size); }, true);
-            }
-        }
+    queries_.clear();query_index_=0;protocol_detection_phase_=false;
+    auto add=[&](std::string_view cmd,DaikinQueryState::handler_fn handler=nullptr,bool once=false,uint32_t interval=0){
+        queries_.emplace_back(cmd,handler,once);queries_.back().interval_ms=interval;
+    };
+    add("F1",[this](uint8_t* d,size_t n){handle_f1_response(d,n);});
+    add("F2",[this](uint8_t* d,size_t n){handle_f2_response(d,n);});
+    add("F3",[this](uint8_t* d,size_t n){handle_f3_response(d,n);});
+    add("F4",[this](uint8_t* d,size_t n){handle_f4_response(d,n);});
+    add("F5",[this](uint8_t* d,size_t n){handle_f5_response(d,n);});
+    add("F6",[this](uint8_t* d,size_t n){handle_f6_response(d,n);});
+    add("F8",[this](uint8_t* d,size_t n){handle_f8_response(d,n);});
+    for(auto cmd:{std::string_view{"M"},std::string_view{"V"}}) add(cmd,[this,cmd](uint8_t* d,size_t n){handle_metadata(cmd,d,n);},true);
+    const auto major=protocol_version_.major,minor=protocol_version_.minor;
+    if(major>=1) {
+        add("F9",[this](uint8_t* d,size_t n){handle_f9_response(d,n);});
+        add("FB",[this](uint8_t* d,size_t n){handle_fb_response(d,n);});
+        add("FC",[this](uint8_t* d,size_t n){handle_fc_response(d,n);},true);
+        add("FA");
     }
-
-    if (major >= 3) {
-        queries_.emplace_back("FY10", nullptr, true); // identity only; meaning unknown
-        queries_.emplace_back("FY20", nullptr, true);
+    if(major>=2) {
+        add("F7",[this](uint8_t* d,size_t n){handle_f7_response(d,n);});
+        add("FR",[this](uint8_t* d,size_t n){handle_fr_response(d,n);});
+        add("FG",[this](uint8_t* d,size_t n){handle_fg_response(d,n);});
+        add("FK",[this](uint8_t* d,size_t n){handle_fk_response(d,n);});
+        add("FM",[this](uint8_t* d,size_t n){handle_fm_response(d,n);});
+        for(auto cmd:{std::string_view{"FN"},std::string_view{"FP"},std::string_view{"FQ"},std::string_view{"FS"},std::string_view{"FT"}})
+            add(cmd,[this,cmd](uint8_t* d,size_t n){handle_metadata(cmd,d,n);});
+        add("FL");add("FV");
+        add("VS000M",[this](uint8_t* d,size_t n){handle_firmware_response(d,n);},true);
     }
-    if (major >= 2)
-        queries_.emplace_back("VS000M", [this](uint8_t* data, size_t n) { handle_firmware_response(data,n); }, true);
-
-    // v3.20+ extension fields (FU** / FX**) from S21 protocol wiki
-    if (major > 3 || (major == 3 && minor >= 20))
-    {
-        // FU**: keep FU00 as static capabilities; poll FU02/FU04 each cycle
-        queries_.emplace_back(StateQuery::ExtensionFU00, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU00, data, data_size); }, true);
-        queries_.emplace_back(StateQuery::ExtensionFU02, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU02, data, data_size); }, true);
-        queries_.emplace_back(StateQuery::ExtensionFU04, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU04, data, data_size); });
-
-        // FX** baseline extension pages (read once)
-        constexpr std::array<std::string_view, 13> fx_v320 = {
-            StateQuery::ExtensionFX00, StateQuery::ExtensionFX10, StateQuery::ExtensionFX20, StateQuery::ExtensionFX30,
-            StateQuery::ExtensionFX40, StateQuery::ExtensionFX50, StateQuery::ExtensionFX60, StateQuery::ExtensionFX70,
-            StateQuery::ExtensionFX80, StateQuery::ExtensionFX90, StateQuery::ExtensionFXA0, StateQuery::ExtensionFXB0,
-            StateQuery::ExtensionFXC0};
-
-        for (const auto cmd : fx_v320)
-        {
-            queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, cmd != StateQuery::ExtensionFX60);
-            if (cmd == StateQuery::ExtensionFX60) {
+    if(major>=3) {
+        add("FY00",[this](uint8_t* d,size_t n){handle_fy00_response(d,n);},true);
+        add("FY10",nullptr,true);add("FY20",nullptr,true);
+    }
+    if(major>3 || (major==3 && minor>=1)) add("FU02",[this](uint8_t* d,size_t n){handle_fu_fx_response("FU02",d,n);});
+    if(major>3 || (major==3 && minor>=20)) {
+        add("FU00",[this](uint8_t* d,size_t n){handle_fu_fx_response("FU00",d,n);},true);
+        add("FU04",[this](uint8_t* d,size_t n){handle_fu_fx_response("FU04",d,n);});
+        for(std::string_view cmd:std::initializer_list<std::string_view>{"FX00","FX10","FX20","FX30","FX40","FX50","FX60","FX70","FX80","FX90","FXA0","FXB0","FXC0"}) {
 #ifdef DAIKIN_LIVE_POWER_INTERVAL_MS
-                queries_.back().interval_ms = DAIKIN_LIVE_POWER_INTERVAL_MS;
+            const uint32_t live_interval=DAIKIN_LIVE_POWER_INTERVAL_MS;
 #else
-                queries_.back().interval_ms = 10000;
+            const uint32_t live_interval=10000;
 #endif
-            }
+            add(cmd,[this,cmd](uint8_t* d,size_t n){handle_fu_fx_response(cmd,d,n);},false,cmd=="FX60"?live_interval:60000);
         }
-
-        // v3.40+ additional extension pages (read once)
-        if (major > 3 || (major == 3 && minor >= 40))
-        {
-            constexpr std::array<std::string_view, 5> fu_v340 = {
-                StateQuery::ExtensionFU05, StateQuery::ExtensionFU15, StateQuery::ExtensionFU25, StateQuery::ExtensionFU35, StateQuery::ExtensionFU45};
-
-            constexpr std::array<std::string_view, 12> fx_v340 = {
-                StateQuery::ExtensionFXD0, StateQuery::ExtensionFXE0, StateQuery::ExtensionFXF0, StateQuery::ExtensionFX01,
-                StateQuery::ExtensionFX11, StateQuery::ExtensionFX21, StateQuery::ExtensionFX31, StateQuery::ExtensionFX41,
-                StateQuery::ExtensionFX51, StateQuery::ExtensionFX61, StateQuery::ExtensionFX71, StateQuery::ExtensionFX81};
-
-            for (const auto cmd : fu_v340)
-            {
-#ifndef DAIKIN_PRODUCTION_DIAGNOSTICS
-                if (cmd != StateQuery::ExtensionFU05) continue;
-#endif
-                queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, true);
-            }
-            for (const auto cmd : fx_v340)
-            {
-                queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, true);
-            }
-        }
+        add("Rz52",nullptr,false,60000);add("Rz72",nullptr,false,60000);
     }
-
-    if (major > 3 || (major == 3 && minor >= 20)) {
-        // Rz52/Rz72 are distinct, undocumented pages; retain bytes only.
-        queries_.emplace_back("Rz52", nullptr, true);
-        queries_.emplace_back("Rz72", nullptr, true);
+    if(major>3 || (major==3 && minor>=40)) {
+        for(std::string_view cmd:std::initializer_list<std::string_view>{"FU05","FU15","FU25","FU35","FU45"}) add(cmd,[this,cmd](uint8_t* d,size_t n){handle_fu_fx_response(cmd,d,n);},true);
+        for(std::string_view cmd:std::initializer_list<std::string_view>{"FXD0","FXE0","FXF0","FX01","FX11","FX21","FX31","FX41","FX51","FX61","FX71","FX81"}) add(cmd,[this,cmd](uint8_t* d,size_t n){handle_fu_fx_response(cmd,d,n);},false,60000);
     }
-#ifdef DAIKIN_EXTRA_DIAGNOSTICS
-    queries_.emplace_back("Rb"); // raw research sample; no physical units assigned
-    for (auto cmd : {std::string_view{"RF"}, std::string_view{"RD"}, std::string_view{"RE"}})
-        queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_supplemental_sensor(cmd,data,n); });
-    // Optional cross-checks do not replace precise F1/RX climate state.
-    for (auto cmd : {std::string_view{"RA"}, std::string_view{"RB"}, std::string_view{"RC"}})
-        queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_status_sensor(cmd,data,n); });
-#endif
-    queries_.emplace_back("RM", [this](uint8_t* data, size_t n) { handle_vane_angle(true,data,n); });
-    queries_.emplace_back("RN", [this](uint8_t* data, size_t n) { handle_vane_angle(false,data,n); });
-    queries_.emplace_back("RK", [this](uint8_t* data, size_t n) { handle_fan_rpm(true,data,n); });
-    queries_.emplace_back("RL", [this](uint8_t* data, size_t n) { handle_fan_rpm(false,data,n); });
-    queries_.emplace_back("RI", [this](uint8_t* data, size_t n) { handle_ri_response(data,n); });
-    // Environment queries (most are supported across protocols)
-    queries_.emplace_back(EnvironmentQuery::InsideTemperature, [this](uint8_t* data, size_t data_size) { handle_rh_response(data, data_size); });
-    queries_.emplace_back(EnvironmentQuery::TargetTemperature, [this](uint8_t* data, size_t data_size) { handle_rx_response(data, data_size); });
-    queries_.emplace_back(EnvironmentQuery::FanMode, [this](uint8_t* data, size_t data_size) { handle_rg_response(data, data_size); });
-    queries_.emplace_back(EnvironmentQuery::OutsideTemperature, [this](uint8_t* data, size_t data_size) { handle_ra_response(data, data_size); });
-
-    { // Sensor query support is learned from runtime NAKs
-        queries_.emplace_back(EnvironmentQuery::CompressorFrequency, [this](uint8_t* data, size_t data_size) { handle_rd_response(data, data_size); });
-        queries_.emplace_back(EnvironmentQuery::IndoorHumidity, [this](uint8_t* data, size_t data_size) { handle_re_response(data, data_size); });
-    }
-    { // Rg is also documented on v0 / unversioned units
-        queries_.emplace_back(EnvironmentQuery::CompressorOnOff, [this](uint8_t* data, size_t data_size) { handle_rg2_response(data, data_size); });
-        if (major >= 3)
-        { // Very advanced queries for v3.0+
-            queries_.emplace_back(EnvironmentQuery::UnitState, [this](uint8_t* data, size_t data_size) { handle_rzb2_response(data, data_size); });
-            queries_.emplace_back(EnvironmentQuery::SystemState, [this](uint8_t* data, size_t data_size) { handle_rzc3_response(data, data_size); });
-        }
-    }
-
-    logInfoP("Initialized %zu S21 queries for protocol v%d.%d (%s)",
-             queries_.size(), major, minor,
-             major == 0 ? "old protocol" : "new protocol");
+    for(std::string_view cmd:std::initializer_list<std::string_view>{"RA","RB","RC"}) add(cmd,[this,cmd](uint8_t* d,size_t n){handle_status_sensor(cmd,d,n);});
+    for(std::string_view cmd:std::initializer_list<std::string_view>{"RD","RE","RF"}) add(cmd,[this,cmd](uint8_t* d,size_t n){handle_supplemental_sensor(cmd,d,n);});
+    for(std::string_view cmd:std::initializer_list<std::string_view>{"Rb","Rm","Rt","RW"}) add(cmd,[this,cmd](uint8_t* d,size_t n){handle_aux_sensor(cmd,d,n);});
+    add("RM",[this](uint8_t* d,size_t n){handle_vane_angle(true,d,n);});add("RN",[this](uint8_t* d,size_t n){handle_vane_angle(false,d,n);});
+    add("RK",[this](uint8_t* d,size_t n){handle_fan_rpm(true,d,n);});add("RL",[this](uint8_t* d,size_t n){handle_fan_rpm(false,d,n);});
+    add("RI",[this](uint8_t* d,size_t n){handle_ri_response(d,n);});add("RH",[this](uint8_t* d,size_t n){handle_rh_response(d,n);});
+    add("RX",[this](uint8_t* d,size_t n){handle_rx_response(d,n);});add("RG",[this](uint8_t* d,size_t n){handle_rg_response(d,n);});
+    add("Ra",[this](uint8_t* d,size_t n){handle_ra_response(d,n);});add("Rd",[this](uint8_t* d,size_t n){handle_rd_response(d,n);});
+    add("Re",[this](uint8_t* d,size_t n){handle_re_response(d,n);});add("Rg",[this](uint8_t* d,size_t n){handle_rg2_response(d,n);});
+    add("RzB2",[this](uint8_t* d,size_t n){handle_rzb2_response(d,n);});add("RzC3",[this](uint8_t* d,size_t n){handle_rzc3_response(d,n);});
 }
 
 void DaikinDriver::updateQueryStateMachine()
@@ -951,24 +1028,7 @@ void DaikinDriver::updateQueryStateMachine()
     switch (query_state_)
     {
         case QueryState::Idle:
-            // Check if it's time to start a new query cycle
-            if (now - last_query_cycle_ >= QUERY_CYCLE_INTERVAL_MS)
-            {
-                // Skip legacy cooldown check if we've already handled post-write settle
-                bool skip_cooldown = (last_write_time_ != 0 && last_command_time_ == last_write_time_);
-                // Check if we're in legacy command cooldown (for non-post-write commands)
-                if (!skip_cooldown && last_command_time_ != 0 && (now - last_command_time_) < COMMAND_COOLDOWN_MS)
-                {
-                    query_state_ = QueryState::Cooldown;
-                    state_start_time_ = now;
-                    logDebugP("Legacy command cooldown active, waiting %lu ms",
-                              COMMAND_COOLDOWN_MS - (now - last_command_time_));
-                }
-                else
-                {
-                    triggerQueryCycle();
-                }
-            }
+            if(now-last_query_cycle_>=timing_.cycle_ms) triggerQueryCycle();
             break;
 
         case QueryState::WaitingToSend:
@@ -986,6 +1046,7 @@ void DaikinDriver::updateQueryStateMachine()
                     search_iterations++;
 
                     // Smart NAK tracking: skip bad queries
+                    if(query.bad && now-query.last_nak_ms>=timing_.reprobe_ms) {query.bad=false;query.naks=0;}
                     if (query.bad)
                     {
                         // logDebugP("Skipping bad query (marked as unsupported): %.*s", static_cast<int>(query.command.size()), query.command.data());
@@ -1006,8 +1067,11 @@ void DaikinDriver::updateQueryStateMachine()
                         // Send this query
                         // logDebugP("S21: Protocol detection - sending %.*s", static_cast<int>(query.command.size()), query.command.data());
 
+                        invalidatePage(query.command);
+                        serial_->configureTimeouts(isFirstF1AfterWrite?timing_.post_write_f1_ms:timing_.ack_ms,isFirstF1AfterWrite?timing_.post_write_f1_ms:timing_.rx_ms);
                         std::string cmd_str(query.command);
-                        serial_->send_frame(cmd_str);
+                        query_state_=QueryState::WaitingForAck;
+                        if (!serial_->send_frame(cmd_str)) break;
 
                         last_send_time_ = now;
                         last_query_time_ = now;
@@ -1102,68 +1166,17 @@ void DaikinDriver::updateQueryStateMachine()
             break;
 
         case QueryState::WaitingForAck:
-        {
-            // Dynamic timeout: extended for first F1 after write command (v0 stability)
-            uint32_t ack_deadline = isFirstF1AfterWrite ? POST_WRITE_F1_TIMEOUT_MS : ACK_WAIT_TIMEOUT_MS;
-            if (now - state_start_time_ >= ack_deadline)
-            {
-                if (isFirstF1AfterWrite)
-                {
-                    logDebugP("Extended F1 timeout (%u ms), entering grace period for late responses", ack_deadline);
-                }
-                else
-                {
-                    logDebugP("Query timeout, entering grace period for late responses");
-                }
-                query_state_ = QueryState::WaitingForGrace;
-                state_start_time_ = now;
-            }
-            // Response handling is done in handle_serial_result callback
-            break;
-        }
-
         case QueryState::WaitingForGrace:
-        {
-            // Dynamic grace period: extended for first F1 after write command (v0 stability)
-            uint32_t grace_deadline = isFirstF1AfterWrite ? POST_WRITE_F1_TIMEOUT_MS : GRACE_PERIOD_MS;
-            if (now - state_start_time_ >= grace_deadline && !serial_->busy())
-            {
-                if (query_index_ < queries_.size())
-                {
-                    auto& query = queries_[query_index_];
-                    if (isFirstF1AfterWrite)
-                    {
-                        logDebugP("Extended F1 grace period expired (%u ms) for %.*s, advancing to next",
-                                  grace_deadline, static_cast<int>(query.command.size()), query.command.data());
-                    }
-                    else
-                    {
-                        logDebugP("Grace period expired for %.*s, advancing to next",
-                                  static_cast<int>(query.command.size()), query.command.data());
-                    }
-                }
-                query_index_++;
-                query_state_ = QueryState::WaitingToSend;
-                state_start_time_ = now;
-            }
-            // Still accept late responses during grace period
+            // ACK/frame/NAK/timeout/error callbacks exclusively advance the query.
             break;
-        }
 
         case QueryState::Cooldown:
-            // Wait for command cooldown to complete
-            if (last_command_time_ == 0 || (now - last_command_time_) >= COMMAND_COOLDOWN_MS)
-            {
-                logDebugP("Command cooldown complete, resuming queries");
-                query_state_ = QueryState::Idle;
-                // Trigger immediate query cycle
-                last_query_cycle_ = now - QUERY_CYCLE_INTERVAL_MS;
-            }
+            query_state_=QueryState::Idle;
             break;
 
         case QueryState::PostWriteSettle:
             // v0 stability: Extended settling period after write commands
-            if (last_write_time_ != 0 && (now - last_write_time_) >= getSettlePeriodForCommand(last_write_command_))
+            if ((now - last_write_time_) >= getSettlePeriodForCommand(last_write_command_))
             {
                 logInfoP("Post-write settle complete, scheduling first F1 query with extended timeout");
 
@@ -1176,14 +1189,6 @@ void DaikinDriver::updateQueryStateMachine()
 
                 scheduleFirstF1AfterWrite(); // First query after write gets special handling for v0 stability
             }
-            else if (last_write_time_ == 0)
-            {
-                // Safety recovery: if settle state is active but no write timestamp exists,
-                // resume normal query flow instead of getting stuck forever in PostWriteSettle.
-                logDebugP("Post-write settle active without write timestamp, recovering query state");
-                query_state_ = QueryState::WaitingToSend;
-                state_start_time_ = now;
-            }
             break;
     }
 }
@@ -1193,14 +1198,9 @@ bool DaikinDriver::canSendQuery() const
     if (!serial_ || serial_->busy()) return false;
     uint32_t now = millis();
     // Determine effective inter-query delay based on system load
-    uint32_t effective_delay = high_load_detected_ ? INTER_QUERY_DELAY_HIGH_LOAD_MS : INTER_QUERY_DELAY_MS;
+    uint32_t effective_delay = high_load_detected_ ? timing_.high_load_ms : timing_.inter_query_ms;
     // Check minimum time between sends
     if (last_send_time_ != 0 && (now - last_send_time_) < effective_delay)
-    {
-        return false;
-    }
-    // Check command cooldown
-    if (last_command_time_ != 0 && (now - last_command_time_) < COMMAND_COOLDOWN_MS)
     {
         return false;
     }
@@ -1213,15 +1213,6 @@ void DaikinDriver::triggerQueryCycle()
     // Don't start new cycle if one is already running
     if (query_state_ != QueryState::Idle)
     {
-        return;
-    }
-    // Check command cooldown before starting
-    if (last_command_time_ != 0 && (now - last_command_time_) < COMMAND_COOLDOWN_MS)
-    {
-        logDebugP("Query cycle delayed - in command cooldown (%lu ms remaining)",
-                  COMMAND_COOLDOWN_MS - (now - last_command_time_));
-        query_state_ = QueryState::Cooldown;
-        state_start_time_ = now;
         return;
     }
     last_query_cycle_ = now;
@@ -1242,124 +1233,12 @@ void DaikinDriver::startQueryCycle()
 
 bool DaikinDriver::isQuerySupported(std::string_view command) const
 {
-    if ((command == "RM" || command == "RN") && !support_.swing) return false;
-    if ((command == "RK" || command == "RL") && support_.fan_capability_known && !support_.fan) return false;
-    // Check if this query has been marked as failed
-    auto it = std::find(failed_queries_.begin(), failed_queries_.end(), command);
-    if (it != failed_queries_.end())
-    {
-        return false;
-    }
-
-    // Protocol version-based filtering according to S21 wiki support matrix
-    uint8_t major = protocol_version_.major;
-    uint8_t minor = protocol_version_.minor;
-
-    // FY00 (New Protocol) query filtering according to wiki:
-    if (command == StateQuery::NewProtocol)
-    {
-        // Always allow FY00 during protocol detection to sanity-check v0.0
-        if (protocol_detection_phase_)
-        {
-            return true;
-        }
-        // Skip FY00 if old protocol (v0) confirmed after FY00 probe
-        if (old_protocol_detected_ || major == 0)
-        {
-            logDebugP("Skipping FY00 - old protocol v%d.%d confirmed", major, minor);
-            return false;
-        }
-        // Skip FY00 if we're in protocol detection and haven't done F8 yet
-        if (protocol_detection_phase_ && protocol_version_ == daikin::ProtocolUndetected)
-        {
-            // FY00 should only run AFTER F8 in protocol detection
-            return true; // Will be controlled by query order
-        }
-        return true;
-    }
-
-    // F8 (Old Protocol) query filtering:
-    if (command == StateQuery::OldProtocol)
-    {
-        // F8 is always supported in protocol detection phase
-        if (protocol_detection_phase_)
-        {
-            return true;
-        }
-        // Skip F8 in normal operation if new protocol detected
-        if (major > 0)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    // Skip v2+/v3+ queries if old protocol detected
-    if (old_protocol_detected_ || (major == 0))
-    {
-        // Protocol v0 - only basic F commands supported per wiki
-        if (command == StateQuery::ModelCode ||                 // FC - v2+ only
-            command == StateQuery::IRCounter ||                 // FG - v2+ only
-            command == StateQuery::PowerConsumption ||          // FM - v2+ only
-            command == StateQuery::DemandAndEcono ||            // F7 - v2+ only
-            command == StateQuery::InsideOutsideTemperatures || // F9 - v2+ only
-            command == EnvironmentQuery::UnitState ||           // RzB2 - newer protocols
-            command == EnvironmentQuery::SystemState)
-        { // RzC3 - newer protocols
-            logDebugP("Skipping v2+/v3+ query %.*s - old protocol v%d.%d detected",
-                      static_cast<int>(command.size()), command.data(), major, minor);
-            return false;
-        }
-    }
-
-    // Protocol v2.0 specific filtering per wiki
-    if (major == 2 && minor == 0)
-    {
-        // v2.0 supports most commands but has some limitations
-        // (No specific exclusions mentioned in wiki for v2.0)
-    }
-
-    // Protocol v3+ specific commands per wiki
-    if (major < 3)
-    {
-        if (command.size() >= 2 && (command.substr(0, 2) == "FU" || command.substr(0, 2) == "FX"))
-        { // FU** - v3.20+ only per wiki, FX** - v3+ only per wiki
-            logDebugP("Skipping v3+ query %.*s - protocol v%d.%d too old",
-                      static_cast<int>(command.size()), command.data(), major, minor);
-            return false;
-        }
-    }
-
-    // Extended FU queries require v3.20+ per wiki
-    if (major < 3 || (major == 3 && minor < 20))
-    {
-        if (command.size() > 3 && command.substr(0, 3) == "FU0")
-        { // FU02, FU04, etc.
-            logDebugP("Skipping v3.20+ query %.*s - protocol v%d.%d too old",
-                      static_cast<int>(command.size()), command.data(), major, minor);
-            return false;
-        }
-    }
-
-    // Additional FU/FX pages are only available from v3.40+
-    if (major < 3 || (major == 3 && minor < 40))
-    {
-        if (command == StateQuery::ExtensionFU05 || command == StateQuery::ExtensionFU15 ||
-            command == StateQuery::ExtensionFU25 || command == StateQuery::ExtensionFU35 ||
-            command == StateQuery::ExtensionFU45 || command == StateQuery::ExtensionFXD0 ||
-            command == StateQuery::ExtensionFXE0 || command == StateQuery::ExtensionFXF0 ||
-            command == StateQuery::ExtensionFX01 || command == StateQuery::ExtensionFX11 ||
-            command == StateQuery::ExtensionFX21 || command == StateQuery::ExtensionFX31 ||
-            command == StateQuery::ExtensionFX41 || command == StateQuery::ExtensionFX51 ||
-            command == StateQuery::ExtensionFX61 || command == StateQuery::ExtensionFX71 ||
-            command == StateQuery::ExtensionFX81)
-        {
-            logDebugP("Skipping v3.40+ query %.*s - protocol v%d.%d too old",
-                      static_cast<int>(command.size()), command.data(), major, minor);
-            return false;
-        }
-    }
-
+    if(state_.serialErrorValid && state_.serialError && command!="F1" && command!="F2" && command!="F3" && command!="F4") return false;
+    if((command=="RM" || command=="RN") && support_.f2_known && !support_.swing) return false;
+    if((command=="RK" || command=="RL") && support_.fan_capability_known && !support_.fan) return false;
+    if(!production_polling_ && (command=="FU15" || command=="FU25" || command=="FU35" || command=="FU45")) return false;
+    if(!research_polling_ && (command=="FA" || command=="FL" || command=="FV" || command=="Rm" || command=="Rt" || command=="RW")) return false;
+    if(!extended_polling_ && (command=="RA" || command=="RB" || command=="RC" || command=="RD" || command=="RE" || command=="RF")) return false;
     return true;
 }
 
@@ -1385,13 +1264,13 @@ uint32_t DaikinDriver::getSettlePeriodForCommand(LastWriteCommand cmd_type) cons
     switch (cmd_type)
     {
         case LastWriteCommand::D1_ModePower:
-            return is_v0 ? SETTLE_AFTER_D1_MS : 3000; // v0: 4.5s, others: 3s
+            return is_v0 ? timing_.v0_d1_settle_ms : timing_.d1_settle_ms; // v0: 4.5s, others: 3s
         case LastWriteCommand::D5_Swing:
-            return is_v0 ? SETTLE_AFTER_D5_MS : 2000; // v0: 2.8s, others: 2s
+            return is_v0 ? timing_.v0_d5_settle_ms : timing_.d5_settle_ms; // v0: 2.8s, others: 2s
         case LastWriteCommand::Other:
-            return is_v0 ? SETTLE_AFTER_OTHER_MS : 1000; // v0: 1.5s, others: 1s
+            return is_v0 ? timing_.v0_other_settle_ms : timing_.other_settle_ms; // v0: 1.5s, others: 1s
         default:
-            return is_v0 ? SETTLE_AFTER_OTHER_MS : 1000; // Default fallback
+            return is_v0 ? timing_.v0_other_settle_ms : timing_.other_settle_ms; // Default fallback
     }
 }
 
@@ -1402,7 +1281,7 @@ bool DaikinDriver::isInPostWriteSettle() const
 
 bool DaikinDriver::isProtocolV0() const
 {
-    return protocol_version_.major == 0 && protocol_version_.minor == 0;
+    return protocol_version_.major == 0;
 }
 
 void DaikinDriver::clearRxBuffer()
@@ -1474,7 +1353,7 @@ void DaikinDriver::sendClimateCommand()
     PayloadBuffer payload;
 
     // Only explicit requests override the most recent confirmed device sample.
-    if (!(sample_seen_mask_ & SEEN_F1)) return;
+    if (!state_.basicValid || !(sample_seen_mask_ & SEEN_F1)) return;
     if (!(climate_dirty_ & DirtyPower)) pending_.climate.power = state_.power;
     if (!(climate_dirty_ & DirtyMode)) pending_.climate.mode = state_.mode;
     if (!(climate_dirty_ & DirtyTemperature)) pending_.climate.targetC = state_.targetC;
@@ -1507,6 +1386,10 @@ void DaikinDriver::sendClimateCommand()
     // Byte 2: Target temperature (format: (setpoint/5) + 28)
     int16_t setpoint_c10 = static_cast<int16_t>(temp_to_send * 10); // Convert to C*10
     payload[2] = (setpoint_c10 / 5) + 28;
+    if(mode_to_send==daikin::Mode::Dry) payload[2]=0x80;
+    if(variant_pending_ && requested_variant_==daikin::ClimateVariant::UruruHumidify) payload[2]=0xC0;
+    if (!(climate_dirty_ & DirtyTemperature) && !(climate_dirty_ & DirtyMode) && state_.targetTemperatureValid)
+        payload[2]=state_.setpointRaw;
     if (!(climate_dirty_ & (DirtyMode | DirtyTemperature)) && state_.setpointRawValid &&
         (state_.setpointRaw == 0x80 || state_.setpointRaw == 0xC0)) payload[2] = state_.setpointRaw;
 
@@ -1607,7 +1490,8 @@ void DaikinDriver::sendClimateCommand()
     sent_climate_generation_ = climate_generation_;
     d1_awaiting_ack_ = true;
     climate_confirmation_started_ = millis();
-    serial_->send_frame(cmd, payload.data(), 4);
+    climate_outcome_=WriteOutcome::AwaitingAck;
+    if (!serial_->send_frame(cmd, payload.data(), 4)) {pending_.activate_climate=climate_dirty_!=0;return;}
 
     // Store payload for deduplication
     std::copy(payload.begin(), payload.begin() + 4, last_sent_d1_payload_.begin());
@@ -1634,6 +1518,7 @@ void DaikinDriver::sendClimateCommand()
         pending_explicit_fan_ = false;
     }
     pending_.activate_climate = false;
+    variant_pending_=false;
 }
 
 
@@ -1645,17 +1530,20 @@ void DaikinDriver::sendSwingCommand()
         pending_.activate_swing_mode = false;
         if (!humidity_pending_) return;
     }
-    const bool v = pending_.climate.swing_v == daikin::Swing::Vertical;
-    const bool h = pending_.climate.swing_h == daikin::Swing::Horizontal;
+    const bool v = swing_dirty_&1 ? pending_.climate.swing_v==daikin::Swing::Vertical : d5_.confirmed[0]=='1' || d5_.confirmed[0]=='7';
+    const bool h = swing_dirty_&2 ? pending_.climate.swing_h==daikin::Swing::Horizontal : d5_.confirmed[0]=='2' || d5_.confirmed[0]=='7';
     PayloadBuffer payload = d5_.confirmed;
     if (pending_.activate_swing_mode) {
         payload[0] = v && h ? '7' : v ? '1' : h ? '2' : '0';
         payload[1] = v || h ? '?' : '0';
     }
-    if (humidity_pending_) payload[2] = requested_humidity_;
+    if (humidity_pending_) {
+        if (!encodeHumidity(requested_humidity_mode_,requested_humidity_)) {humidity_pending_=false;return;}
+        payload[2] = requested_humidity_;
+    }
     payload[3] = '0'; // request format differs from G5 response byte 3
     // Preserve the humidity field; response-only reserved bytes are not echoed.
-    if (sendCombined("D5", payload)) { pending_.activate_swing_mode = false; humidity_pending_ = false; }
+    if (sendCombined("D5", payload)) { pending_.activate_swing_mode = false; humidity_pending_ = false; swing_dirty_=0; }
 }
 
 void DaikinDriver::sendPowerfulCommand()
@@ -1698,21 +1586,25 @@ void DaikinDriver::sendStreamerCommand()
     if (pending_.activate_streamer) sendSpecialModesCommand();
 }
 
-bool DaikinDriver::sendCombined(std::string_view command, const PayloadBuffer& payload)
+bool DaikinDriver::sendCombined(std::string_view command,const PayloadBuffer& payload)
 {
-    CombinedCommand& combined = command == "D5" ? d5_ : command == "D6" ? d6_ : command == "DR" ? dr_ : command == "D3" ? d3_ : d7_;
-    if (!serial_ || serial_->busy() || isInPostWriteSettle() || !combined.valid ||
-        combined.write == CommandSupport::Unsupported) return false;
-    const size_t size = command == "D3" ? 3 : payload.size();
-    for (size_t i=0;i<size;i++) {
-        const uint8_t b = payload[i];
-        if (b == 2 || b == 3 || b == 6 || b == 0x15 || b == 0x0A) return false;
+    auto* p=combinedFor(command);
+    if(!p || !serial_ || serial_->busy() || diagnostic_active_ || isInPostWriteSettle() || !p->valid) return false;
+    const size_t size=command=="D3"?3:4;
+    for(size_t i=0;i<size;i++) if(daikin::s21::forbidden(payload[i])) return false;
+    if(p->rejected_valid && payload==p->rejected && millis()-p->last_rejection_ms<timing_.reprobe_ms) return true; // report rejection, never replay it later
+    p->mask.fill(0);
+    for(size_t i=0;i<size;i++) {
+        if((command=="D5" && i==3) || (command=="D7" && i>=2) || (command=="DR" && i>=1)) continue;
+        if(payload[i]!=p->confirmed[i]) p->mask[i]=command=="D6" ? payload[i]^p->confirmed[i] : 0xFF;
     }
-    outstanding_write_ = command;
-    serial_->send_frame(command, payload.data(), size);
-    combined.valid = false; // require fresh readback before another shared-field write
-    last_send_time_ = millis();
-    handleWriteCommandSent(command == "D5" ? LastWriteCommand::D5_Swing : LastWriteCommand::Other);
+    bool changed=false;for(auto m:p->mask) changed|=m!=0;
+    if(!changed) return true; // already confirmed; do not manufacture write capability
+    p->requested=payload;p->outcome=WriteOutcome::AwaitingAck;p->sent_ms=millis();p->awaiting_readback=false;
+    outstanding_write_=command;
+    if(!serial_->send_frame(command,payload.data(),size)) {p->outcome=WriteOutcome::Error;outstanding_write_={};return false;}
+    p->valid=false;last_send_time_=millis();
+    handleWriteCommandSent(command=="D5"?LastWriteCommand::D5_Swing:LastWriteCommand::Other);
     return true;
 }
 
@@ -1783,6 +1675,9 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     state_.basicValid = true;
     state_.setpointRaw = data[2]; state_.setpointRawValid = true;
     state_.targetTemperatureValid = data[2] >= 0x30 && data[2] <= 0x7F;
+    using Variant=daikin::ClimateVariant;
+    state_.climateVariantValid=true;
+    state_.climateVariant=data[1]=='2'?Variant::SararaDry:data[1]=='4'?(data[2]==0xC0?Variant::UruruHumidify:Variant::Heat):data[1]=='3'?Variant::Cool:data[1]=='6'?Variant::FanOnly:Variant::Auto;
     // Power: ASCII '1' = on, '0' = off
     state_.power = (data[0] == '1');
 
@@ -1933,7 +1828,11 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
 
     // A fresh post-write readback is authoritative. Do not replay a rejected or
     // remotely superseded request on a later unrelated property change.
-    if (sent_climate_dirty_) rejectClimateWrite();
+    const uint8_t pending_fan=sent_climate_dirty_ & DirtyFan;
+    if(pending_fan && pending_.climate.fan_mode==daikin::DaikinFanMode::Silent && data[3]=='A') sent_climate_dirty_ &= ~DirtyFan;
+    if (sent_climate_dirty_) {climate_outcome_=climate_dirty_ & sent_climate_dirty_ ? WriteOutcome::Mismatch : WriteOutcome::Confirmed;rejectClimateWrite();}
+
+    if(pending_fan && (climate_dirty_ & DirtyFan)) {sent_climate_dirty_|=DirtyFan;climate_outcome_=WriteOutcome::AwaitingReadback;}
 
     // Mark F1 sample as seen for publish gating
     sample_seen_mask_ |= SEEN_F1;
@@ -1958,6 +1857,7 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
 {
+    if(!daikin::s21::validResponse("F2",data,data_size)) return;
     if (data_size != 4) return;
     stats_.frames_ok++;
 
@@ -1967,7 +1867,8 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
     uint8_t b3 = data[3];         // Byte 3: keep all bits - bit1=Humidify, bit4=extended humidity
 
     // Extract humidity capabilities correctly from byte 3
-    bool hasHumidifyMode = (b3 & 0x02) != 0;   // bit 1 - Humidify operation mode available
+    bool hasHumidifyMode = (b3 & 0x02) != 0;
+    support_.humidify_operation=hasHumidifyMode;   // bit 1 - Humidify operation mode available
     bool hasExtraHumdModes = (b3 & 0x10) != 0; // bit 4 - humidity settings in additional modes
     humidity_modes_ = hasHumidifyMode ? (hasExtraHumdModes ? 0xB7 : 0xA5) : (hasExtraHumdModes ? 0x92 : 0);
     uint8_t b3_view = b3 & 0x7F;               // cosmetic: mask always-1 bit7 for cleaner logs
@@ -1982,6 +1883,8 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
     support_.swing = (b0 & 0x04) != 0;    // bit 2 - swing (any kind) available
     support_.humidity = humidity_modes_ != 0;  // bit 1 of byte3 - Humidify operation mode available
     support_.horizontal_swing = (b0 & 0x08) != 0;
+    if(support_.fan_capability_known && !support_.fan) support_.swing=support_.horizontal_swing=false;
+    if(support_.simple_humidify) humidity_modes_=0x10;
     // F2 bits 4/5 are shields. Fan and Intelligent Eye belong to FK;
     // Streamer/Powerful/Econo availability belongs to FU00.
 
@@ -2017,6 +1920,7 @@ void DaikinDriver::handle_vane_angle(bool requested, uint8_t* data, size_t size)
 
 void DaikinDriver::handle_firmware_response(uint8_t* data, size_t size)
 {
+    if(!daikin::s21::validResponse("VS000M",data,size)) return;
     if (size != 14) return;
     for (size_t i=0;i<8;i++) if (data[i]<0x20 || data[i]>0x7E) return;
     firmware_version_.assign(data,data+8);
@@ -2072,19 +1976,22 @@ void DaikinDriver::handle_status_sensor(std::string_view command, uint8_t* data,
 
 void DaikinDriver::handle_fr_response(uint8_t* data, size_t size)
 {
+    if(!daikin::s21::validResponse("FR",data,size)) return;
     if (size != 4 || ((data[0] < '0' || data[0] > '5') && data[0] != '?')) return;
+    confirmCombined("DR",data);
     std::copy_n(data, 4, dr_.confirmed.begin());
     dr_.valid = true;
     state_.verticalPositionValid = data[0] != '?';
     if (state_.verticalPositionValid) {
         state_.verticalPosition = data[0] - '0';
         if (requested_vertical_position_ > 0 && state_.verticalPosition == requested_vertical_position_ &&
-            dr_.write == CommandSupport::Supported) state_.verticalPositionVerified = true;
+            dr_.outcome == WriteOutcome::Confirmed) state_.verticalPositionVerified = true;
     }
 }
 
 void DaikinDriver::handle_fb_response(uint8_t* data, size_t size)
 {
+    if(!daikin::s21::validResponse("FB",data,size)) return;
     if (size != 4 || (data[0] != '0' && data[0] != '1')) return;
     state_.timerLampValid = true;
     state_.timerLamp = data[0] == '1'; // orange timer indicator, independent of D6 LEDs
@@ -2101,6 +2008,7 @@ void DaikinDriver::handle_f4_response(uint8_t* data, size_t size)
 
 void DaikinDriver::handle_f3_response(uint8_t* data, size_t size)
 {
+    if(!daikin::s21::validResponse("F3",data,size)) return;
     if (size != 4 || data[0] < '0' || data[0] > '3') return;
     const uint8_t enabled = data[0] - '0';
     for (size_t i=1;i<=2;i++) {
@@ -2109,6 +2017,7 @@ void DaikinDriver::handle_f3_response(uint8_t* data, size_t size)
         } else if (data[i] != 0xFE && data[i] != 0x30) return;
     }
     for (size_t i=1;i<=2;i++) if (!(enabled & (1<<(i-1)))) timer_disabled_byte_ = data[i];
+    confirmCombined("D3",data);
     std::copy_n(data,4,d3_.confirmed.begin()); d3_.valid=true;
     state_.timersValid=true; state_.onTimerEnabled=enabled&1; state_.offTimerEnabled=enabled&2;
     state_.onTimerConfiguredMinutes=state_.onTimerEnabled ? (data[1]-0x30)*10 : 0;
@@ -2142,6 +2051,7 @@ void DaikinDriver::sendTimerCommand()
 
 void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
 {
+    if(!daikin::s21::validResponse("F5",data,data_size)) return;
     if (data_size < 1)
     {
         logErrorP("F5 response empty");
@@ -2153,6 +2063,7 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
         return;
     }
     if (data[0] != '0' && data[0] != '1' && data[0] != '2' && data[0] != '7') return;
+    confirmCombined("D5",data);
     std::copy_n(data, 4, d5_.confirmed.begin());
     d5_.valid = true;
     state_.swingValid = true;
@@ -2185,11 +2096,17 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
     else if (cooling && data[2] >= 0x3A && data[2] <= 0x3C)
         state_.humidityMode = data[2] == 0x3A ? daikin::HumidityMode::Low : data[2] == 0x3B ? daikin::HumidityMode::Standard : daikin::HumidityMode::High;
     state_.humidityModeValid = state_.humidityMode != daikin::HumidityMode::Unknown;
+    using V=daikin::ClimateVariant;
+    state_.climateVariantValid=state_.basicValid;
+    state_.climateVariant=state_.mode==daikin::Mode::Dry?V::SararaDry:state_.mode==daikin::Mode::FanOnly?V::FanOnly:
+        state_.mode==daikin::Mode::Heat?(state_.setpointRaw==0xC0?V::UruruHumidify:data[2]!='0'?V::HumidHeating:V::Heat):
+        state_.mode==daikin::Mode::Cool?(data[2]!='0'?V::DryCooling:V::Cool):V::Auto;
 
 }
 
 void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
 {
+    if(!daikin::s21::validResponse("F6",data,data_size)) return;
     if (data_size != 4)
     {
         logErrorP("F6 response too short: %zu bytes", data_size);
@@ -2198,6 +2115,7 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
     for (size_t i=0; i<4; ++i) if ((data[i] & 0x30) != 0x30) return;
     stats_.frames_ok++;
 
+    confirmCombined("D6",data);
     std::copy_n(data, 4, d6_.confirmed.begin());
     d6_.valid = true;
     state_.specialModesValid = true;
@@ -2241,12 +2159,14 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
 {
+    if(!daikin::s21::validResponse("F7",data,data_size)) return;
     if (data_size != 4)
     {
         logErrorP("F7 response too short: %zu bytes", data_size);
         return;
     }
     if (data[0] < 0x30 || data[0] > 0x94 || (data[1] != '0' && data[1] != '2')) return;
+    confirmCombined("D7",data);
     std::copy_n(data, 4, d7_.confirmed.begin());
     d7_.valid = true;
     state_.demandValid = true;
@@ -2262,6 +2182,7 @@ void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
 {
+    if(!daikin::s21::validResponse("F8",data,data_size)) return;
     if (data_size != 4) return;
     unsigned value = 0, multiplier = 1;
     bool padding = false;
@@ -2272,6 +2193,8 @@ void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
         multiplier *= 10;
     }
     if (data[0] != '0' || (value != 0 && value != 10 && value != 20)) return;
+    if(!protocol_detection_phase_ && protocol_version_!=daikin::ProtocolUndetected && protocol_version_.major>=3 && value==20) return;
+    if(!protocol_detection_phase_ && protocol_version_!=daikin::ProtocolUndetected && protocol_version_.major!=value/10) version_changed_=true;
     protocol_version_ = {static_cast<uint8_t>(value / 10), 0};
     old_protocol_detected_ = value == 0;
     state_.protocol=protocol_version_; state_.protocolVersion=protocol_version_.major;
@@ -2296,43 +2219,40 @@ void DaikinDriver::handle_f9_response(uint8_t* data, size_t size)
     }
 }
 
-void DaikinDriver::handle_fc_response(uint8_t* data, size_t data_size)
+void DaikinDriver::handle_metadata(std::string_view command,uint8_t* data,size_t size)
 {
-    if (data_size < 1)
-    {
-        logErrorP("FC response empty");
-        return;
-    }
-    // FC response contains model code
-    if (data_size >= 4)
-    {
-        stats_.frames_ok++;
-        // Store in a local variable since model_code might not exist in State
-        uint32_t model_code = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | data[0];
-        logDebugP("FC: model_code=0x%08X", model_code);
+    if(size!=4) return;
+    auto reversed=[&](){std::string text(data,data+4);std::reverse(text.begin(),text.end());return text;};
+    if(command=="FC") identification_.modelCode=reversed();
+    else if(command=="M") identification_.legacyModelWire.assign(data,data+4);
+    else if(command=="V") identification_.legacyVersionWire.assign(data,data+4);
+    else if(command=="FN") identification_.itelc=reversed();
+    else if(command=="FS") {
+        if(data[0]<'1' || data[0]>'4' || daikin::s21::hex(data[1])<0) return;
+        identification_.wifiMode=data[0];identification_.wifiCounter=daikin::s21::hex(data[1]);identification_.wifiValid=true;
+    } else if(command=="FT") {
+        unsigned value=0,multiplier=1;for(size_t i=0;i<4;i++){if(data[i]<'0'||data[i]>'9') return;value+=(data[i]-'0')*multiplier;multiplier*=10;}
+        identification_.ftRawDecimal=value;identification_.ftValid=true;
     }
 }
 
-void DaikinDriver::handle_fg_response(uint8_t* data, size_t data_size)
+void DaikinDriver::handle_aux_sensor(std::string_view command,uint8_t* data,size_t size)
 {
-    if (data_size < 1)
-    {
-        logErrorP("FG response empty");
-        return;
-    }
-    if (data_size == 1)
-    { // Single-byte response is always ACK
-        uint8_t response = data[0];
-        logDebugP("FG: Single-byte ACK received (0x%02X) - no IR counter data", response);
-        return;
-    }
-    // FG response contains IR counter
-    if (data_size >= 2)
-    {
-        stats_.frames_ok++;
-        state_.irCounter = (data[1] << 8) | data[0];
-        logDebugP("FG: ir_counter=%d", state_.irCounter);
-    }
+    if(command=="RW") return; // unknown two-byte status: raw query storage only
+    if(!daikin::s21::decimal(data,size)) return;
+    const auto value=(data[0]-'0')+(data[1]-'0')*10+(data[2]-'0')*100;
+    if(command=="Rb" && value<=15) {state_.pull=value;state_.pullValid=true;}
+    if(command=="Rm") {state_.rmRaw=value;state_.rmRawValid=true;}
+    if(command=="Rt") {state_.rtRaw=value;state_.rtRawValid=true;}
+}
+
+void DaikinDriver::handle_fc_response(uint8_t* data,size_t size) { handle_metadata("FC",data,size); }
+
+void DaikinDriver::handle_fg_response(uint8_t* data,size_t size)
+{
+    if(size!=4) return;
+    if(state_.irCounterValid && !std::equal(data,data+4,state_.irCounterRaw.begin())) ++state_.irObservedChanges;
+    std::copy_n(data,4,state_.irCounterRaw.begin());state_.irCounterValid=true;
 }
 
 void DaikinDriver::handle_fm_response(uint8_t* data, size_t size)
@@ -2350,153 +2270,28 @@ void DaikinDriver::handle_fm_response(uint8_t* data, size_t size)
 
 void DaikinDriver::handle_fy00_response(uint8_t* data, size_t data_size)
 {
+    if(!daikin::s21::validResponse("FY00",data,data_size)) return;
     if (data_size != 4) return;
     for (size_t i=0; i<4; ++i) if (data[i] < '0' || data[i] > '9') return;
     const uint8_t major = (data[3]-'0')*10 + data[2]-'0';
     const uint8_t minor = (data[1]-'0')*10 + data[0]-'0';
     if (major < 3) return;
+    if(!protocol_detection_phase_ && protocol_version_!=daikin::ProtocolUndetected && protocol_version_!=daikin::ProtocolVersion{major,minor}) version_changed_=true;
     protocol_version_ = {major, minor};
     state_.protocol=protocol_version_; state_.protocolVersion=major;
     old_protocol_detected_ = false;
     stats_.frames_ok++;
 }
 
-void DaikinDriver::handle_fn_response(uint8_t* data, size_t data_size)
-{
-    if (data_size < 1)
-    {
-        logErrorP("FN response empty");
-        return;
-    }
-    if (data_size == 1)
-    { // Single-byte response is always ACK
-        uint8_t response = data[0];
-        logDebugP("FN: Single-byte ACK received (0x%02X) - no capability data", response);
-        return;
-    }
-    // FN capability query - reported as first 4 bytes of itelc= in /aircon/get_monitordata
-    if (data_size >= 4)
-    {
-        stats_.frames_ok++;
+void DaikinDriver::handle_fn_response(uint8_t* data,size_t size) { handle_metadata("FN",data,size); }
 
-        logInfoP("FN: Capability data (itelc) [%02X %02X %02X %02X]",
-                 data[0], data[1], data[2], data[3]);
-        // Store the capability data if needed for future reference
-        // This data appears in Daikin's get_monitordata response as itelc= parameter
-    }
-}
+void DaikinDriver::handle_fp_response(uint8_t* data,size_t size) { handle_metadata("FP",data,size); }
 
-void DaikinDriver::handle_fp_response(uint8_t* data, size_t data_size)
-{
-    // FP capability/feature query - purpose not fully documented but used by Faikin for feature detection
-    if (data_size > 0)
-    {
-        if (data_size == 1)
-        { // Single byte ACK
-            logInfoP("FP response: ACK (0x%02X)", data[0]);
-            stats_.frames_ok++;
-            return;
-        }
-        // Multi-byte capability data
-        if (data_size >= 4)
-        {
-            for (size_t i = 0; i < data_size; i++)
-            {
-                logInfoP("  FP[%zu] = 0x%02X", i, data[i]);
-            }
-        }
-        else
-        {
-            logErrorP("FP response: %zu bytes (unexpected size)", data_size);
-        }
-        stats_.frames_ok++;
-        // Store capability data if needed for future feature detection
-    }
-}
+void DaikinDriver::handle_fq_response(uint8_t* data,size_t size) { handle_metadata("FQ",data,size); }
 
-void DaikinDriver::handle_fq_response(uint8_t* data, size_t data_size)
-{
-    // FQ capability/feature query - purpose not fully documented but used by Faikin for feature detection
-    if (data_size > 0)
-    {
-        if (data_size == 1)
-        { // Single byte ACK
-            logInfoP("FQ response: ACK (0x%02X)", data[0]);
-            stats_.frames_ok++;
-            return;
-        }
-        // Multi-byte capability data
-        if (data_size >= 4)
-        {
-            for (size_t i = 0; i < data_size; i++)
-            {
-                logInfoP("  FQ[%zu] = 0x%02X", i, data[i]);
-            }
-        }
-        else
-        {
-            logErrorP("FQ response: %zu bytes (unexpected size)", data_size);
-        }
-        stats_.frames_ok++;
-        // Store capability data if needed for future feature detection
-    }
-}
+void DaikinDriver::handle_fs_response(uint8_t* data,size_t size) { handle_metadata("FS",data,size); }
 
-void DaikinDriver::handle_fs_response(uint8_t* data, size_t data_size)
-{
-    // FS capability/feature query - purpose not fully documented but used by Faikin for feature detection
-    if (data_size > 0)
-    {
-        if (data_size == 1)
-        { // Single byte ACK
-            logInfoP("FS response: ACK (0x%02X)", data[0]);
-            stats_.frames_ok++;
-            return;
-        }
-        // Multi-byte capability data
-        if (data_size >= 4)
-        {
-            for (size_t i = 0; i < data_size; i++)
-            {
-                logInfoP("  FS[%zu] = 0x%02X", i, data[i]);
-            }
-        }
-        else
-        {
-            logErrorP("FS response: %zu bytes (unexpected size)", data_size);
-        }
-        stats_.frames_ok++;
-        // Store capability data if needed for future feature detection
-    }
-}
-
-void DaikinDriver::handle_ft_response(uint8_t* data, size_t data_size)
-{
-    // FT capability/feature query - purpose not fully documented but used by Faikin for feature detection
-    if (data_size > 0)
-    {
-        if (data_size == 1)
-        { // Single byte ACK
-            logInfoP("FT response: ACK (0x%02X)", data[0]);
-            stats_.frames_ok++;
-            return;
-        }
-        // Multi-byte capability data
-        if (data_size >= 4)
-        {
-            for (size_t i = 0; i < data_size; i++)
-            {
-                logInfoP("  FT[%zu] = 0x%02X", i, data[i]);
-            }
-        }
-        else
-        {
-            logErrorP("FT response: %zu bytes (unexpected size)", data_size);
-        }
-        stats_.frames_ok++;
-        // Store capability data if needed for future feature detection
-    }
-}
+void DaikinDriver::handle_ft_response(uint8_t* data,size_t size) { handle_metadata("FT",data,size); }
 
 void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
 {
@@ -2523,7 +2318,13 @@ void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
             support_.sensor = sensor_hardware_available;
             support_.fan = (data[2] & 0x04) != 0;
             if (!support_.fan) support_.swing = support_.horizontal_swing = false;
-            if (data[2] & 0x02) humidity_modes_ = 0; // simple Humidify has no level controls
+            support_.simple_humidify=(data[2]&2)!=0;
+            state_.simpleHumidifyAvailable=support_.simple_humidify;
+            identification_.fkValid=true;identification_.fkRaw={data[0],data[1],data[2],data[3]};
+            identification_.laundryAvailable=(data[0]&8)!=0;identification_.simpleHumidify=support_.simple_humidify;
+            identification_.japaneseTemperatureRange=(data[1]&4)!=0;identification_.acledRaw=data[0]&1;identification_.electricityRaw=data[1]&1;
+            identification_.destinationRaw=data[2]&1;identification_.displayDryRaw=(data[2]>>3)&1;
+            if (support_.simple_humidify) humidity_modes_ = 0x10; // simple Humidify has no level controls
             support_.demand = (data[3] & 0x01) != 0 && protocol_version_.major > 2;
 
             logInfoP("FK capabilities: sensor_hardware=%d (byte1=0x%02X, bit3=%d)",
@@ -2601,7 +2402,13 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
         return;
     }
     if (command == "FU15" || command == "FU25" || command == "FU35" || command == "FU45") {
-        return; // raw local diagnostics only; never log serial/production content
+        if(data_size!=32) return;
+        auto text=[&](size_t offset,size_t length){std::string value;for(size_t i=offset;i<offset+length && data[i]!=0xFF && data[i]!=0;i++){if(data[i]<0x20 || data[i]>0x7E) return std::string{};value.push_back(char(data[i]));}while(!value.empty() && value.back()==' ') value.pop_back();return value;};
+        auto& p=identification_.production;
+        if(command=="FU15") {p.siteCode=text(0,4);p.lineCode=text(4,6);p.valid=true;}
+        if(command=="FU25") {p.orderCode=text(0,15);p.valid=true;}
+        if(command=="FU35" || command=="FU45") {auto& unit=command=="FU35"?p.indoor:p.outdoor;unit.siteCode=text(0,2);unit.baseCode=data[2];unit.deviceCode=data[3];unit.dateCode=text(4,8);unit.serialCode=text(12,12);unit.valid=true;}
+        return; // sensitive local diagnostics only; never log production/serial content
     }
 
     if (command == StateQuery::ExtensionFU02)
@@ -2617,7 +2424,7 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
     {
         uint32_t cool = 0, heat = 0;
         state_.fu04_valid = data_size == 32 && parse_reversed_ascii_hex(data,8,cool) &&
-                            parse_reversed_ascii_hex(data+8,8,heat) && cool != UINT32_MAX && heat != UINT32_MAX;
+                            parse_reversed_ascii_hex(data+8,8,heat);
         if (state_.fu04_valid) {
             state_.fu04_cooling_wh = uint64_t(cool) * 100ULL;
             state_.fu04_heating_wh = uint64_t(heat) * 100ULL;
@@ -2629,7 +2436,7 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
     if (command == StateQuery::ExtensionFX60)
     {
         uint32_t value = 0;
-        state_.fx60_valid = data_size == 4 && parse_reversed_ascii_hex(data,4,value) && value != 0xFFFF;
+        state_.fx60_valid = data_size == 4 && parse_reversed_ascii_hex(data,4,value);
         if (state_.fx60_valid) {
             state_.fx60_raw = value;
             // RevK Faikout.c uses consumption = raw * 10 (ten-watt units).
@@ -2656,9 +2463,7 @@ void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
     stats_.frames_ok++;
 
     const uint8_t raw = data[0];
-    const bool known_fan_value =
-        (raw == 0x00 || raw == 0x03 || raw == 0x04 || raw == 0x05 || raw == 0x06 || raw == 0x07 || raw == 0x0B ||
-         raw == '0' || raw == 'A' || raw == 'B' || raw == '3' || raw == '4' || raw == '5' || raw == '6' || raw == '7');
+    const bool known_fan_value = std::string_view{"AB34567"}.find(char(raw))!=std::string_view::npos;
 
     if (!known_fan_value)
     {
@@ -2672,6 +2477,10 @@ void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
     state_.fanValid = true;
     state_.fan = daikin_to_fan_mode(raw);
     if (state_.fan == pending_.climate.fan_mode) climate_dirty_ &= ~DirtyFan;
+    if((sent_climate_dirty_ & DirtyFan) && climate_generation_[3]==sent_climate_generation_[3]) {
+        climate_outcome_=(climate_dirty_ & DirtyFan)?WriteOutcome::Mismatch:WriteOutcome::Confirmed;
+        rejectClimateWrite();
+    }
     logDebugP("RG: fan_mode decoded from raw 0x%02X ('%c') -> %d",
               raw, (raw >= 32 && raw < 127) ? static_cast<char>(raw) : '?', static_cast<int>(state_.fan));
 
@@ -2751,13 +2560,6 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
         if (temp < 100.0f)
         {                              // sanity check
             state_.realTargetC = temp; // Store sensor-adjusted target
-
-            // In Fan mode, F1 provides no valid setpoint, so use RX/SX value as the actual target
-            if (state_.mode == daikin::Mode::FanOnly && state_.power)
-            {
-                state_.targetC = state_.realTargetC;
-                logDebugP("Fan mode: using RX/SX target %.1f°C as state_.targetC", state_.targetC);
-            }
 
             state_.targetOffsetValid = state_.targetTemperatureValid;
             state_.targetOffsetC = state_.realTargetC - state_.targetC;
@@ -2851,7 +2653,7 @@ void DaikinDriver::handle_rzb2_response(uint8_t* data, size_t data_size)
 {
     uint8_t value = 0;
     if (data_size != 2 || !s21_decode_hex_byte_reversed(data, value)) return;
-    state_.unitState.raw = value;
+    state_.unitState.raw = value; state_.unitStateValid=true;
     stats_.frames_ok++;
 }
 
@@ -2859,7 +2661,7 @@ void DaikinDriver::handle_rzc3_response(uint8_t* data, size_t data_size)
 {
     uint8_t value = 0;
     if (data_size != 2 || !s21_decode_hex_byte_reversed(data, value)) return;
-    state_.systemState.raw = value;
+    state_.systemState.raw = value; state_.systemStateValid=true;
     stats_.frames_ok++;
 }
 
@@ -2868,10 +2670,28 @@ void DaikinDriver::handle_rzc3_response(uint8_t* data, size_t data_size)
 void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uint8_t* data, size_t data_size)
 {
     uint32_t now = millis();
+    if(diagnostic_active_) {
+        if(result==daikin::DaikinSerial::Result::Ack || result==daikin::DaikinSerial::Result::Frame) {markOnline(now);if(result==daikin::DaikinSerial::Result::Ack)++stats_.acks;}
+        if(result==daikin::DaikinSerial::Result::Ack && !diagnostic_ack_only_) return;
+        diagnostic_result_.status=result==daikin::DaikinSerial::Result::Ack?DiagnosticStatus::Ack:
+            result==daikin::DaikinSerial::Result::Frame?DiagnosticStatus::Frame:result==daikin::DaikinSerial::Result::Nak?DiagnosticStatus::Nak:
+            result==daikin::DaikinSerial::Result::Timeout?DiagnosticStatus::Timeout:DiagnosticStatus::Error;
+        if(result==daikin::DaikinSerial::Result::Frame) {
+            const auto header=daikin::s21::responseHeader(diagnostic_result_.command);
+            if(data_size<header.size() || !std::equal(header.begin(),header.end(),data) || !daikin::s21::validResponse(diagnostic_result_.command,data+header.size(),data_size-header.size())) diagnostic_result_.status=DiagnosticStatus::Error;
+            else diagnostic_result_.payload.assign(data+header.size(),data+data_size);
+        }
+        diagnostic_active_=false;
+        if(diagnostic_ack_only_) handleWriteCommandSent(LastWriteCommand::Other);
+        return;
+    }
     if (d1_awaiting_ack_) {
         if (result == daikin::DaikinSerial::Result::Nak || result == daikin::DaikinSerial::Result::Error || result == daikin::DaikinSerial::Result::Timeout)
+        {
+            climate_outcome_=result==daikin::DaikinSerial::Result::Nak?WriteOutcome::Rejected:result==daikin::DaikinSerial::Result::Timeout?WriteOutcome::Timeout:WriteOutcome::Error;
             rejectClimateWrite();
-        else if (result == daikin::DaikinSerial::Result::Ack) d1_awaiting_ack_ = false;
+        }
+        else if (result == daikin::DaikinSerial::Result::Ack) {d1_awaiting_ack_ = false;climate_outcome_=WriteOutcome::AwaitingReadback;}
     }
 
     const bool accept_response = query_state_ == QueryState::WaitingForAck ||
@@ -2879,13 +2699,15 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                                  query_state_ == QueryState::PostWriteSettle;
     if (!accept_response) return;
 
-    if (!outstanding_write_.empty()) {
-        CombinedCommand& c = outstanding_write_ == "D5" ? d5_ : outstanding_write_ == "D6" ? d6_ : outstanding_write_ == "DR" ? dr_ : outstanding_write_ == "D3" ? d3_ : d7_;
-        if (result == daikin::DaikinSerial::Result::Ack) c.write = CommandSupport::Supported;
-        if (result == daikin::DaikinSerial::Result::Nak) c.write = CommandSupport::Unsupported;
-        if (result == daikin::DaikinSerial::Result::Ack || result == daikin::DaikinSerial::Result::Nak ||
-            result == daikin::DaikinSerial::Result::Timeout || result == daikin::DaikinSerial::Result::Error)
-            outstanding_write_ = {};
+    if(!outstanding_write_.empty()) {
+        auto* c=combinedFor(outstanding_write_);
+        if(c) {
+            if(result==daikin::DaikinSerial::Result::Ack) {c->awaiting_readback=true;c->outcome=WriteOutcome::AwaitingReadback;}
+            if(result==daikin::DaikinSerial::Result::Nak) {c->rejected=c->requested;c->rejected_valid=true;c->last_rejection_ms=now;c->outcome=WriteOutcome::Rejected;c->awaiting_readback=false;}
+            if(result==daikin::DaikinSerial::Result::Timeout) c->outcome=WriteOutcome::Timeout;
+            if(result==daikin::DaikinSerial::Result::Error) c->outcome=WriteOutcome::Error;
+        }
+        if(result!=daikin::DaikinSerial::Result::Frame) outstanding_write_={};
     }
     // During post-write settle we may receive ACK/frames that belong to D-commands.
     // Keep the settle state active so the coalesced D1 flush can run after timeout.
@@ -2921,6 +2743,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
     }
 
     auto& query = queries_[query_index_];
+    if(result==daikin::DaikinSerial::Result::Frame || result==daikin::DaikinSerial::Result::Nak || result==daikin::DaikinSerial::Result::Timeout || result==daikin::DaikinSerial::Result::Error) invalidatePage(query.command);
 
     switch (result)
     {
@@ -2988,6 +2811,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 {
                     if (!s21_valid_response(query.command,payload,payload_len)) {
                         stats_.frames_bad_format++;
+                        query_index_++; query_state_=QueryState::WaitingToSend; state_start_time_=now;
                         return;
                     }
                     markOnline(now);
@@ -3024,6 +2848,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             break;
         case daikin::DaikinSerial::Result::Nak:
             // logInfoP("S21: NAK for %.*s", static_cast<int>(query.command.size()), query.command.data());
+            query.last_nak_ms=now;
             query.naks++;
             stats_.frames_nak++;
 
@@ -3129,15 +2954,15 @@ void DaikinDriver::publishState()
     }
     if (state_.verticalPositionValid && getMaximumVerticalFixPosition() && (seed || !p.verticalPositionValid || p.verticalPosition != state_.verticalPosition))
         statusFeedback.swingVerticalFixPositionChanged(state_.verticalPosition);
-    if (state_.specialModesValid) {
+    if (state_.specialModesValid || state_.demandValid) {
         if (seed || !p.specialModesValid || state_.powerful!=p.powerful || state_.quiet!=p.quiet || state_.econo!=p.econo)
-            statusFeedback.updateDeviceMode(state_.powerful ? AirConditionDeviceModeHiPower : state_.quiet ? AirConditionDeviceModeSilent1 : state_.econo ? AirConditionDeviceModeEco : AirConditionDeviceModeStandard);
-        if (seed || !p.specialModesValid || state_.streamer != p.streamer) statusFeedback.updateAirPurification(state_.streamer);
+            statusFeedback.updateDeviceMode(state_.specialModesValid && state_.powerful ? AirConditionDeviceModeHiPower : state_.specialModesValid && state_.quiet ? AirConditionDeviceModeSilent1 : state_.demandValid && state_.econo ? AirConditionDeviceModeEco : AirConditionDeviceModeStandard);
+        if (state_.specialModesValid && (seed || !p.specialModesValid || state_.streamer != p.streamer)) statusFeedback.updateAirPurification(state_.streamer);
     }
     if (state_.demandValid && (seed || !p.demandValid || state_.demand_percentage != p.demand_percentage)) statusFeedback.updateMaxPowerLevel(state_.demand_percentage);
     if (state_.ledState != daikin::LedState::Unknown && (seed || p.ledState != state_.ledState)) statusFeedback.updateWifiLed(state_.led);
     if (state_.humidityValid && (seed || !p.humidityValid || state_.humidity != p.humidity)) statusFeedback.updateHumidity(state_.humidity);
-    if (state_.humidityModeValid && (seed || !p.humidityModeValid || state_.humidityMode != p.humidityMode)) {
+    if (state_.humidityModeValid && getMaximumHumidityModeLevels()>1 && (seed || !p.humidityModeValid || state_.humidityMode != p.humidityMode)) {
         uint8_t step = 0;
         switch(state_.humidityMode) {
             case daikin::HumidityMode::Low: step=1; break;
@@ -3164,17 +2989,63 @@ void DaikinDriver::rejectClimateWrite()
     sent_climate_dirty_=0; d1_awaiting_ack_=false; climate_confirmation_started_=0;
 }
 
+void DaikinDriver::invalidatePage(std::string_view c)
+{
+    if(auto* p=combinedFor(c)) p->valid=false;
+    if(c=="F1") {state_.basicValid=state_.targetTemperatureValid=state_.setpointRawValid=state_.climateVariantValid=false;if(!support_.fan_mode_query) state_.fanValid=false;}
+    if(c=="F3") state_.timersValid=false;
+    if(c=="F4") state_.serialErrorValid=false;
+    if(c=="F5") state_.swingValid=state_.humidityModeValid=false;
+    if(c=="F6") {state_.specialModesValid=false;state_.ledState=daikin::LedState::Unknown;}
+    if(c=="F7") state_.demandValid=false;
+    if(c=="F9") {if(!support_.inside_temperature_query) state_.insideTemperatureValid=false;if(!support_.outside_temperature_query) state_.outsideTemperatureValid=false;if(!support_.humidity_query) state_.humidityValid=false;}
+    if(c=="RH") {state_.insideTemperatureValid=false;support_.inside_temperature_query=false;}
+    if(c=="Ra") {state_.outsideTemperatureValid=false;support_.outside_temperature_query=false;}
+    if(c=="Re") {state_.humidityValid=false;support_.humidity_query=false;}
+    if(c=="RX") state_.targetOffsetValid=false;
+    if(c=="RI") state_.indoorHeatExchangerValid=false;
+    if(c=="RG") {state_.fanValid=false;support_.fan_mode_query=false;}
+    if(c=="Rg") state_.compressorOnValid=false;
+    if(c=="Rd") state_.compressorHzValid=false;
+    if(c=="RK") state_.fanRpmSetpointValid=false;
+    if(c=="RL") state_.fanRpmValid=false;
+    if(c=="RM") state_.vaneAngleSetpointValid=state_.vaneAngleSetpointDegreesValid=false;
+    if(c=="RN") state_.vaneAngleValid=state_.vaneAngleDegreesValid=false;
+    if(c=="FR") state_.verticalPositionValid=false;
+    if(c=="FB") state_.timerLampValid=false;
+    if(c=="FM") state_.totalEnergyValid=false;
+    if(c=="FG") state_.irCounterValid=false;
+    if(c=="FU04") state_.fu04_valid=false;
+    if(c=="FX60") state_.fx60_valid=false;
+    if(c=="RzB2") state_.unitStateValid=false;
+    if(c=="RzC3") state_.systemStateValid=false;
+    if(c=="RA") state_.independentPowerValid=false;
+    if(c=="RB") state_.independentModeValid=false;
+    if(c=="RC") state_.coarseTargetValid=false;
+    if(c=="RD") state_.onTimerPeriodsValid=false;
+    if(c=="RE") state_.offTimerPeriodsValid=false;
+    if(c=="RF") state_.supplementalSwingValid=false;
+    if(c=="Rb") state_.pullValid=false;
+    if(c=="Rm") state_.rmRawValid=false;
+    if(c=="Rt") state_.rtRawValid=false;
+    if(c=="FS") identification_.wifiValid=false;
+    if(c=="FT") identification_.ftValid=false;
+}
+
 void DaikinDriver::invalidateTelemetry()
 {
-    state_.online=false;
+    state_.online=false;state_.protocol=daikin::ProtocolUndetected;state_.protocolVersion=0xFF;
     state_.basicValid=state_.targetTemperatureValid=state_.fanValid=state_.swingValid=false;
     state_.insideTemperatureValid=state_.outsideTemperatureValid=state_.humidityValid=false;
     state_.specialModesValid=state_.demandValid=state_.compressorOnValid=state_.compressorHzValid=false;
     state_.indoorHeatExchangerValid=state_.humidityModeValid=state_.unitStateValid=state_.systemStateValid=false;
     state_.vaneAngleValid=state_.vaneAngleSetpointValid=state_.vaneAngleDegreesValid=state_.vaneAngleSetpointDegreesValid=false;
     state_.fanRpmValid=state_.fanRpmSetpointValid=state_.timerLampValid=state_.serialErrorValid=false;
-    state_.timersValid=state_.verticalPositionValid=state_.targetOffsetValid=false;
+    state_.timersValid=state_.verticalPositionValid=state_.targetOffsetValid=state_.climateVariantValid=false;
     state_.fu04_valid=state_.fx60_valid=state_.totalEnergyValid=false;
+    state_.irCounterValid=state_.pullValid=state_.rmRawValid=state_.rtRawValid=false;
+    state_.independentPowerValid=state_.independentModeValid=state_.coarseTargetValid=false;
+    state_.supplementalSwingValid=state_.onTimerPeriodsValid=state_.offTimerPeriodsValid=false;
     state_.setpointRawValid=false; state_.ledState=daikin::LedState::Unknown;
     support_.inside_temperature_query=support_.outside_temperature_query=support_.humidity_query=support_.fan_mode_query=false;
     d5_.valid=d6_.valid=d7_.valid=d3_.valid=dr_.valid=false;
@@ -3192,53 +3063,22 @@ void DaikinDriver::updateOnlineStatus()
 }
 
 // === Conversion Utilities ===
-uint8_t DaikinDriver::mode_to_daikin(daikin::Mode mode) const
-{
-    switch (mode)
-    {
-        case daikin::Mode::Auto: return 0x00;
-        case daikin::Mode::Dry: return 0x02;
-        case daikin::Mode::Cool: return 0x03;
-        case daikin::Mode::Heat: return 0x04;
-        case daikin::Mode::FanOnly: return 0x06;
-        default: return 0x00;
-    }
-}
 
-daikin::Mode DaikinDriver::daikin_to_mode(uint8_t mode) const
-{
-    switch (mode)
-    {
-        case 0x00: return daikin::Mode::Auto;
-        case 0x02: return daikin::Mode::Dry;
-        case 0x03: return daikin::Mode::Cool;
-        case 0x04: return daikin::Mode::Heat;
-        case 0x06: return daikin::Mode::FanOnly;
-        default: return daikin::Mode::Auto;
-    }
-}
 
-daikin::Action DaikinDriver::daikin_to_action(uint8_t action) const
-{
-    switch (action)
-    {
-        case 0x00: return daikin::Action::Off;
-        case 0x01: return daikin::Action::Idle;
-        case 0x02: return daikin::Action::Cooling;
-        case 0x03: return daikin::Action::Heating;
-        case 0x04: return daikin::Action::Drying;
-        case 0x05: return daikin::Action::Fan;
-        default: return daikin::Action::Off;
-    }
-}
+
+
+
 
 daikin::Action DaikinDriver::calculateCurrentAction() const
 {
     if (!state_.online || !state_.basicValid) return daikin::Action::Unknown;
     if (!state_.power) return daikin::Action::Off;
     if (state_.mode == daikin::Mode::FanOnly) return daikin::Action::Fan;
-    if (!state_.compressorOnValid) return daikin::Action::Unknown;
-    if (!state_.compressorOn) return daikin::Action::Idle;
+    if(rz_states_trusted_ && state_.systemStateValid && state_.systemState.defrost()) return daikin::Action::Defrost;
+    if(rz_states_trusted_ && state_.systemStateValid && state_.systemState.locked()) return daikin::Action::Standby;
+    if(rz_states_trusted_ && state_.unitStateValid && !state_.unitState.active()) return daikin::Action::Idle;
+    if (!state_.compressorOnValid && !(rz_states_trusted_ && state_.unitStateValid)) return daikin::Action::Unknown;
+    if (state_.compressorOnValid && !state_.compressorOn) return daikin::Action::Idle;
     if (state_.mode == daikin::Mode::Cool) return daikin::Action::Cooling;
     if (state_.mode == daikin::Mode::Heat) return daikin::Action::Heating;
     if (state_.mode == daikin::Mode::Dry) return daikin::Action::Drying;
@@ -3247,41 +3087,11 @@ daikin::Action DaikinDriver::calculateCurrentAction() const
     return daikin::Action::Unknown;
 }
 
-daikin::Swing DaikinDriver::daikin_to_swing_mode(uint8_t mode) const
-{
-    switch (mode)
-    {
-        case 0x00: return daikin::Swing::Off;
-        case 0x01: return daikin::Swing::Vertical;
-        default: return daikin::Swing::Off;
-    }
-}
 
-uint8_t DaikinDriver::swing_mode_to_daikin(daikin::Swing mode) const
-{
-    switch (mode)
-    {
-        case daikin::Swing::Off: return 0x00;
-        case daikin::Swing::Vertical: return 0x01;
-        case daikin::Swing::Horizontal: return 0x01; // Fix: handle horizontal swing
-        case daikin::Swing::Both: return 0x01;       // Fix: handle both directions
-        default: return 0x00;
-    }
-}
 
-uint8_t DaikinDriver::fan_mode_to_daikin(daikin::DaikinFanMode fan) const
-{
-    switch (fan)
-    {
-        case daikin::DaikinFanMode::Auto: return 0x00;
-        case daikin::DaikinFanMode::Speed1: return 0x03;
-        case daikin::DaikinFanMode::Speed2: return 0x04;
-        case daikin::DaikinFanMode::Speed3: return 0x05;
-        case daikin::DaikinFanMode::Speed4: return 0x06;
-        case daikin::DaikinFanMode::Speed5: return 0x07;
-        default: return 0x00;
-    }
-}
+
+
+
 
 daikin::DaikinFanMode DaikinDriver::daikin_to_fan_mode(uint8_t fan) const
 {
@@ -3425,7 +3235,7 @@ void DaikinDriver::markOnline(uint32_t now)
 
 void DaikinDriver::checkOnlineTimeout()
 {
-    static constexpr uint32_t OFFLINE_MS = 15000; // 15s timeout for offline detection
+    const uint32_t OFFLINE_MS = timing_.offline_ms; // 15s timeout for offline detection
 
 
     uint32_t now = millis();
@@ -3433,6 +3243,12 @@ void DaikinDriver::checkOnlineTimeout()
     {
         online_ = false;
         invalidateTelemetry();
+        model_name_.clear();firmware_version_.clear();identification_={};
+        protocol_version_=daikin::ProtocolUndetected;protocol_detection_phase_=false;
+        support_={};queries_.clear();query_index_=0;query_state_=QueryState::Idle;
+        d3_={};d5_={};d6_={};d7_={};dr_={};outstanding_write_={};
+        pending_={};humidity_pending_=demand_pending_=vertical_pending_=timer_pending_=false;
+        verified_vertical_positions_=0;last_write_time_=last_command_time_=0;
         logInfoP("S21 online status changed: Offline (no ACK/frame for %lu ms)", (unsigned long)(now - last_rx_ok_ms_));
         statusFeedback.updateOnlineStatus(false); // → KO463 = 0
 
