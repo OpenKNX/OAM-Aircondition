@@ -26,7 +26,7 @@ class DaikinSerial {
  public:
   static constexpr std::size_t MAX_COMMAND_SIZE{6};
   static constexpr std::size_t STANDARD_PAYLOAD_SIZE{4};
-  static constexpr std::size_t EXTENDED_PAYLOAD_SIZE{14}; // for MiscQuery::SoftwareVersion
+  static constexpr std::size_t EXTENDED_PAYLOAD_SIZE{32}; // for MiscQuery::SoftwareVersion
   static constexpr std::size_t MAX_RESPONSE_SIZE{MAX_COMMAND_SIZE + EXTENDED_PAYLOAD_SIZE + 1U};  // +1 for checksum
 
   enum class Result : uint8_t {
@@ -46,6 +46,7 @@ class DaikinSerial {
                ResultCallback result_callback = nullptr, 
                IdleCallback idle_callback = nullptr);
 
+  bool busy() const { return comm_state != CommState::Idle; }
   void begin();
   void loop();
 
@@ -101,6 +102,8 @@ protected:
   CommState comm_state{};
   std::vector<uint8_t> response{MAX_RESPONSE_SIZE};
   
+  bool expecting_reply_{true};
+
   // Timer management
   uint32_t timeout_start_ms{0};
   uint32_t timeout_duration_ms{0};

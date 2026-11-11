@@ -53,7 +53,7 @@ void DaikinSerial::loop() {
   int bytes_processed = 0;
 
   while (serial_hal_->available() > 0 && bytes_processed < MAX_BYTES_PER_LOOP) {
-    int bytes_read = serial_hal_->read(buffer, sizeof(buffer));
+    int bytes_read = serial_hal_->read(buffer, MAX_BYTES_PER_LOOP - bytes_processed);
     if (bytes_read <= 0) break;
     
     for (int i = 0; i < bytes_read && bytes_processed < MAX_BYTES_PER_LOOP; i++) {
@@ -85,12 +85,11 @@ void DaikinSerial::loop() {
         break;
       case CommState::WaitingAck:
         if (b == ACK) {
-          //Serial.printf("[RX] ACK received");
-          if (result_callback) result_callback(Result::Ack, nullptr, 0);
-          // Now expect framed reply (may or may not come)
           response.clear();
-          comm_state = CommState::ReceivingFrame; // Wait for STX
-          start_rx_timeout(rx_timeout_period_ms, TimeoutType::Rx);
+          comm_state = expecting_reply_ ? CommState::ReceivingFrame : CommState::Idle;
+          timeout_active = false;
+          if (expecting_reply_) start_rx_timeout(rx_timeout_period_ms, TimeoutType::Rx);
+          if (result_callback) result_callback(Result::Ack, nullptr, 0);
         } else if (b == NAK) {
           //Serial.printf("[RX] NAK received");
             if (result_callback) result_callback(Result::Nak, nullptr, 0);
@@ -108,13 +107,27 @@ void DaikinSerial::loop() {
         }
         break;
       case CommState::ReceivingFrame:
-        response.push_back(b);
-        start_rx_timeout(rx_timeout_period_ms, TimeoutType::Rx); // refresh window
-        if (b == ETX) {
-          // Attempt to decode + validate frame
-          finalize_frame();
+        if (b == STX) {
+          response.clear(); // resynchronize after a truncated/corrupt frame
+          response.push_back(STX);
+          start_rx_timeout(rx_timeout_period_ms, TimeoutType::Rx);
+          break;
+        }
+        if (response.empty()) break; // ACK is not the frame's STX
+        if (response.size() >= MAX_RESPONSE_SIZE + 2) {
+          response.clear();
           comm_state = CommState::Idle;
           timeout_active = false;
+          if (result_callback) result_callback(Result::Error, nullptr, 0);
+          break;
+        }
+        response.push_back(b);
+        start_rx_timeout(rx_timeout_period_ms, TimeoutType::Rx);
+        if (b == ETX) {
+          comm_state = CommState::Idle;
+          timeout_active = false;
+          finalize_frame();
+          response.clear();
         }
         break;
     }
@@ -128,6 +141,13 @@ void DaikinSerial::loop() {
 }
 
 void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size_t payload_size) {
+  if (!serial_hal_ || busy()) return;
+  if (cmd.size() < 2 || (payload_size && !payload)) {
+    if (result_callback) result_callback(Result::Error, nullptr, 0);
+    return;
+  }
+  expecting_reply_ = cmd[0] != 'D';
+  response.clear();
   if (cmd.size() + payload_size > MAX_COMMAND_SIZE + EXTENDED_PAYLOAD_SIZE) {
     Serial.printf("[ERROR] Tx: Command '%.*s' too large\n", (int)cmd.size(), cmd.data());
     if (result_callback) result_callback(Result::Error, nullptr, 0);
@@ -213,12 +233,7 @@ void DaikinSerial::start_rx_timeout(uint32_t dur_ms, TimeoutType type) {
 }
 
 void DaikinSerial::ack_timeout_handler() {
-  // ACK timeout - treat similar to RX timeout if absolutely no bytes arrived
-  //Serial.printf("[RX] ACK timeout");
-  if (!rx_any_since_tx_) {
-    // escalate as if full timeout for fallback purposes
-    maybe_switch_mode_on_timeout();
-  }
+  rx_timeout_handler();
 }
 
 void DaikinSerial::set_busy_timeout(uint32_t delay_ms) {
@@ -233,21 +248,16 @@ void DaikinSerial::busy_timeout_handler() {
 }
 
 void DaikinSerial::rx_timeout_handler() {
-  //Serial.printf("[RX] Timeout");
-  //Serial.printf("[S21][Dbg] mode=%u rx_any=%d consecutive_timeouts=%u state=%u\n", (unsigned)protocol_mode_, rx_any_since_tx_, consecutive_timeouts_, (unsigned)comm_state);
-  if (comm_state == CommState::ReceivingFrame && !response.empty()) {
-    //Serial.printf("[RX] Incomplete frame discarded on timeout");
-    if (result_callback) result_callback(Result::Timeout, nullptr, 0);
-  } else if (comm_state == CommState::WaitingAck) {
-    if (result_callback) result_callback(Result::Timeout, nullptr, 0);
-  }
   comm_state = CommState::Idle;
+  response.clear();
+  timeout_active = false;
   maybe_switch_mode_on_timeout();
+  if (result_callback) result_callback(Result::Timeout, nullptr, 0);
 }
 
 void DaikinSerial::finalize_frame() {
   // response currently: STX ... payload ... SUM ... ETX (no escaping)
-  if (response.size() < 4) { // STX + min(1 data) + checksum + ETX
+  if (response.size() < 5) { // STX + min(1 data) + checksum + ETX
     //Serial.printf("[RX] Frame too short");
     if (result_callback) result_callback(Result::Error, nullptr, 0);
     return;

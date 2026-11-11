@@ -59,4 +59,21 @@ void test_checksums() {
     assert(t.results.back()==Result::Error);
     assert(t.hal().tx.back()==3); // no final ACK for bad checksum
 }
-int main() { test_handshake(); test_checksums(); std::cout << "S21 native tests passed\n"; }
+void test_recovery() {
+    Transport t;
+    t.serial.send_frame("F1"); test_now+=1100; t.serial.loop();
+    assert(t.results.back()==Result::Timeout && !t.serial.busy());
+    t.serial.send_frame("D1"); t.receive({6});
+    assert(!t.serial.busy());
+    t.serial.send_frame("F1"); t.receive({0x15});
+    assert(t.results.back()==Result::Nak && !t.serial.busy());
+    t.serial.send_frame("F1"); t.receive({6,0x55,2,'G'}); test_now+=1000; t.serial.loop();
+    assert(t.results.back()==Result::Timeout && !t.serial.busy());
+    t.serial.send_frame("F1"); t.receive({2,'G',2,'G','1','1','4','F','A',0x64,3});
+    assert(t.results.back()==Result::Frame);
+    t.serial.send_frame("FU05");
+    t.receive({2,'G','U','0','5'});
+    for(int i=0;i<80;i++) t.receive({'A'});
+    assert(t.results.back()==Result::Error && !t.serial.busy());
+}
+int main() { test_handshake(); test_checksums(); test_recovery(); std::cout << "S21 native tests passed\n"; }
