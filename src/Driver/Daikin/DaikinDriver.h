@@ -157,6 +157,7 @@ public:
     virtual const std::string name() const override;
     virtual void showInformations() override;
     
+    std::vector<uint8_t> diagnosticResponse(std::string_view command) const;
     const daikin::State& telemetry() const { return state_; }
     enum class FeatureAccess : uint8_t { Unknown, Unsupported, ReadOnly, Writable };
     FeatureAccess commandAccess(std::string_view read_command) const;

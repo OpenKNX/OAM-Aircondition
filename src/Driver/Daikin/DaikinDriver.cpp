@@ -389,6 +389,13 @@ void DaikinDriver::loop()
     updateOnlineStatus(); // Update online status based on recent communication
 }
 
+std::vector<uint8_t> DaikinDriver::diagnosticResponse(std::string_view command) const
+{
+    // Local diagnostics only. Production pages can contain serial numbers.
+    auto q=std::find_if(queries_.begin(),queries_.end(),[&](const DaikinQueryState& q){return q.command==command;});
+    return q == queries_.end() ? std::vector<uint8_t>{} : q->response_data;
+}
+
 DaikinDriver::FeatureAccess DaikinDriver::commandAccess(std::string_view read_command) const
 {
     const CombinedCommand* combined = read_command == "F5" ? &d5_ : read_command == "F6" ? &d6_ : read_command == "F7" ? &d7_ : read_command == "FR" ? &dr_ : nullptr;
@@ -873,6 +880,7 @@ void DaikinDriver::initializeQueries()
         queries_.emplace_back("Rz72", nullptr, true);
     }
 #ifdef DAIKIN_EXTRA_DIAGNOSTICS
+    queries_.emplace_back("Rb"); // raw research sample; no physical units assigned
     for (auto cmd : {std::string_view{"RF"}, std::string_view{"RD"}, std::string_view{"RE"}})
         queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_supplemental_sensor(cmd,data,n); });
     // Optional cross-checks do not replace precise F1/RX climate state.
