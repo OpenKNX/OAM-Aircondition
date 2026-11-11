@@ -1,0 +1,1 @@
+model,firmware,protocol_f8_hex,protocol_fy00_hex,command,request_payload_hex,ack_or_nak,response_header,response_payload_hex,request_time_us,ack_time_us,frame_time_us,host_ack_time_us,physical_observation,verdict,capture_file
