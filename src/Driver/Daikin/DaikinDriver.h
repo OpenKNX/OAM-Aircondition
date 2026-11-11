@@ -183,6 +183,7 @@ public:
 
     // Configure only after validating the model's reduced-demand range on hardware.
     bool configureDemandLimits(uint8_t minimum, uint8_t step);
+    void setLedState(daikin::LedState state);
     void setComfort(bool on);
     void setIntelligentEye(bool on);
     void updatePower(bool power);
@@ -245,6 +246,7 @@ private:
         bool activate_streamer{false};
         bool activate_sensor{false};
         bool activate_comfort{false};
+        daikin::LedState led{daikin::LedState::Unknown};
         bool comfort{false};
     } pending_;
     

@@ -163,4 +163,14 @@ void test_demand() {
     g7[0]=0x49; d.handle_f7_response(g7,4); assert(d.state_.demand_percentage==75);
     d.setMaxPowerLevel(101); assert(!d.demand_pending_);
 }
-int main() { test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_led() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t g6[]={0x30,0x30,0x30,0x34};
+    for (auto pair : {std::pair<uint8_t,daikin::LedState>{0x34,daikin::LedState::On},
+                      {0x38,daikin::LedState::Dark},{0x3C,daikin::LedState::Off}}) {
+        g6[3]=pair.first; d.handle_f6_response(g6,4); assert(d.state_.ledState==pair.second);
+    }
+    d.support_.sensor_hardware=true; g6[3]=0x3C; d.handle_f6_response(g6,4);
+    assert(d.state_.sensor && d.state_.sensorLed);
+}
+int main() { test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

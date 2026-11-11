@@ -576,25 +576,16 @@ void DaikinDriver::setExternalSensorRoomTemperature(float)
 
 void DaikinDriver::setWifiLed(bool on)
 {
-    if (!serial_)
-    {
-        logErrorP("S21 driver not initialized");
-        return;
-    }
-    // Defer LED command until after first cycle completes to reduce early contention
-    if (!first_cycle_completed_)
-    {
-        logInfoP("Deferring LED command until after first query cycle completes");
-        pending_.climate.led = on;
-        pending_.activate_led = true;
-        return;
-    }
+    setLedState(on ? daikin::LedState::On : daikin::LedState::Off);
+}
 
-    // Update pending state
-    pending_.climate.led = on;
+void DaikinDriver::setLedState(daikin::LedState led)
+{
+    if (led == daikin::LedState::Unknown || (support_.sensor_hardware && led == daikin::LedState::Dark)) return;
+    pending_.led = led;
+    pending_.climate.led = led == daikin::LedState::On;
     pending_.activate_led = true;
-
-    sendLedCommand(); // Send S21 LED command - D9 controls LED
+    sendLedCommand();
 }
 
 void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
@@ -1696,7 +1687,8 @@ void DaikinDriver::sendSpecialModesCommand()
     if (pending_.activate_sensor && support_.sensor_hardware) bit(3, 0x08, pending_.climate.sensor);
     if (pending_.activate_led) {
         if (support_.sensor_hardware) bit(3, 0x04, pending_.climate.led);
-        else payload[3] = (payload[3] & ~0x0C) | (pending_.climate.led ? 0x04 : 0x0C);
+        else payload[3] = (payload[3] & ~0x0C) |
+            (pending_.led == daikin::LedState::On ? 0x04 : pending_.led == daikin::LedState::Dark ? 0x08 : 0x0C);
     }
     if (!sendCombined("D6", payload)) return;
     pending_.activate_powerful = pending_.activate_quiet = pending_.activate_comfort = false;
@@ -2093,10 +2085,20 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
         state_.sensor = false; // No sensor hardware, so sensor mode is always false
     }
 
-    // F6 byte 3 bit definitions (per S21 protocol spec):
-    // - Bit 3 (0x08): "Sensor" mode on
-    // - Bits 3,4 (mask 0x0C): if both set (0x0C), LED is turned off
-    state_.led = (data[3] & 0x0C) != 0x0C; // LED is ON when both bits 3&4 are NOT set (S21 spec compliant)
+    // Bits 2 and 3 overlap with sensor controls; distinguish the hardware variants.
+    state_.sensorLed = support_.sensor_hardware && (data[3] & 0x04);
+    if (support_.sensor_hardware) {
+        state_.ledState = state_.sensorLed ? daikin::LedState::On : daikin::LedState::Off;
+    } else {
+        switch (data[3] & 0x0C) {
+            case 0x0C: state_.ledState = daikin::LedState::Off; break;
+            case 0x08: state_.ledState = daikin::LedState::Dark; break;
+            case 0x04: state_.ledState = daikin::LedState::On; break;
+            default: state_.ledState = daikin::LedState::Unknown; break;
+        }
+    }
+    if (state_.ledState != daikin::LedState::Unknown)
+        state_.led = state_.ledState == daikin::LedState::On;
 
     logInfoP("F6: powerful=%d, comfort=%d, quiet=%d, streamer=%d, sensor=%d (hw_avail=%d), led=%d (raw: %02X %02X %02X %02X)",
              state_.powerful, state_.comfort, state_.quiet, state_.streamer, state_.sensor, support_.sensor_hardware, state_.led,

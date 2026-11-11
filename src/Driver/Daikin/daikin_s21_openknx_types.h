@@ -202,6 +202,8 @@ namespace daikin
         uint8_t raw{};
     };
 
+    enum class LedState : uint8_t { Unknown, On, Dark, Off };
+
     struct ClimateSettings
     {
         bool power{false};
@@ -277,6 +279,8 @@ namespace daikin
         bool comfort{false};  // fan angle depends on heating/cooling action
         bool streamer{false}; // electron emitter decontamination?
         bool sensor{false};   // "intelligent eye" PIR occupancy setpoint offset
+        LedState ledState{LedState::Unknown};
+        bool sensorLed{false};
         bool led{true};       // unit LED status
 
         // Sensors and telemetry
