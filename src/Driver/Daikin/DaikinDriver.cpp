@@ -785,7 +785,7 @@ void DaikinDriver::initializeQueries()
     {
         // FU**: keep FU00 as static capabilities; poll FU02/FU04 each cycle
         queries_.emplace_back(StateQuery::ExtensionFU00, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU00, data, data_size); }, true);
-        queries_.emplace_back(StateQuery::ExtensionFU02, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU02, data, data_size); });
+        queries_.emplace_back(StateQuery::ExtensionFU02, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU02, data, data_size); }, true);
         queries_.emplace_back(StateQuery::ExtensionFU04, [this](uint8_t* data, size_t data_size) { handle_fu_fx_response(StateQuery::ExtensionFU04, data, data_size); });
 
         // FX** baseline extension pages (read once)
@@ -797,7 +797,14 @@ void DaikinDriver::initializeQueries()
 
         for (const auto cmd : fx_v320)
         {
-            queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, true);
+            queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, cmd != StateQuery::ExtensionFX60);
+            if (cmd == StateQuery::ExtensionFX60) {
+#ifdef DAIKIN_LIVE_POWER_INTERVAL_MS
+                queries_.back().interval_ms = DAIKIN_LIVE_POWER_INTERVAL_MS;
+#else
+                queries_.back().interval_ms = 10000;
+#endif
+            }
         }
 
         // v3.40+ additional extension pages (read once)
@@ -904,7 +911,7 @@ void DaikinDriver::updateQueryStateMachine()
                     }
 
                     // Skip static queries that have already been successfully read
-                    if (query.is_static && query.acked)
+                    if (query.acked && (query.is_static || (query.interval_ms && (now - query.last_sample_ms) < query.interval_ms)))
                     {
                         // logDebugP("Skipping static query (already read): %.*s", static_cast<int>(query.command.size()), query.command.data());
                         query_index_++;
@@ -2825,6 +2832,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                     if (payload_len > 0)
                     {
                         query.acked = true;
+                        query.last_sample_ms = now;
                         query.response_data.assign(payload, payload + payload_len);
                         if (query.handler) query.handler(payload, payload_len);
                     }

@@ -275,4 +275,11 @@ void test_rz_identity() {
         assert(it!=d.queries_.end() && it->is_static && !it->handler);
     }
 }
-int main() { test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_query_rates() {
+    Feedback f; DaikinDriver d(f); d.setup(); d.protocol_version_={3,40}; d.initializeQueries();
+    for(const auto& q : d.queries_) {
+        if(q.command=="FX60") assert(!q.is_static && q.interval_ms==10000);
+        if(q.command=="FU05" || q.command=="FU35" || q.command=="FX00") assert(q.is_static);
+    }
+}
+int main() { test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

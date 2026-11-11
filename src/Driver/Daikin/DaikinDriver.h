@@ -109,6 +109,7 @@ public:
     
     std::string_view command{};
     handler_fn handler{nullptr};
+    uint32_t interval_ms{0}, last_sample_ms{0};
     bool is_static{false};
     bool acked{false};
     uint8_t naks{0};
