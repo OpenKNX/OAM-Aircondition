@@ -200,6 +200,8 @@ uint8_t DaikinSerial::calculate_checksum(const uint8_t* data, size_t size) {
   for (size_t i = 0; i < size; ++i) {
     sum += data[i];
   }
+  // S21 shields only these checksum collisions; payload bytes are unchanged.
+  if (sum == STX || sum == ETX || sum == ACK || sum == NAK) sum += 2;
   return sum;
 }
 

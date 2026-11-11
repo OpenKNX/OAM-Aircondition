@@ -42,4 +42,21 @@ void test_handshake() {
     assert((t.payload == std::vector<uint8_t>{'G','1','1','4','F','A'}));
     assert(t.hal().tx.back()==6);
 }
-int main() { test_handshake(); std::cout << "S21 native tests passed\n"; }
+void test_checksums() {
+    for (uint8_t sum : {2,3,6,0x15,0x42,4,5,8,0x17}) {
+        Transport t;
+        uint8_t value=uint8_t(sum-'F'-'1');
+        t.serial.send_frame("F1", &value, 1);
+        uint8_t wire=(sum==2||sum==3||sum==6||sum==0x15)?sum+2:sum;
+        assert(t.hal().tx[t.hal().tx.size()-2]==wire);
+        t.receive({2,'G','1',uint8_t(sum-'G'-'1'),wire,3});
+        assert(t.results.back()==Result::Frame);
+        assert(t.payload[2]==uint8_t(sum-'G'-'1'));
+    }
+    Transport t;
+    t.serial.send_frame("F1");
+    t.receive({2,'G','1',0x79,3});
+    assert(t.results.back()==Result::Error);
+    assert(t.hal().tx.back()==3); // no final ACK for bad checksum
+}
+int main() { test_handshake(); test_checksums(); std::cout << "S21 native tests passed\n"; }
