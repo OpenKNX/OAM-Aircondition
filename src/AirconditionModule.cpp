@@ -248,7 +248,7 @@ void AirconditionModule::showInformations()
 
 bool AirconditionModule::processCommand(const std::string cmd, bool debugKo)
 {
-    if (_airConditionDriver == nullptr)
+    if (_airConditionDriver != nullptr)
     {
         if (_airConditionDriver->processCommand(cmd, debugKo) == true)
         {
