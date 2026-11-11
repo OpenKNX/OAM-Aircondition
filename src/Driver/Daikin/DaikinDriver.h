@@ -85,11 +85,11 @@ namespace StateCommand {
   inline constexpr std::string_view PowerModeTempFan{"D1"};
   inline constexpr std::string_view LouvreSwingMode{"D5"};
   inline constexpr std::string_view Comfort{"D6"};
-  inline constexpr std::string_view Powerful{"D7"};
-  inline constexpr std::string_view Econo{"D3"};
-  inline constexpr std::string_view Quiet{"D4"};
-  inline constexpr std::string_view Sensor{"D8"};
-  inline constexpr std::string_view Led{"D9"};
+  inline constexpr std::string_view Powerful{"D6"};
+  inline constexpr std::string_view Econo{"D7"};
+  inline constexpr std::string_view Quiet{"D6"};
+  inline constexpr std::string_view Sensor{"D6"};
+  inline constexpr std::string_view Led{"D6"};
   inline constexpr std::string_view Streamer{"D6"};
 }
 
@@ -181,6 +181,8 @@ public:
     virtual void setMaxPowerLevel(uint8_t percentage) override;
     virtual void setAirPurification(bool on) override;
 
+    void setComfort(bool on);
+    void setIntelligentEye(bool on);
     void updatePower(bool power);
     void updateMode(AirConditionMode mode);
     void updateTargetTemperature(float temperaturCelsius);
@@ -240,6 +242,8 @@ private:
         bool activate_led{false};
         bool activate_streamer{false};
         bool activate_sensor{false};
+        bool activate_comfort{false};
+        bool comfort{false};
     } pending_;
     
     // Track explicit OFF commands to prevent safety guard from overriding them
@@ -267,6 +271,16 @@ private:
         bool led{false};
         bool f6_special_modes{false};  // true if F6 works, false to use F3 fallback
     } support_;
+
+    enum class CommandSupport : uint8_t { Unknown, Supported, Unsupported };
+    struct CombinedCommand {
+        PayloadBuffer confirmed{};
+        bool valid{false};
+        CommandSupport write{CommandSupport::Unknown};
+    } d5_, d6_, d7_;
+    std::string_view outstanding_write_{};
+    bool sendCombined(std::string_view command, const PayloadBuffer& payload);
+    void sendSpecialModesCommand();
 
     // Serial communication
     std::unique_ptr<daikin::DaikinSerial> serial_;

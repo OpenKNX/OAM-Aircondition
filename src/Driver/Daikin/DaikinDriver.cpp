@@ -337,6 +337,11 @@ void DaikinDriver::loop()
     last_loop_time = now;
 
     serial_->loop(); // Process serial communication (non-blocking)
+    if (!serial_->busy() && !isInPostWriteSettle()) {
+        if (pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
+            pending_.activate_sensor || pending_.activate_led || pending_.activate_streamer)
+            sendSpecialModesCommand();
+    }
 
     updateQueryStateMachine(); // non-blocking state machine
 
@@ -398,7 +403,7 @@ unsigned int DaikinDriver::getMaximumHumidityModeLevels()
 
 bool DaikinDriver::supportExternalRoomTemperatureSensor()
 {
-    return support_.sensor; // Detected during protocol initialization
+    return false; // Intelligent Eye is not an external temperature input.
 }
 
 float DaikinDriver::accuracyInDegrees()
@@ -563,25 +568,9 @@ void DaikinDriver::setSwingVerticalFixPosition(unsigned int position)
     logInfoP("Fixed vertical positions not supported by S21 protocol (requested: %u) - accepted as no-op", position);
 }
 
-void DaikinDriver::setExternalSensorRoomTemperature(float temperaturCelsius)
+void DaikinDriver::setExternalSensorRoomTemperature(float)
 {
-    logInfoP("Setting external sensor temperature: %.1f°C", temperaturCelsius);
-    if (!serial_)
-    {
-        logErrorP("S21 driver not initialized");
-        return;
-    }
-    if (!support_.sensor)
-    {
-        logInfoP("External sensor not supported by this AC unit");
-        return;
-    }
-
-    // Update pending state
-    pending_.climate.sensor_temp = temperaturCelsius;
-    pending_.activate_sensor = true;
-
-    sendSensorCommand(); // Send S21 sensor command - D6 controls sensor
+    logInfoP("S21 external temperature injection has no verified command; request ignored");
 }
 
 void DaikinDriver::setWifiLed(bool on)
@@ -1627,27 +1616,7 @@ void DaikinDriver::sendSwingCommand()
 
 void DaikinDriver::sendPowerfulCommand()
 {
-    if (!serial_ || !pending_.activate_powerful)
-    {
-        return;
-    }
-    logDebugP("Sending S21 powerful command D7");
-
-    PayloadBuffer payload{};
-    // 4-byte structured payload; byte 0 bit 1 carries powerful flag
-    payload[0] = 0x30; // shielded zero base
-    payload[1] = 0x30;
-    payload[2] = 0x30;
-    payload[3] = 0x30;
-    if (pending_.climate.powerful) payload[0] |= 0x02;
-
-    std::string cmd(StateCommand::Powerful);
-    serial_->send_frame(cmd, payload.data(), 4);
-
-    // v0 stability: Enter post-write settle for D-type commands
-    handleWriteCommandSent(LastWriteCommand::Other);
-
-    pending_.activate_powerful = false;
+    if (pending_.activate_powerful) sendSpecialModesCommand();
 }
 
 void DaikinDriver::sendEconoCommand()
@@ -1677,102 +1646,73 @@ void DaikinDriver::sendEconoCommand()
 
 void DaikinDriver::sendQuietCommand()
 {
-    if (!serial_ || !pending_.activate_quiet)
-    {
-        return;
-    }
-    logDebugP("Sending S21 quiet command D4");
-
-    PayloadBuffer payload{};
-    // 4-byte structured payload; byte 0 bit 7 carries quiet flag
-    payload[0] = 0x30;
-    payload[1] = 0x30;
-    payload[2] = 0x30;
-    payload[3] = 0x30;
-    if (pending_.climate.quiet) payload[0] |= 0x80;
-
-    std::string cmd(StateCommand::Quiet);
-    serial_->send_frame(cmd, payload.data(), 4);
-
-    // v0 stability: Enter post-write settle for D-type commands
-    handleWriteCommandSent(LastWriteCommand::Other);
-
-    pending_.activate_quiet = false;
+    if (pending_.activate_quiet) sendSpecialModesCommand();
 }
 
 void DaikinDriver::sendSensorCommand()
 {
-    if (!serial_ || !pending_.activate_sensor)
-    {
-        return;
-    }
-    logDebugP("Sending S21 sensor command D8");
-
-    PayloadBuffer payload{};
-    // 4-byte structured payload; preserve existing external-sensor setpoint encoding in byte 0
-    payload[0] = static_cast<uint8_t>(pending_.climate.sensor_temp * 2); // 0.5°C steps
-    payload[1] = 0x30;
-    payload[2] = 0x30;
-    payload[3] = 0x30;
-
-    std::string cmd(StateCommand::Sensor);
-    serial_->send_frame(cmd, payload.data(), 4);
-
-    // v0 stability: Enter post-write settle for D-type commands
-    handleWriteCommandSent(LastWriteCommand::Other);
-
-    pending_.activate_sensor = false;
+    if (pending_.activate_sensor) sendSpecialModesCommand();
 }
 
 void DaikinDriver::sendLedCommand()
 {
-    if (!serial_ || !pending_.activate_led)
-    {
-        return;
-    }
-    logDebugP("Sending S21 LED command D9");
-
-    PayloadBuffer payload{};
-    // 4-byte structured payload; byte 3 controls LED state
-    // ON:  bit2 set, bit3 clear (0x04)
-    // OFF: bit2+bit3 set (0x0C)
-    payload[0] = 0x30;
-    payload[1] = 0x30;
-    payload[2] = 0x30;
-    payload[3] = pending_.climate.led ? 0x34 : 0x3C;
-
-    std::string cmd(StateCommand::Led);
-    serial_->send_frame(cmd, payload.data(), 4);
-
-    // v0 stability: Enter post-write settle for D-type commands
-    handleWriteCommandSent(LastWriteCommand::Other);
-
-    pending_.activate_led = false;
+    if (pending_.activate_led) sendSpecialModesCommand();
 }
 
 void DaikinDriver::sendStreamerCommand()
 {
-    if (!serial_ || !pending_.activate_streamer)
-    {
-        return;
+    if (pending_.activate_streamer) sendSpecialModesCommand();
+}
+
+bool DaikinDriver::sendCombined(std::string_view command, const PayloadBuffer& payload)
+{
+    CombinedCommand& combined = command == "D5" ? d5_ : command == "D6" ? d6_ : d7_;
+    if (!serial_ || serial_->busy() || isInPostWriteSettle() || !combined.valid ||
+        combined.write == CommandSupport::Unsupported) return false;
+    for (uint8_t b : payload) {
+        if (b == 2 || b == 3 || b == 6 || b == 0x15 || b == 0x0A) return false;
     }
-    logDebugP("Sending S21 streamer command D6");
+    outstanding_write_ = command;
+    serial_->send_frame(command, payload.data(), payload.size());
+    last_send_time_ = millis();
+    handleWriteCommandSent(command == "D5" ? LastWriteCommand::D5_Swing : LastWriteCommand::Other);
+    return true;
+}
 
-    PayloadBuffer payload{};
-    // 4-byte structured payload; byte 1 bit 7 carries streamer flag
-    payload[0] = 0x30;
-    payload[1] = 0x30;
-    payload[2] = 0x30;
-    payload[3] = 0x30;
-    if (pending_.climate.streamer) payload[1] |= 0x80;
+void DaikinDriver::sendSpecialModesCommand()
+{
+    if (!d6_.valid) return; // read before modifying shared fields
+    PayloadBuffer payload = d6_.confirmed;
+    auto bit = [&](size_t byte, uint8_t mask, bool on) {
+        payload[byte] = (payload[byte] & ~mask) | (on ? mask : 0);
+    };
+    if (pending_.activate_powerful) bit(0, 0x02, pending_.climate.powerful);
+    if (pending_.activate_quiet) bit(0, 0x80, pending_.climate.quiet);
+    if (pending_.activate_comfort) bit(0, 0x40, pending_.comfort);
+    if (pending_.activate_streamer) bit(1, 0x80, pending_.climate.streamer);
+    if (pending_.activate_sensor && support_.sensor_hardware) bit(3, 0x08, pending_.climate.sensor);
+    if (pending_.activate_led) {
+        if (support_.sensor_hardware) bit(3, 0x04, pending_.climate.led);
+        else payload[3] = (payload[3] & ~0x0C) | (pending_.climate.led ? 0x04 : 0x0C);
+    }
+    if (!sendCombined("D6", payload)) return;
+    pending_.activate_powerful = pending_.activate_quiet = pending_.activate_comfort = false;
+    pending_.activate_streamer = pending_.activate_sensor = pending_.activate_led = false;
+}
 
-    std::string cmd(StateCommand::Streamer);
-    serial_->send_frame(cmd, payload.data(), 4);
+void DaikinDriver::setComfort(bool on)
+{
+    pending_.comfort = on;
+    pending_.activate_comfort = true;
+    sendSpecialModesCommand();
+}
 
-    // v0 stability: Enter post-write settle for D-type commands
-    handleWriteCommandSent(LastWriteCommand::Other);
-
-    pending_.activate_streamer = false;
+void DaikinDriver::setIntelligentEye(bool on)
+{
+    if (!support_.sensor_hardware) return;
+    pending_.climate.sensor = on;
+    pending_.activate_sensor = true;
+    sendSpecialModesCommand();
 }
 
 // === S21 Response Handlers ===
@@ -2131,6 +2071,8 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
     }
     stats_.frames_ok++;
 
+    std::copy_n(data, 4, d6_.confirmed.begin());
+    d6_.valid = true;
     support_.f6_special_modes = true; // Mark F6 as supported since we got a successful response
 
     state_.powerful = (data[0] & 0x02) != 0; // payload[0] & 0x02 = powerful
@@ -3068,6 +3010,14 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                                  query_state_ == QueryState::PostWriteSettle;
     if (!accept_response) return;
 
+    if (!outstanding_write_.empty()) {
+        CombinedCommand& c = outstanding_write_ == "D5" ? d5_ : outstanding_write_ == "D6" ? d6_ : d7_;
+        if (result == daikin::DaikinSerial::Result::Ack) c.write = CommandSupport::Supported;
+        if (result == daikin::DaikinSerial::Result::Nak) c.write = CommandSupport::Unsupported;
+        if (result == daikin::DaikinSerial::Result::Ack || result == daikin::DaikinSerial::Result::Nak ||
+            result == daikin::DaikinSerial::Result::Timeout || result == daikin::DaikinSerial::Result::Error)
+            outstanding_write_ = {};
+    }
     // During post-write settle we may receive ACK/frames that belong to D-commands.
     // Keep the settle state active so the coalesced D1 flush can run after timeout.
     if (query_state_ == QueryState::PostWriteSettle)

@@ -130,4 +130,17 @@ void test_correlation() {
     d.query_index_=0; d.query_state_=DaikinDriver::QueryState::Idle;
     d.handle_serial_result(Result::Frame,right,sizeof(right)); assert(d.query_index_==0);
 }
-int main() { test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_d6() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t readback[]={0x70,0xB0,0x31,0x34};
+    d.handle_f6_response(readback,4);
+    assert(d.d6_.write==DaikinDriver::CommandSupport::Unknown);
+    d.pending_.climate.powerful=true; d.pending_.activate_powerful=true; d.sendPowerfulCommand();
+    auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
+    assert(tx[1]=='D' && tx[2]=='6');
+    assert(tx[3]==0x72 && tx[4]==0xB0 && tx[5]==0x31 && tx[6]==0x34);
+    d.handle_serial_result(Result::Nak,nullptr,0);
+    assert(d.d6_.write==DaikinDriver::CommandSupport::Unsupported);
+    assert(!d.supportExternalRoomTemperatureSensor());
+}
+int main() { test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
