@@ -526,4 +526,18 @@ void test_large_pages_and_tx_failures() {
     bad.hal().fail_writes=false; bad.serial.send_frame("F1"); bad.hal().fail_writes=true;
     bad.receive({2,'G','1','1','4','F','A',0x64,3}); assert(bad.results.back()==Result::Error);
 }
-int main() { test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_optional_query_configuration() {
+    Feedback f; DaikinDriver d(f); d.setup(); d.protocol_version_={3,40}; d.initializeQueries();
+    auto has=[&](std::string_view cmd){return std::any_of(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==cmd;});};
+#ifdef DAIKIN_EXTRA_DIAGNOSTICS
+    assert(has("RA") && has("RB") && has("RC") && has("RF") && has("RD") && has("RE") && has("Rb"));
+#else
+    assert(!has("RA") && !has("RB") && !has("RC") && !has("RF") && !has("RD") && !has("RE") && !has("Rb"));
+#endif
+#ifdef DAIKIN_PRODUCTION_DIAGNOSTICS
+    assert(has("FU15") && has("FU25") && has("FU35") && has("FU45"));
+#else
+    assert(!has("FU15") && !has("FU25") && !has("FU35") && !has("FU45"));
+#endif
+}
+int main() { test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
