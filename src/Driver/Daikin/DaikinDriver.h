@@ -263,6 +263,8 @@ private:
     // Protocol support detection
     daikin::ProtocolVersion protocol_version_{daikin::ProtocolUndetected};
     struct {
+        bool powerful{false};
+        bool econo{false};
         bool demand{false};
         bool fan_mode_query{false};
         bool inside_temperature_query{false};

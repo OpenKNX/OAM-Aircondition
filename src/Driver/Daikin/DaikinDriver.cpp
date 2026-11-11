@@ -1823,21 +1823,7 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
 {
-    if (data_size < 1)
-    {
-        logErrorP("F2 response empty");
-        return;
-    }
-    if (data_size == 1)
-    {
-        logDebugP("F2: ACK only");
-        return;
-    }
-    if (data_size < 2)
-    {
-        logErrorP("F2 response too short: %zu bytes", data_size);
-        return;
-    }
+    if (data_size != 4) return;
     stats_.frames_ok++;
 
     // De-shield F2 capability bytes (S21 protocol uses 0x30 shield bits on byte 0 only)
@@ -1858,11 +1844,10 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
 
     // Use de-shielded bytes for all feature flags to prevent false positives/negatives
     support_.swing = (b0 & 0x04) != 0;    // bit 2 - swing (any kind) available
-    support_.humidity = hasHumidifyMode;  // bit 1 of byte3 - Humidify operation mode available
-    support_.fan = (b0 & 0x04) != 0;      // bit 2 - fan control capability (live fan mode comes from F1/RG queries)
-    support_.sensor = (b0 & 0x08) != 0;   // bit 3 - sensor available
-    support_.streamer = (b0 & 0x10) != 0; // bit 4 - streamer available
-    support_.led = (b0 & 0x20) != 0;      // bit 5 - LED control available
+    support_.humidity = humidity_modes_ != 0;  // bit 1 of byte3 - Humidify operation mode available
+    support_.horizontal_swing = (b0 & 0x08) != 0;
+    // F2 bits 4/5 are shields. Fan and Intelligent Eye belong to FK;
+    // Streamer/Powerful/Econo availability belongs to FU00.
 
     logDebugP("F2 capability: swing=%d, humidity=%d (humidify_mode=%d, extra_modes=%d), fan=%d, sensor=%d, streamer=%d, led=%d",
               support_.swing, support_.humidity, hasHumidifyMode, hasExtraHumdModes,
@@ -2373,6 +2358,9 @@ void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
             // byte1 bit 3 - "motion detector" AKA "Intelligent eye" availability
             bool sensor_hardware_available = (data[1] & 0x08) != 0;
             support_.sensor_hardware = sensor_hardware_available;
+            support_.sensor = sensor_hardware_available;
+            support_.fan = (data[2] & 0x04) != 0;
+            if (data[2] & 0x02) humidity_modes_ = 0; // simple Humidify has no level controls
             support_.demand = (data[3] & 0x01) != 0 && protocol_version_.major > 2;
 
             logInfoP("FK capabilities: sensor_hardware=%d (byte1=0x%02X, bit3=%d)",
@@ -2426,20 +2414,11 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
         return true;
     };
 
-    if (command == StateQuery::ExtensionFU00 && data_size >= 6)
+    if (command == StateQuery::ExtensionFU00 && data_size == 32)
     {
-        const bool has_fu05 = (data[0] == '3');
-        const bool has_fu15 = (data[1] == '3');
-        const bool has_fu25 = (data[2] == '3');
-        const bool has_fu35 = (data[3] == '3');
-        const bool has_fu45 = (data[4] == '3');
-        const bool has_streamer = (data[5] == '3');
-
-        // FU00 byte5 is the Streamer availability flag (not FX40 capability).
-        support_.streamer = support_.streamer || has_streamer;
-
-        logInfoP("FU00: availability FU05=%d FU15=%d FU25=%d FU35=%d FU45=%d Streamer=%d",
-                 has_fu05, has_fu15, has_fu25, has_fu35, has_fu45, has_streamer);
+        support_.powerful = data[0] == 0x33;
+        support_.econo = data[1] == 0x33;
+        support_.streamer = data[5] == 0x33;
         return;
     }
 

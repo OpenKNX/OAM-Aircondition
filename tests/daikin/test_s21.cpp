@@ -221,4 +221,19 @@ void test_no_f3_special_fallback() {
     d.queries_.emplace_back("F6"); d.queries_[0].bad=true;
     d.checkF6ToF3Fallback(); assert(d.queries_[0].command=="F6");
 }
-int main() { test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_capability_bits() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    for (size_t size=0;size<4;size++) {
+        std::vector<uint8_t> truncated(size,0xFF); d.handle_f2_response(truncated.data(),size);
+        assert(!d.support_.swing);
+    }
+    uint8_t g2[]={0x3C,0x32,0,0x90}; d.handle_f2_response(g2,4);
+    assert(d.support_.swing && d.support_.horizontal_swing && d.humidity_modes_==0x92);
+    assert(!d.support_.sensor && !d.support_.streamer && !d.support_.led && !d.support_.fan);
+    uint8_t gk[]={0x30,0x38,0x34,0x31}; d.protocol_version_={3,20}; d.handle_fk_response(gk,4);
+    assert(d.support_.sensor_hardware && d.support_.fan && d.support_.demand);
+    std::array<uint8_t,32> gu{}; gu.fill('0'); gu[0]=gu[1]=gu[5]='3';
+    d.handle_fu_fx_response("FU00",gu.data(),gu.size());
+    assert(d.support_.powerful && d.support_.econo && d.support_.streamer);
+}
+int main() { test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
