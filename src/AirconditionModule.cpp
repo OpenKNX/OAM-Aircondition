@@ -195,7 +195,8 @@ void AirconditionModule::loop()
 
                     break;
             }
-            if (_forceWifiLedState || (on != _lastWifiLedState && _lastWifiLedDebounceRunning == 0))
+            if (!(ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinIndependentLed) &&
+                (_forceWifiLedState || (on != _lastWifiLedState && _lastWifiLedDebounceRunning == 0)))
             {
                 _forceWifiLedState = false;
                 _lastWifiLedState = on;
@@ -595,6 +596,25 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 }
             }
             break;
+            case AIR_KoComfort:
+                _airConditionDriver->setOptionalControl(AirConditionOptionalControl::Comfort, ko.value(DPT_Switch));
+                break;
+            case AIR_KoIntelligentEye:
+                _airConditionDriver->setOptionalControl(AirConditionOptionalControl::IntelligentEye, ko.value(DPT_Switch));
+                break;
+            case AIR_KoPowerful:
+                _airConditionDriver->setOptionalControl(AirConditionOptionalControl::Powerful, ko.value(DPT_Switch));
+                break;
+            case AIR_KoEcono:
+                _airConditionDriver->setOptionalControl(AirConditionOptionalControl::Econo, ko.value(DPT_Switch));
+                break;
+            case AIR_KoQuiet:
+                _airConditionDriver->setOptionalControl(AirConditionOptionalControl::Quiet, ko.value(DPT_Switch));
+                break;
+            case AIR_KoUnitLed:
+                if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinIndependentLed)
+                    _airConditionDriver->setUnitLed(static_cast<AirConditionUnitLed>(uint8_t(ko.value(DPT_Value_1_Ucount))));
+                break;
             case AIR_KoVerticalPositionCode:
                 _airConditionDriver->setFixedVerticalPosition(uint8_t(ko.value(DPT_Value_1_Ucount)));
                 break;
@@ -1126,4 +1146,22 @@ void AirconditionModule::updateAdditionalTelemetry(const AirConditionTelemetry& 
     if (sample.valid & T::CompressorFrequency) KoAIR_CompressorFrequency.valueCompare(sample.compressorHz, DPT_Value_2_Ucount);
     if (sample.valid & T::CompressorRunning) KoAIR_CompressorRunning.valueCompare(sample.compressorRunning, DPT_Bool);
     KoAIR_TelemetryValidity.valueCompare(sample.valid, DPT_Value_2_Ucount);
+}
+
+
+void AirconditionModule::updateOptionalControls(const AirConditionOptionalState& sample)
+{
+    if (sample.valid & 1) KoAIR_PowerfulState.valueCompare(bool(sample.values & 1), DPT_Bool);
+    if (sample.valid & 2) KoAIR_EconoState.valueCompare(bool(sample.values & 2), DPT_Bool);
+    if (sample.valid & 4) KoAIR_QuietState.valueCompare(bool(sample.values & 4), DPT_Bool);
+    if (sample.valid & 8) KoAIR_ComfortState.valueCompare(bool(sample.values & 8), DPT_Bool);
+    if (sample.valid & 16) KoAIR_IntelligentEyeState.valueCompare(bool(sample.values & 16), DPT_Bool);
+    // Streamer retains the existing AirPurification control/status objects.
+    if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinIndependentLed) {
+        if (sample.ledValid) KoAIR_UnitLedState.valueCompare(uint8_t(sample.led), DPT_Value_1_Ucount);
+        KoAIR_UnitLedLevels.valueCompare(sample.ledLevels, DPT_Value_1_Ucount);
+        KoAIR_UnitLedValid.valueCompare(sample.ledValid, DPT_Bool);
+    }
+    KoAIR_OptionalControlsAvailable.valueCompare(sample.available, DPT_Value_1_Ucount);
+    KoAIR_OptionalControlsValid.valueCompare(sample.valid, DPT_Value_1_Ucount);
 }

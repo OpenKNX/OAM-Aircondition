@@ -41,6 +41,17 @@ enum AirConditionDeviceMode
 
 };
 
+enum class AirConditionOptionalControl : uint8_t { Powerful, Econo, Quiet, Comfort, IntelligentEye, Streamer };
+enum class AirConditionUnitLed : uint8_t { On=0, Dark=1, Off=2 };
+struct AirConditionOptionalState
+{
+    // Bit order follows AirConditionOptionalControl. Available means a read page
+    // and no known capability exclusion, not ACK/readback-verified write support.
+    uint8_t valid{0}, values{0}, available{0}, ledLevels{0};
+    bool ledValid{false};
+    AirConditionUnitLed led{AirConditionUnitLed::Off};
+};
+
 // Optional, confirmed samples. Values are meaningful only when the corresponding
 // validity bit is set. RPMs are indoor fan readings; no outdoor RPM is fabricated.
 struct AirConditionTelemetry
@@ -95,6 +106,7 @@ public:
     // Position 6 is the S21 automatic marker; verifiedMask is independent of read support.
     virtual void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) {}
     virtual void updateAdditionalTelemetry(const AirConditionTelemetry& sample) {}
+    virtual void updateOptionalControls(const AirConditionOptionalState& sample) {}
 
     virtual void updateTotalEnergyConsumption(uint32_t totalEnergyWh) = 0;
 
@@ -154,6 +166,9 @@ public:
     virtual void setSwingHorizontalFixPosition(unsigned int position) = 0;
     virtual void setSwingVerticalFixPosition(unsigned int position) = 0;
     virtual bool setFixedVerticalPosition(uint8_t position) { return false; }
+    virtual bool setOptionalControl(AirConditionOptionalControl control, bool on) { return false; }
+    virtual bool setUnitLed(AirConditionUnitLed state) { return false; }
+
 
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) = 0;
     virtual void setWifiLed(bool on) = 0;

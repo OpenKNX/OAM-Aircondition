@@ -23,7 +23,7 @@
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9298
-#define MAIN_MaxKoNumber 486
+#define MAIN_MaxKoNumber 502
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 24
 #define NET_ModuleVersion 6
@@ -843,6 +843,9 @@
 #define     AIR_MonitoringWDTTimeoutDelayTimeMask 0x3FFF
 #define     AIR_MonitoringWDTTimeoutDelayTimeShift 0
 #define AIR_Mit_MinTemp                         410      // 8 Bits, Bit 7-0
+#define AIR_DaikinIndependentLed                411      // 1 Bit, Bit 7
+#define     AIR_DaikinIndependentLedMask 0x80
+#define     AIR_DaikinIndependentLedShift 7
 #define AIR_SCAActive                           425      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
 #define     AIR_SCAActiveShift 7
@@ -1144,6 +1147,8 @@
 #define ParamAIR_MonitoringWDTTimeoutDelayTimeMS     (paramDelay(knx.paramWord(AIR_MonitoringWDTTimeoutDelayTime)))
 // Minimale Soll-Temperatur
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
+// Geräte-/Sensor-LED separat steuern (ersetzt WLAN-LED-Regelung)
+#define ParamAIR_DaikinIndependentLed                ((bool)(knx.paramByte(AIR_DaikinIndependentLed) & AIR_DaikinIndependentLedMask))
 // Szene A
 #define ParamAIR_SCAActive                           ((bool)(knx.paramByte(AIR_SCAActive) & AIR_SCAActiveMask))
 // Szenennummer
@@ -1683,6 +1688,22 @@
 #define AIR_KoModelNameContinuation 484
 #define AIR_KoCompressorFrequency 485
 #define AIR_KoCompressorRunning 486
+#define AIR_KoComfort 487
+#define AIR_KoComfortState 488
+#define AIR_KoIntelligentEye 489
+#define AIR_KoIntelligentEyeState 490
+#define AIR_KoUnitLed 491
+#define AIR_KoUnitLedState 492
+#define AIR_KoPowerful 493
+#define AIR_KoPowerfulState 494
+#define AIR_KoEcono 495
+#define AIR_KoEconoState 496
+#define AIR_KoQuiet 497
+#define AIR_KoQuietState 498
+#define AIR_KoOptionalControlsValid 499
+#define AIR_KoOptionalControlsAvailable 500
+#define AIR_KoUnitLedLevels 501
+#define AIR_KoUnitLedValid 502
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -1840,6 +1861,38 @@
 #define KoAIR_CompressorFrequency                 (knx.getGroupObject(AIR_KoCompressorFrequency))
 // Kompressor Betrieb
 #define KoAIR_CompressorRunning                   (knx.getGroupObject(AIR_KoCompressorRunning))
+// Komfort Ein/Aus
+#define KoAIR_Comfort                             (knx.getGroupObject(AIR_KoComfort))
+// Komfort Status
+#define KoAIR_ComfortState                        (knx.getGroupObject(AIR_KoComfortState))
+// Intelligent Eye Ein/Aus
+#define KoAIR_IntelligentEye                      (knx.getGroupObject(AIR_KoIntelligentEye))
+// Intelligent Eye Status
+#define KoAIR_IntelligentEyeState                 (knx.getGroupObject(AIR_KoIntelligentEyeState))
+// Geräte-/Sensor-LED (0=Ein,1=Dunkel,2=Aus)
+#define KoAIR_UnitLed                             (knx.getGroupObject(AIR_KoUnitLed))
+// Geräte-/Sensor-LED Status
+#define KoAIR_UnitLedState                        (knx.getGroupObject(AIR_KoUnitLedState))
+// Powerful Ein/Aus
+#define KoAIR_Powerful                            (knx.getGroupObject(AIR_KoPowerful))
+// Powerful Status
+#define KoAIR_PowerfulState                       (knx.getGroupObject(AIR_KoPowerfulState))
+// Econo Ein/Aus
+#define KoAIR_Econo                               (knx.getGroupObject(AIR_KoEcono))
+// Econo Status
+#define KoAIR_EconoState                          (knx.getGroupObject(AIR_KoEconoState))
+// Quiet Ein/Aus
+#define KoAIR_Quiet                               (knx.getGroupObject(AIR_KoQuiet))
+// Quiet Status
+#define KoAIR_QuietState                          (knx.getGroupObject(AIR_KoQuietState))
+// Optionen gültig (Bitmaske)
+#define KoAIR_OptionalControlsValid               (knx.getGroupObject(AIR_KoOptionalControlsValid))
+// Optionen abfragbar (Bitmaske)
+#define KoAIR_OptionalControlsAvailable           (knx.getGroupObject(AIR_KoOptionalControlsAvailable))
+// Geräte-/Sensor-LED Stufen (Bitmaske)
+#define KoAIR_UnitLedLevels                       (knx.getGroupObject(AIR_KoUnitLedLevels))
+// Geräte-/Sensor-LED gültig
+#define KoAIR_UnitLedValid                        (knx.getGroupObject(AIR_KoUnitLedValid))
 
 #define LOG_VisibleChannels                     625      // uint8_t
 #define LOG_VacationKo                          626      // 1 Bit, Bit 7

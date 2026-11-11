@@ -873,6 +873,66 @@ bool DaikinDriver::setHumidityMode(daikin::HumidityMode mode)
     sendSwingCommand();return true;
 }
 
+AirConditionOptionalState DaikinDriver::optionalControlState() const
+{
+    AirConditionOptionalState result;
+    // Econo belongs to F7; all other bits belong to F6. Eye is meaningful only
+    // once FK has identified the hardware. Field validity is not write support.
+    result.valid=(state_.specialModesValid?0x2D:0) | (state_.demandValid?2:0) |
+        (state_.specialModesValid && support_.sensor_hardware_known && support_.sensor_hardware?16:0);
+    result.values=(state_.powerful?1:0) | (state_.econo?2:0) | (state_.quiet?4:0) |
+        (state_.comfort?8:0) | (state_.sensor?16:0) | (state_.streamer?32:0);
+    result.available=(d6_.read_supported?0x2D:0) | (d7_.read_supported?2:0) |
+        (d6_.read_supported && support_.sensor_hardware?16:0);
+    if (support_.special_features_known) {
+        if (!support_.powerful) result.available &= ~1;
+        if (!support_.econo) result.available &= ~2;
+        if (!support_.streamer) result.available &= ~32;
+    }
+    result.ledLevels=d6_.read_supported && support_.sensor_hardware_known ? (support_.sensor_hardware?5:7) : 0;
+    result.ledValid=state_.ledState!=daikin::LedState::Unknown;
+    result.led=state_.ledState==daikin::LedState::On?AirConditionUnitLed::On:
+        state_.ledState==daikin::LedState::Dark?AirConditionUnitLed::Dark:AirConditionUnitLed::Off;
+    return result;
+}
+
+bool DaikinDriver::setUnitLed(AirConditionUnitLed state)
+{
+    const auto value=static_cast<uint8_t>(state);
+    if (!serial_ || value>2 || !(optionalControlState().ledLevels & (1U<<value))) return false;
+    setLedState(state==AirConditionUnitLed::On?daikin::LedState::On:state==AirConditionUnitLed::Dark?daikin::LedState::Dark:daikin::LedState::Off);
+    return true;
+}
+
+bool DaikinDriver::setOptionalControl(AirConditionOptionalControl control, bool on)
+{
+    const auto value=static_cast<uint8_t>(control);
+    if (!serial_ || value>5 || !(optionalControlState().available & (1U<<value))) return false;
+    using C=AirConditionOptionalControl;
+    // Turning one option off only clears that option. Enabling one of the three
+    // mutually exclusive power presets explicitly queues the required clears.
+    if (on && (control==C::Powerful || control==C::Quiet)) {
+        pending_.climate.econo=false;pending_.activate_econo=true;
+        if (control==C::Powerful) {pending_.climate.quiet=false;pending_.activate_quiet=true;}
+        else {pending_.climate.powerful=false;pending_.activate_powerful=true;}
+    }
+    if (on && control==C::Econo) {
+        pending_.climate.powerful=pending_.climate.quiet=false;
+        pending_.activate_powerful=pending_.activate_quiet=true;
+    }
+    switch (control) {
+        case C::Powerful:pending_.climate.powerful=on;pending_.activate_powerful=true;break;
+        case C::Econo:pending_.climate.econo=on;pending_.activate_econo=true;break;
+        case C::Quiet:pending_.climate.quiet=on;pending_.activate_quiet=true;break;
+        case C::Comfort:setComfort(on);return true;
+        case C::IntelligentEye:setIntelligentEye(on);return true;
+        case C::Streamer:setAirPurification(on);return true;
+    }
+    if (state_.econo && on && control!=C::Econo) sendEconoCommand();
+    else sendSpecialModesCommand();
+    sendEconoCommand();return true;
+}
+
 void DaikinDriver::setLedState(daikin::LedState led)
 {
     if (led == daikin::LedState::Unknown || (support_.sensor_hardware && led == daikin::LedState::Dark)) return;
@@ -1560,6 +1620,7 @@ void DaikinDriver::sendPowerfulCommand()
 void DaikinDriver::sendEconoCommand()
 {
     if ((!pending_.activate_econo && !demand_pending_) || !d7_.valid) return;
+    if (pending_.activate_econo && pending_.climate.econo && (state_.powerful || state_.quiet)) return;
     if (support_.special_features_known && !support_.econo) pending_.activate_econo = false;
     if (!pending_.activate_econo && !demand_pending_) return;
     PayloadBuffer payload = d7_.confirmed;
@@ -3007,6 +3068,7 @@ void DaikinDriver::publishState()
     sample.firmware=firmware_version_; sample.model=model_name_.empty()?identification_.modelCode:model_name_;
     sample.compressorHz=state_.compressorHz; sample.compressorRunning=state_.compressorOn;
     statusFeedback.updateAdditionalTelemetry(sample);
+    statusFeedback.updateOptionalControls(optionalControlState());
     published_ = state_; publication_initialized_=true;
     seed_kos_pending_=false; gate_publish_until_full_sample_=false;
 }

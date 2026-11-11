@@ -166,7 +166,11 @@ public:
     const daikin::Identification& identification() const { return identification_; }
     bool setClimateVariant(daikin::ClimateVariant mode, daikin::HumidityMode humidity = daikin::HumidityMode::Standard);
     bool setVerticalPositionCode(char position);
-    bool setFixedVerticalPosition(uint8_t position) override; // 0..5 or '?' (swing)
+    bool setFixedVerticalPosition(uint8_t position) override;
+    bool setOptionalControl(AirConditionOptionalControl control, bool on) override;
+    bool setUnitLed(AirConditionUnitLed state) override;
+    AirConditionOptionalState optionalControlState() const;
+ // 0..5 or '?' (swing)
     bool setTimerLamp(bool on);
     void enableExtendedPolling(bool enabled) { extended_polling_=enabled; }
     void trustRzStateReadings(bool trusted) { rz_states_trusted_=trusted; }
