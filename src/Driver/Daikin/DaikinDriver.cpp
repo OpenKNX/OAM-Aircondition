@@ -2578,21 +2578,10 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
         return;
     }
 
-    constexpr size_t preview_max = 12;
-    char preview[(preview_max * 2) + 1];
-    size_t pos = 0;
-    const size_t show = std::min(preview_max, data_size);
-    for (size_t i = 0; i < show && (pos + 2) < sizeof(preview); i++)
-    {
-        int written = snprintf(preview + pos, sizeof(preview) - pos, "%02X", data[i]);
-        if (written <= 0) break;
-        pos += static_cast<size_t>(written);
-    }
-    preview[std::min(pos, sizeof(preview) - 1)] = '\0';
+    // Unknown FU/FX pages are retained in the query's response_data verbatim.
+    // Avoid speculative conversions and repeated raw dumps on ordinary status logs.
+    logDebugP("%.*s: raw diagnostic payload retained (%zu bytes)",static_cast<int>(command.size()),command.data(),data_size);
 
-    logInfoP("%.*s: payload %zu bytes (head=%s%s)",
-             static_cast<int>(command.size()), command.data(),
-             data_size, preview, data_size > show ? "..." : "");
 }
 
 void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
