@@ -19,10 +19,11 @@
 struct FakeHAL : daikin::hal::SerialHAL {
     std::deque<uint8_t> rx;
     std::vector<uint8_t> tx;
+    bool fail_writes{false};
     bool begin(int,int,bool,bool,uint32_t) override { return true; }
     size_t available() override { return rx.size(); }
     int read(uint8_t* b,size_t n) override { size_t k=0; while(k<n && !rx.empty()) { b[k++]=rx.front(); rx.pop_front(); } return k; }
-    size_t write(const uint8_t* b,size_t n) override { tx.insert(tx.end(),b,b+n); return n; }
+    size_t write(const uint8_t* b,size_t n) override { if(fail_writes) return 0; tx.insert(tx.end(),b,b+n); return n; }
     bool flush(uint32_t) override { assert(false && "Blocking flush"); return false; }
     void clearRxBuffer() override { rx.clear(); }
 };
@@ -514,4 +515,15 @@ void test_compatibility_fixtures() {
     }
     assert(rows==6);
 }
-int main() { test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_large_pages_and_tx_failures() {
+    Transport t; t.serial.send_frame("FU05");
+    std::vector<uint8_t> body={'G','U','0','5'}; body.insert(body.end(),32,'A');
+    t.hal().rx.push_back(6); t.hal().rx.push_back(2); t.hal().rx.insert(t.hal().rx.end(),body.begin(),body.end());
+    t.hal().rx.push_back(t.serial.calculate_checksum(body.data(),body.size())); t.hal().rx.push_back(3);
+    size_t before=t.hal().rx.size(); t.serial.loop(); assert(t.hal().rx.size()==before-16);
+    while(!t.hal().rx.empty()) t.serial.loop(); assert(t.payload.size()==36 && t.hal().tx.back()==6);
+    Transport bad; bad.hal().fail_writes=true; bad.serial.send_frame("F1"); assert(bad.results.back()==Result::Error && !bad.serial.busy());
+    bad.hal().fail_writes=false; bad.serial.send_frame("F1"); bad.hal().fail_writes=true;
+    bad.receive({2,'G','1','1','4','F','A',0x64,3}); assert(bad.results.back()==Result::Error);
+}
+int main() { test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

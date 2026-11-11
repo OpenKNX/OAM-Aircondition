@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string_view>
+#include <string>
 #include <vector>
 #include <functional>
 #include <memory>
@@ -26,7 +27,7 @@ class DaikinSerial {
  public:
   static constexpr std::size_t MAX_COMMAND_SIZE{6};
   static constexpr std::size_t STANDARD_PAYLOAD_SIZE{4};
-  static constexpr std::size_t EXTENDED_PAYLOAD_SIZE{32}; // for MiscQuery::SoftwareVersion
+  static constexpr std::size_t EXTENDED_PAYLOAD_SIZE{32}; // FU extension pages are 32 bytes
   static constexpr std::size_t MAX_RESPONSE_SIZE{MAX_COMMAND_SIZE + EXTENDED_PAYLOAD_SIZE + 1U};  // +1 for checksum
 
   enum class Result : uint8_t {
@@ -93,7 +94,7 @@ protected:
   ResultCallback result_callback;
   IdleCallback idle_callback;
   CommState comm_state{};
-  std::vector<uint8_t> response{MAX_RESPONSE_SIZE};
+  std::vector<uint8_t> response{};
   
   std::string expected_response_;
   bool expecting_reply_{true};

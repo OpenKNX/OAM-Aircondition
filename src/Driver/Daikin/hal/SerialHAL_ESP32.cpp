@@ -74,7 +74,7 @@ bool SerialHAL_ESP32::begin(int rx_pin, int tx_pin, bool rx_inverted, bool tx_in
     }
     
     if (!err) {
-        err = uart_driver_install(port_, 1024, 0, 0, NULL, 0);
+        err = uart_driver_install(port_, 1024, 256, 0, NULL, 0);
     }
     
     // Per-line inversion AFTER driver install

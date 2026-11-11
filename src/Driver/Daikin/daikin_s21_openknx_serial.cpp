@@ -73,7 +73,7 @@ void DaikinSerial::loop() {
 
     switch (comm_state) {
       case CommState::Idle:
-        // Ignore noise until we transmit something (but STX detection above still applies)
+        // Ignore noise until we transmit something (no unsolicited S21 data is expected)
         break;
       case CommState::WaitingAck:
         if (b == ACK) {
@@ -162,7 +162,10 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
   framed.push_back(ETX);
   tx_airtime_ms_ = framed.size() * ms_per_byte_2400_8e2;
   last_tx_start_ms_ = millis();
-  serial_hal_->write(framed.data(), framed.size());
+  if (serial_hal_->write(framed.data(), framed.size()) != framed.size()) {
+    if (result_callback) result_callback(Result::Error, nullptr, 0);
+    return;
+  }
   rx_any_since_tx_ = false;
 
   comm_state = CommState::WaitingAck;
@@ -211,7 +214,7 @@ void DaikinSerial::rx_timeout_handler() {
 
 void DaikinSerial::finalize_frame() {
   // response currently: STX ... payload ... SUM ... ETX (no escaping)
-  if (response.size() < 5) { // STX + min(1 data) + checksum + ETX
+  if (response.size() < 5) { // STX + 2-byte command + checksum + ETX
     //Serial.printf("[RX] Frame too short");
     if (result_callback) result_callback(Result::Error, nullptr, 0);
     return;
@@ -238,36 +241,11 @@ void DaikinSerial::finalize_frame() {
     return;
   }
 
-  // Create RX log with hex dump and JSON format
-  // std::string hex_dump;
-  // for (auto v : response) {
-  //   char hex_byte[3];
-  //   sprintf(hex_byte, "%02X", v);
-  //   hex_dump += hex_byte;
-  // }
-  
-  // Extract command (first character after STX) and response data for JSON
-  std::string cmd_code_hex;
-  std::string response_data_hex;
-  if (payload.size() >= 1) {
-    // Convert command code to hex string (safe for any byte value)
-    char hex_byte[3];
-    sprintf(hex_byte, "%02X", payload[0]);
-    cmd_code_hex = hex_byte;
-    if (payload.size() > 1) {
-      // Convert response payload to hex string (safe for binary data)
-      for (size_t i = 1; i < payload.size(); i++) {
-        char hex_byte[3];
-        sprintf(hex_byte, "%02X", payload[i]);
-        response_data_hex += hex_byte;
-      }
-    }
-  }
-  
-  //Serial.printf("[S21-RX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"cmd\":\"%s\",\"data\":\"%s\"}\n", hex_dump.c_str(), cmd_code_hex.c_str(), response_data_hex.c_str());
-
   // Complete the read handshake only after validating the full frame.
-  serial_hal_->write(&ACK, 1); // queued UART TX; never flush/block the task loop
+  if (serial_hal_->write(&ACK, 1) != 1) { // queued TX; never flush/block the task loop
+    if (result_callback) result_callback(Result::Error, nullptr, 0);
+    return;
+  }
 
   // A valid but unrelated reply is acknowledged, then ignored while the original
   // transaction remains active. Do not let a stale frame consume a newer query.
