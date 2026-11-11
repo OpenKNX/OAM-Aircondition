@@ -261,6 +261,7 @@ namespace daikin
         float outsideC{25.0f};
         float liquidC{25.0f};
 
+        bool timerLampValid{false}, timerLamp{false};
         bool serialErrorValid{false}, serialError{false};
         uint32_t serialErrorSamples{0};
 

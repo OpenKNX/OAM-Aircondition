@@ -422,6 +422,7 @@ private:
     void checkOnlineTimeout();
     
     // Response handlers
+    void handle_fb_response(uint8_t* data, size_t data_size);
     void handle_f4_response(uint8_t* data, size_t data_size);
     void handle_f1_response(uint8_t* data, size_t data_size);
     void handle_f2_response(uint8_t* data, size_t data_size);

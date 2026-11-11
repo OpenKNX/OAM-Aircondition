@@ -299,4 +299,9 @@ void test_f4() {
     d.handle_f4_response(error,4); assert(d.telemetry().serialError && d.telemetry().serialErrorSamples==1);
     error[2]=0x80; d.handle_f4_response(error,4); assert(!d.telemetry().serialError);
 }
-int main() { test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_timer_lamp() {
+    Feedback f; DaikinDriver d(f); uint8_t gb[]={'1','0','0','0'};
+    d.handle_fb_response(gb,4); assert(d.telemetry().timerLamp && d.telemetry().led);
+    gb[0]='0'; d.handle_fb_response(gb,4); assert(!d.telemetry().timerLamp && d.telemetry().led);
+}
+int main() { test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

@@ -773,6 +773,7 @@ void DaikinDriver::initializeQueries()
 
     if (major >= 1)
     { // New protocol v1.0+
+        queries_.emplace_back("FB", [this](uint8_t* data, size_t n) { handle_fb_response(data,n); });
             queries_.emplace_back(StateQuery::InsideOutsideTemperatures, [this](uint8_t* data, size_t data_size) { handle_f9_response(data, data_size); });
 
 
@@ -1892,6 +1893,13 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
               support_.fan, support_.sensor, support_.streamer, support_.led);
     logDebugP("F2: bytes [0x%02X, -, -, 0x%02X] de-shielded [0x%02X, -, -, 0x%02X]",
               data[0], data[3], b0, b3_view);
+}
+
+void DaikinDriver::handle_fb_response(uint8_t* data, size_t size)
+{
+    if (size != 4 || (data[0] != '0' && data[0] != '1')) return;
+    state_.timerLampValid = true;
+    state_.timerLamp = data[0] == '1'; // orange timer indicator, independent of D6 LEDs
 }
 
 void DaikinDriver::handle_f4_response(uint8_t* data, size_t size)
