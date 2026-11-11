@@ -47,11 +47,13 @@ class DaikinSerial {
                ResultCallback result_callback = nullptr, 
                IdleCallback idle_callback = nullptr);
 
+  bool initialized() const { return bool(serial_hal_); }
+  bool configureTimeouts(uint32_t ack_ms, uint32_t rx_ms);
   bool busy() const { return comm_state != CommState::Idle; }
   void begin();
   void loop();
 
-  void send_frame(std::string_view cmd, const uint8_t* payload = nullptr, size_t payload_size = 0);
+  bool send_frame(std::string_view cmd, const uint8_t* payload = nullptr, size_t payload_size = 0, bool ack_only = false);
   void force_framed_mode(const char* reason = nullptr); // Force immediate switch back to framed mode (for driver-level recovery)
 
 
@@ -98,6 +100,7 @@ protected:
   
   std::string expected_response_;
   bool expecting_reply_{true};
+  uint32_t ack_timeout_ms_{900}, rx_timeout_ms_{900};
 
   // Timer management
   uint32_t timeout_start_ms{0};
