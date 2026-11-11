@@ -596,6 +596,9 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 }
             }
             break;
+            case AIR_KoHumidityLevel:
+                _airConditionDriver->setHumidityLevel(static_cast<AirConditionHumidityLevel>(uint8_t(ko.value(DPT_Value_1_Ucount))));
+                break;
             case AIR_KoComfort:
                 _airConditionDriver->setOptionalControl(AirConditionOptionalControl::Comfort, ko.value(DPT_Switch));
                 break;
@@ -1164,4 +1167,13 @@ void AirconditionModule::updateOptionalControls(const AirConditionOptionalState&
     }
     KoAIR_OptionalControlsAvailable.valueCompare(sample.available, DPT_Value_1_Ucount);
     KoAIR_OptionalControlsValid.valueCompare(sample.valid, DPT_Value_1_Ucount);
+}
+
+
+void AirconditionModule::updateHumidityControl(bool valid, AirConditionHumidityLevel level, uint8_t availableLevels, uint8_t operatingModes)
+{
+    if (valid) KoAIR_HumidityLevelState.valueCompare(uint8_t(level), DPT_Value_1_Ucount);
+    KoAIR_HumidityLevelAvailable.valueCompare(availableLevels, DPT_Value_1_Ucount);
+    KoAIR_HumidityOperatingModes.valueCompare(operatingModes, DPT_Value_1_Ucount);
+    KoAIR_HumidityLevelValid.valueCompare(valid, DPT_Bool);
 }

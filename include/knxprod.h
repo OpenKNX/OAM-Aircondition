@@ -23,7 +23,7 @@
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9298
-#define MAIN_MaxKoNumber 502
+#define MAIN_MaxKoNumber 507
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 24
 #define NET_ModuleVersion 6
@@ -1704,6 +1704,11 @@
 #define AIR_KoOptionalControlsAvailable 500
 #define AIR_KoUnitLedLevels 501
 #define AIR_KoUnitLedValid 502
+#define AIR_KoHumidityLevel 503
+#define AIR_KoHumidityLevelState 504
+#define AIR_KoHumidityLevelAvailable 505
+#define AIR_KoHumidityLevelValid 506
+#define AIR_KoHumidityOperatingModes 507
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -1893,6 +1898,16 @@
 #define KoAIR_UnitLedLevels                       (knx.getGroupObject(AIR_KoUnitLedLevels))
 // Geräte-/Sensor-LED gültig
 #define KoAIR_UnitLedValid                        (knx.getGroupObject(AIR_KoUnitLedValid))
+// Feuchteregelung (0=Aus,1=Niedrig,2=Normal,3=Hoch,4=Dauer)
+#define KoAIR_HumidityLevel                       (knx.getGroupObject(AIR_KoHumidityLevel))
+// Feuchteregelung Status (0-4)
+#define KoAIR_HumidityLevelState                  (knx.getGroupObject(AIR_KoHumidityLevelState))
+// Feuchteregelung Stufen (Bit 0-4)
+#define KoAIR_HumidityLevelAvailable              (knx.getGroupObject(AIR_KoHumidityLevelAvailable))
+// Feuchteregelung Status gültig
+#define KoAIR_HumidityLevelValid                  (knx.getGroupObject(AIR_KoHumidityLevelValid))
+// Feuchteregelung Betriebsarten (Bitmaske)
+#define KoAIR_HumidityOperatingModes              (knx.getGroupObject(AIR_KoHumidityOperatingModes))
 
 #define LOG_VisibleChannels                     625      // uint8_t
 #define LOG_VacationKo                          626      // 1 Bit, Bit 7

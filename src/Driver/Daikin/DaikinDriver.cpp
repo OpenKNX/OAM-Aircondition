@@ -865,6 +865,35 @@ bool DaikinDriver::encodeHumidity(daikin::HumidityMode mode,uint8_t& wire) const
     return true;
 }
 
+static daikin::HumidityMode toDaikinHumidity(AirConditionHumidityLevel level)
+{
+    using H=daikin::HumidityMode;
+    switch (level) {
+        case AirConditionHumidityLevel::Off:return H::Off;
+        case AirConditionHumidityLevel::Low:return H::Low;
+        case AirConditionHumidityLevel::Standard:return H::Standard;
+        case AirConditionHumidityLevel::High:return H::High;
+        case AirConditionHumidityLevel::Continuous:return H::Continuous;
+    }
+    return H::Unknown;
+}
+
+uint8_t DaikinDriver::availableHumidityLevels() const
+{
+    if (!support_.f2_known || support_.simple_humidify || !humidity_modes_ || (!state_.basicValid && !(climate_dirty_ & DirtyMode))) return 0;
+    uint8_t available=0, wire=0;
+    for (uint8_t level=0;level<=4;level++)
+        if (encodeHumidity(toDaikinHumidity(static_cast<AirConditionHumidityLevel>(level)),wire)) available |= 1U<<level;
+    return available;
+}
+
+bool DaikinDriver::setHumidityLevel(AirConditionHumidityLevel level)
+{
+    const uint8_t value=static_cast<uint8_t>(level);
+    if (value>4 || !(availableHumidityLevels() & (1U<<value))) return false;
+    return setHumidityMode(toDaikinHumidity(level));
+}
+
 bool DaikinDriver::setHumidityMode(daikin::HumidityMode mode)
 {
     if(!serial_) return false;
@@ -3069,6 +3098,17 @@ void DaikinDriver::publishState()
     sample.compressorHz=state_.compressorHz; sample.compressorRunning=state_.compressorOn;
     statusFeedback.updateAdditionalTelemetry(sample);
     statusFeedback.updateOptionalControls(optionalControlState());
+    uint8_t humidityLevel=0;
+    switch (state_.humidityMode) {
+        case daikin::HumidityMode::Low:humidityLevel=1;break;
+        case daikin::HumidityMode::Standard:humidityLevel=2;break;
+        case daikin::HumidityMode::High:humidityLevel=3;break;
+        case daikin::HumidityMode::Continuous:humidityLevel=4;break;
+        default:break;
+    }
+    statusFeedback.updateHumidityControl(state_.basicValid && state_.humidityModeValid && getMaximumHumidityModeLevels()>1,
+        static_cast<AirConditionHumidityLevel>(humidityLevel), availableHumidityLevels(),
+        support_.f2_known && !support_.simple_humidify ? humidity_modes_ : 0);
     published_ = state_; publication_initialized_=true;
     seed_kos_pending_=false; gate_publish_until_full_sample_=false;
 }

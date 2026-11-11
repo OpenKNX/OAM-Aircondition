@@ -751,6 +751,11 @@
               <ComObject Id="%AID%_O-%TT%00100" Number="100" Name="OptionalControlsAvailable" Text="Optionen abfragbar (Bitmaske)" FunctionText="AC: Optionen abfragbar (Bitmaske)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <ComObject Id="%AID%_O-%TT%00101" Number="101" Name="UnitLedLevels" Text="Geräte-/Sensor-LED Stufen (Bitmaske)" FunctionText="AC: Geräte-/Sensor-LED Stufen (Bitmaske)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <ComObject Id="%AID%_O-%TT%00102" Number="102" Name="UnitLedValid" Text="Geräte-/Sensor-LED gültig" FunctionText="AC: Geräte-/Sensor-LED gültig" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00103" Number="103" Name="HumidityLevel" Text="Feuchteregelung (0=Aus,1=Niedrig,2=Normal,3=Hoch,4=Dauer)" FunctionText="AC: Feuchteregelung (0=Aus,1=Niedrig,2=Normal,3=Hoch,4=Dauer)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00104" Number="104" Name="HumidityLevelState" Text="Feuchteregelung Status (0-4)" FunctionText="AC: Feuchteregelung Status (0-4)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00105" Number="105" Name="HumidityLevelAvailable" Text="Feuchteregelung Stufen (Bit 0-4)" FunctionText="AC: Feuchteregelung Stufen (Bit 0-4)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00106" Number="106" Name="HumidityLevelValid" Text="Feuchteregelung Status gültig" FunctionText="AC: Feuchteregelung Status gültig" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00107" Number="107" Name="HumidityOperatingModes" Text="Feuchteregelung Betriebsarten (Bitmaske)" FunctionText="AC: Feuchteregelung Betriebsarten (Bitmaske)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
             </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -908,6 +913,11 @@
               <ComObjectRef Id="%AID%_O-%TT%00100_R-%TT%0010001" RefId="%AID%_O-%TT%00100" />
               <ComObjectRef Id="%AID%_O-%TT%00101_R-%TT%0010101" RefId="%AID%_O-%TT%00101" />
               <ComObjectRef Id="%AID%_O-%TT%00102_R-%TT%0010201" RefId="%AID%_O-%TT%00102" />
+              <ComObjectRef Id="%AID%_O-%TT%00103_R-%TT%0010301" RefId="%AID%_O-%TT%00103" />
+              <ComObjectRef Id="%AID%_O-%TT%00104_R-%TT%0010401" RefId="%AID%_O-%TT%00104" />
+              <ComObjectRef Id="%AID%_O-%TT%00105_R-%TT%0010501" RefId="%AID%_O-%TT%00105" />
+              <ComObjectRef Id="%AID%_O-%TT%00106_R-%TT%0010601" RefId="%AID%_O-%TT%00106" />
+              <ComObjectRef Id="%AID%_O-%TT%00107_R-%TT%0010701" RefId="%AID%_O-%TT%00107" />
             </ComObjectRefs>
           </Static>
           <Dynamic>
@@ -1239,6 +1249,11 @@
                           <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
                           <!-- TotalEnergy -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00103_R-%TT%0010301" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00104_R-%TT%0010401" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00105_R-%TT%0010501" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00106_R-%TT%0010601" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00107_R-%TT%0010701" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00087_R-%TT%0008701" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00088_R-%TT%0008801" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00089_R-%TT%0008901" />

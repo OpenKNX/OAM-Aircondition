@@ -41,6 +41,9 @@ enum AirConditionDeviceMode
 
 };
 
+// Qualitative control settings, deliberately distinct from measured RH percent.
+enum class AirConditionHumidityLevel : uint8_t { Off=0, Low=1, Standard=2, High=3, Continuous=4 };
+
 enum class AirConditionOptionalControl : uint8_t { Powerful, Econo, Quiet, Comfort, IntelligentEye, Streamer };
 enum class AirConditionUnitLed : uint8_t { On=0, Dark=1, Off=2 };
 struct AirConditionOptionalState
@@ -107,6 +110,7 @@ public:
     virtual void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) {}
     virtual void updateAdditionalTelemetry(const AirConditionTelemetry& sample) {}
     virtual void updateOptionalControls(const AirConditionOptionalState& sample) {}
+    virtual void updateHumidityControl(bool valid, AirConditionHumidityLevel level, uint8_t availableLevels, uint8_t operatingModes) {}
 
     virtual void updateTotalEnergyConsumption(uint32_t totalEnergyWh) = 0;
 
@@ -168,6 +172,7 @@ public:
     virtual bool setFixedVerticalPosition(uint8_t position) { return false; }
     virtual bool setOptionalControl(AirConditionOptionalControl control, bool on) { return false; }
     virtual bool setUnitLed(AirConditionUnitLed state) { return false; }
+    virtual bool setHumidityLevel(AirConditionHumidityLevel level) { return false; }
 
 
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) = 0;

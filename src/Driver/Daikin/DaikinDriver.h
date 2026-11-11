@@ -170,6 +170,8 @@ public:
     bool setOptionalControl(AirConditionOptionalControl control, bool on) override;
     bool setUnitLed(AirConditionUnitLed state) override;
     AirConditionOptionalState optionalControlState() const;
+    bool setHumidityLevel(AirConditionHumidityLevel level) override;
+    uint8_t availableHumidityLevels() const;
  // 0..5 or '?' (swing)
     bool setTimerLamp(bool on);
     void enableExtendedPolling(bool enabled) { extended_polling_=enabled; }

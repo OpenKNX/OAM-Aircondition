@@ -38,6 +38,8 @@ struct Transport {
     void receive(std::initializer_list<uint8_t> bytes) { hal().rx.insert(hal().rx.end(),bytes); while(!hal().rx.empty()) serial.loop(); }
 };
 struct Feedback : AirConditionDriverStatusFeedback {
+    bool humidityControlValid{false}; uint8_t humidityLevel{0}, humidityLevels{0}, humidityModes{0};
+    void updateHumidityControl(bool valid,AirConditionHumidityLevel level,uint8_t available,uint8_t modes) override {humidityControlValid=valid;humidityLevel=uint8_t(level);humidityLevels=available;humidityModes=modes;}
     AirConditionOptionalState options;
     void updateOptionalControls(const AirConditionOptionalState& s) override {options=s;}
     AirConditionTelemetry extra;
@@ -722,4 +724,21 @@ void test_shared_optional_controls() {
     d.handle_serial_result(Result::Ack,nullptr,0);g6[0]=0x30;d.handle_f6_response(g6,4);d.publishState();assert(!(f.options.values & 1));
     assert(!base.setOptionalControl(static_cast<C>(7),true));d.invalidateTelemetry();assert(f.options.valid==0 && !f.options.ledValid);
 }
-int main() { test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_shared_humidity_control() {
+    using H=AirConditionHumidityLevel;
+    Feedback f;DaikinDriver d(f);d.setup();AirConditionDriver& base=d;
+    assert(!base.setHumidityLevel(H::Standard));
+    d.support_.f2_known=true;d.humidity_modes_=0xB7;
+    uint8_t g1[]={'1','3',0x4C,'A'},g5[]={'0','0','0','0'};
+    d.handle_f1_response(g1,4);d.handle_f5_response(g5,4);d.publishState();
+    assert(f.humidityControlValid && f.humidityLevel==0 && f.humidityLevels==31 && f.humidityModes==0xB7);
+    assert(!base.setHumidityLevel(static_cast<H>(5)));assert(base.setHumidityLevel(H::High));
+    auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;assert(tx[5]==0x3C);
+    d.publishState();assert(f.humidityLevel==0);d.handle_serial_result(Result::Ack,nullptr,0);
+    g5[2]=0x3C;d.handle_f5_response(g5,4);d.publishState();assert(f.humidityLevel==3);
+    d.state_.mode=daikin::Mode::Dry;d.state_.autoBias=daikin::AutoBias::Unknown;assert(!(d.availableHumidityLevels() & 2));
+    d.state_.basicValid=false;d.publishState();assert(!f.humidityControlValid);
+    d.support_.simple_humidify=true;assert(!base.setHumidityLevel(H::High));
+    d.invalidateTelemetry();assert(!f.humidityControlValid && f.humidityLevels==0);
+}
+int main() { test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
