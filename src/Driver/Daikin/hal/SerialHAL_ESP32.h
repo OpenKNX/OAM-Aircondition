@@ -16,7 +16,7 @@ namespace hal {
 class SerialHAL_ESP32 : public SerialHAL {
 public:
     explicit SerialHAL_ESP32(HardwareSerial& uart_ref);
-    ~SerialHAL_ESP32() override = default;
+    ~SerialHAL_ESP32() override;
 
     bool begin(int rx_pin, int tx_pin, bool rx_inverted, bool tx_inverted, uint32_t baud_rate = 2400) override;
     size_t available() override;
@@ -29,8 +29,8 @@ private:
     static const char* TAG;
     HardwareSerial& uart_ref_;
     uart_port_t port_{UART_NUM_1};
-    bool initialized_{false};
-    
+    bool initialized_{false}, driver_installed_{false};
+
     uart_port_t get_uart_port();
 };
 

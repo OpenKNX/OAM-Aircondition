@@ -5,6 +5,7 @@
 #include "SerialHAL.h"
 #include <Arduino.h>
 #include <memory>
+#include <array>
 
 namespace daikin {
 namespace hal {
@@ -15,7 +16,7 @@ namespace hal {
 class SerialHAL_Arduino : public SerialHAL {
 public:
     explicit SerialHAL_Arduino(HardwareSerial& uart_ref);
-    ~SerialHAL_Arduino() override = default;
+    ~SerialHAL_Arduino() override;
 
     bool begin(int rx_pin, int tx_pin, bool rx_inverted, bool tx_inverted, uint32_t baud_rate = 2400) override;
     size_t available() override;
@@ -27,6 +28,10 @@ public:
 private:
     HardwareSerial& uart_;
     bool initialized_{false};
+    std::array<uint8_t,128> tx_{};
+    size_t tx_head_{0},tx_tail_{0};
+    int rx_pin_{-1},tx_pin_{-1};
+    void serviceTx();
 };
 
 } // namespace hal

@@ -13,8 +13,27 @@
 namespace daikin {
 namespace hal {
 
-SerialHAL_Arduino::SerialHAL_Arduino(HardwareSerial& uart_ref) 
+SerialHAL_Arduino::SerialHAL_Arduino(HardwareSerial& uart_ref)
     : uart_(uart_ref) {
+}
+
+SerialHAL_Arduino::~SerialHAL_Arduino() {
+    if(initialized_) uart_.end();
+#if defined(ARDUINO_ARCH_RP2040)
+    if(initialized_) {
+        if(&uart_==&Serial1) {Serial1.setInvertRX(false);Serial1.setInvertTX(false);}
+        if(&uart_==&Serial2) {Serial2.setInvertRX(false);Serial2.setInvertTX(false);}
+        gpio_set_inover(rx_pin_,GPIO_OVERRIDE_NORMAL);gpio_set_outover(tx_pin_,GPIO_OVERRIDE_NORMAL);
+    }
+#endif
+}
+
+void SerialHAL_Arduino::serviceTx() {
+    if(!initialized_) return;
+    for(size_t i=0;i<16 && tx_tail_!=tx_head_ && uart_.availableForWrite()>0;i++) {
+        if(uart_.write(tx_[tx_tail_])!=1) break;
+        tx_tail_=(tx_tail_+1)%tx_.size();
+    }
 }
 
 bool SerialHAL_Arduino::begin(int rx_pin, int tx_pin, bool rx_inverted, bool tx_inverted, uint32_t baud_rate) {
@@ -42,9 +61,9 @@ bool SerialHAL_Arduino::begin(int rx_pin, int tx_pin, bool rx_inverted, bool tx_
         return false;
     }
 
-    // Assign pins to UART function
-    gpio_set_function(rx_pin, GPIO_FUNC_UART);
-    gpio_set_function(tx_pin, GPIO_FUNC_UART);
+    uart_.end();
+    auto& rp_uart=uart_idx==0?Serial1:Serial2;
+    if(!rp_uart.setFIFOSize(256) || !rp_uart.setPinout(tx_pin,rx_pin) || !rp_uart.setInvertRX(rx_inverted) || !rp_uart.setInvertTX(tx_inverted)) return false;
 #endif
 
     // --- Bias + hysteresis ---
@@ -77,9 +96,10 @@ bool SerialHAL_Arduino::begin(int rx_pin, int tx_pin, bool rx_inverted, bool tx_
 
     // --- Drain any garbage BEFORE marking initialized_  ---
     while (uart_.available()) { (void)uart_.read(); }
-    
+
+    rx_pin_=rx_pin;tx_pin_=tx_pin;tx_head_=tx_tail_=0;
     initialized_ = true;
-    
+
     Serial.print("Arduino UART configured: RX ");
     Serial.print(rx_pin);
 #if defined(ARDUINO_ARCH_RP2040)
@@ -100,30 +120,33 @@ bool SerialHAL_Arduino::begin(int rx_pin, int tx_pin, bool rx_inverted, bool tx_
 
 size_t SerialHAL_Arduino::available() {
     if (!initialized_) return 0;
+    serviceTx();
     return uart_.available();
 }
 
 int SerialHAL_Arduino::read(uint8_t* buffer, size_t max_bytes) {
     if (!initialized_ || !buffer || max_bytes == 0) return 0;
-    
+
     size_t count = 0;
     while (count < max_bytes && uart_.available()) {
         buffer[count] = uart_.read();
         count++;
     }
-    
+
     return count;
 }
 
-size_t SerialHAL_Arduino::write(const uint8_t* data, size_t length) {
-    if (!initialized_ || !data || length == 0) return 0;
-    
-    return uart_.write(data, length);
+size_t SerialHAL_Arduino::write(const uint8_t* data,size_t length) {
+    if(!initialized_ || !data || length==0) return 0;
+    const auto used=(tx_head_+tx_.size()-tx_tail_)%tx_.size();
+    if(length>tx_.size()-1-used) return 0;
+    for(size_t i=0;i<length;i++){tx_[tx_head_]=data[i];tx_head_=(tx_head_+1)%tx_.size();}
+    serviceTx();return length;
 }
 
 bool SerialHAL_Arduino::flush(uint32_t timeout_ms) {
     if (!initialized_) return false;
-    
+
     // Non-blocking approach: return immediately to avoid stalling main loop
     // TX airtime is calculated and accounted for in the S21 protocol layer
     // uart_.flush();  // Commented out to prevent ~150ms blocking
@@ -132,7 +155,7 @@ bool SerialHAL_Arduino::flush(uint32_t timeout_ms) {
 
 void SerialHAL_Arduino::clearRxBuffer() {
     if (!initialized_) return;
-    
+
     while (uart_.available()) {
         uart_.read();
     }
