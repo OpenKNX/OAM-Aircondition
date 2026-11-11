@@ -72,7 +72,10 @@ namespace daikin
         Heating = 3,
         Drying = 4,
         Fan = 5,
-        Auto = 6 // Auto mode without specific bias information
+        Auto = 6, // Auto mode without specific bias information
+        Unknown = 7,
+        Defrost = 8,
+        Standby = 9
     };
 
     /**
@@ -160,8 +163,8 @@ namespace daikin
         int16_t value{};
     };
 
-    inline constexpr DaikinC10 SETPOINT_STEP{1.0F};                          // Daikin setpoint granularity
-    inline constexpr DaikinC10 TEMPERATURE_STEP{0.5F};                       // Daikin temperature sensor granularity
+    inline constexpr DaikinC10 SETPOINT_STEP{0.5F};                          // Daikin setpoint granularity
+    inline constexpr DaikinC10 TEMPERATURE_STEP{0.1F};                       // Daikin temperature sensor granularity
     inline constexpr DaikinC10 TEMPERATURE_INVALID{DaikinC10::nan_sentinel}; // NaN
 
     /**
@@ -199,7 +202,7 @@ namespace daikin
         constexpr bool locked() const { return (this->raw & 0x01) != 0; }
         constexpr bool active() const { return (this->raw & 0x04) != 0; }
         constexpr bool defrost() const { return (this->raw & 0x08) != 0; }
-        constexpr bool multizone_conflict() const { return (this->raw & 0x20) != 0; }
+        constexpr bool other_units_online() const { return (this->raw & 0x20) != 0; }
         uint8_t raw{};
     };
 
@@ -251,6 +254,14 @@ namespace daikin
     {
         bool heatMinimumValid{false}, autoLimitOffsetValid{false};
         float heatMinimumC{18}, autoLimitOffsetC{0}; // offset is not an absolute setpoint
+        bool basicValid{false}, targetTemperatureValid{false}, fanValid{false}, swingValid{false};
+        bool specialModesValid{false}, demandValid{false}, compressorOnValid{false}, compressorHzValid{false};
+        bool unitStateValid{false}, systemStateValid{false}, actionValid{false};
+        bool targetOffsetValid{false};
+        float targetOffsetC{NAN};
+        uint8_t setpointRaw{0};
+        bool setpointRawValid{false};
+        ProtocolVersion protocol{};
         // Basic state
         bool online{false};
         bool power{false};

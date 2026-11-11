@@ -388,7 +388,16 @@ private:
     
     // Write coordination to prevent race conditions
     bool write_pending_{false};            // New write request during settle period
-    PayloadBuffer last_sent_d1_payload_;   // Dedupe identical D1 commands
+    PayloadBuffer last_sent_d1_payload_{};
+    uint32_t last_loop_time_{0}, last_framed_retry_ms_{0};
+    daikin::State published_{};
+    bool publication_initialized_{false};
+    std::array<uint32_t,4> climate_generation_{} , sent_climate_generation_{};
+    uint8_t sent_climate_dirty_{0};
+    bool d1_awaiting_ack_{false};
+    uint32_t climate_confirmation_started_{0};
+    void rejectClimateWrite();
+    void invalidateTelemetry();   // Dedupe identical D1 commands
     
     // Online/offline detection (robust S21 connectivity tracking)
     uint32_t last_rx_ok_ms_{0};            // Time of last ACK or valid frame

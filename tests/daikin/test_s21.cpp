@@ -152,7 +152,7 @@ void test_econo() {
     uint8_t g7[]={0x44,'0','A','G'}; d.handle_f7_response(g7,4);
     d.pending_.climate.econo=true; d.pending_.activate_econo=true; d.sendEconoCommand();
     auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
-    assert(tx[1]=='D' && tx[2]=='7' && tx[3]==0x44 && tx[4]=='2' && tx[5]=='A' && tx[6]=='G');
+    assert(tx[1]=='D' && tx[2]=='7' && tx[3]==0x44 && tx[4]=='2' && tx[5]=='0' && tx[6]=='0');
     assert(!d.d7_.valid); // cannot reuse stale readback on the next change
 }
 void test_demand() {
@@ -163,7 +163,7 @@ void test_demand() {
     assert(!d.configureDemandLimits(40,0)); assert(d.configureDemandLimits(40,5));
     d.setMaxPowerLevel(75);
     auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
-    assert(tx[3]==0x49 && tx[4]=='2' && tx[5]=='A' && tx[6]=='G');
+    assert(tx[3]==0x49 && tx[4]=='2' && tx[5]=='0' && tx[6]=='0');
     g7[0]=0x49; d.handle_f7_response(g7,4); assert(d.state_.demand_percentage==75);
     d.setMaxPowerLevel(101); assert(!d.demand_pending_);
 }
@@ -203,7 +203,7 @@ void test_swing_preserves_humidity() {
     uint8_t g5[]={'0','0',0x3C,0x80}; d.handle_f5_response(g5,4);
     d.setSwingVertical(true);
     auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
-    assert(tx[2]=='5' && tx[3]=='1' && tx[4]=='?' && tx[5]==0x3C && tx[6]==0x80);
+    assert(tx[2]=='5' && tx[3]=='1' && tx[4]=='?' && tx[5]==0x3C && tx[6]=='0');
 }
 void test_humidity() {
     Feedback f; DaikinDriver d(f); d.setup(); d.humidity_modes_=0xB7;
@@ -214,7 +214,7 @@ void test_humidity() {
     assert(d.state_.humidityMode==daikin::HumidityMode::Low);
     assert(d.setHumidityMode(daikin::HumidityMode::High));
     auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
-    assert(tx[3]=='1' && tx[4]=='?' && tx[5]==0x3C && tx[6]==0x80);
+    assert(tx[3]=='1' && tx[4]=='?' && tx[5]==0x3C && tx[6]=='0');
     d.state_.mode=daikin::Mode::Dry; assert(!d.setHumidityMode(daikin::HumidityMode::Low));
     d.humidity_modes_=0; assert(!d.setHumidityMode(daikin::HumidityMode::High));
 }
@@ -546,4 +546,42 @@ void test_unknown_optional_state() {
     assert(d.telemetry().demand_percentage==100);
     d.publishState(); assert(f.humidity_mode_updates==0);
 }
-int main() { test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_audit_regressions() {
+    struct Capture: Feedback {
+        unsigned powers=0, temperatures=0, demands=0; int humidityStep=-1;
+        void updatePower(bool) override { ++powers; }
+        void updateCurrentTemperature(float) override { ++temperatures; }
+        void updateMaxPowerLevel(uint8_t p) override { ++demands; assert(p<=100); }
+        void updateHumidityMode(uint8_t step) override { humidityStep=step; assert(step<=4); }
+    } a,b;
+    DaikinDriver d(a),other(b);d.setup();
+    uint8_t g1[]={'1','3',0x4C,'A'}; d.handle_f1_response(g1,4);
+    d.setTargetTemperature(22);d.handle_serial_result(Result::Nak,nullptr,0);
+    d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;
+    g1[2]=0x50;d.handle_f1_response(g1,4);d.setFanSpeed(3);
+    auto& hal=*static_cast<FakeHAL*>(d.serial_->serial_hal_.get());assert(hal.tx[hal.tx.size()-4]==0x50);
+    d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;
+    d.setTargetTemperature(22.4f);assert(d.pending_.climate.targetC==22.5f);
+    g1[2]=0x49;d.handle_f1_response(g1,4);assert(!(d.climate_dirty_ & DaikinDriver::DirtyTemperature));
+    d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;
+    uint8_t g2[]={0x34,0x32,0,0x90};d.handle_f2_response(g2,4);
+    uint8_t g5[]={'0','0','0',0x80};d.handle_f5_response(g5,4);
+    d.query_state_=DaikinDriver::QueryState::PostWriteSettle;d.setSwingVertical(true);d.setSwingVertical(false);
+    d.query_state_=DaikinDriver::QueryState::Idle;size_t n=hal.tx.size();d.sendSwingCommand();assert(hal.tx.size()==n || hal.tx[n+3]=='0');
+    d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;d.handle_f5_response(g5,4);
+    n=hal.tx.size();d.setSwingHorizontal(true);assert(hal.tx.size()==n);
+    uint8_t fk[]={0x30,0x30,0x30,0x30};d.handle_fk_response(fk,4);d.setFanSpeed(6);assert(hal.tx.size()==n);
+    uint8_t sx[]={'0','0','2','+'};d.state_.sensor=false;d.handle_rx_response(sx,4);assert(!d.state_.sensor);
+    d.state_.humidityMode=daikin::HumidityMode::Low;d.state_.humidityModeValid=true;d.humidity_modes_=0x92;d.publishState();assert(a.humidityStep==1);
+    d.state_.demandValid=true;d.state_.demand_percentage=75;d.publishState();assert(a.demands);
+    other.state_.basicValid=true;other.state_.power=false;other.publishState();unsigned before=b.powers;
+    d.state_.power=true;d.publishState();other.state_.power=true;other.publishState();assert(b.powers==before+1);
+    unsigned readings=a.temperatures;d.state_.insideTemperatureValid=false;d.state_.homeC=99;d.publishState();assert(a.temperatures==readings);
+    d.online_=true;d.state_.online=true;d.last_rx_ok_ms_=100;d.stats_.acks=1;test_now=20000;d.checkOnlineTimeout();d.updateOnlineStatus();
+    assert(!d.online_ && !d.state_.online && !d.state_.basicValid);
+    uint8_t zero[]={0,0,0,0};d.protocol_version_=daikin::ProtocolUndetected;d.handle_f8_response(zero,4);assert(d.protocol_version_==daikin::ProtocolUndetected);
+    DaikinDriver silent(a);silent.setup();test_now=100;silent.startCommunication(false);
+    for(int i=0;i<6000;i++){test_now+=10;silent.loop();}
+    assert(silent.protocol_detection_failed_reported_);
+}
+int main() { test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

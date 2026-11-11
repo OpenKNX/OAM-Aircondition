@@ -291,6 +291,11 @@ void DaikinDriver::startCommunication(bool restart)
     {
         // Reset state for restart
         state_ = {};
+        model_name_.clear(); firmware_version_.clear();
+        publication_initialized_=false;
+        serial_->force_framed_mode();
+        online_=false; last_rx_ok_ms_=0;
+        query_state_=QueryState::Idle; last_write_time_=0;
         stats_ = {};
         query_index_ = 0;
         failed_queries_.clear();
@@ -336,6 +341,7 @@ void DaikinDriver::startCommunication(bool restart)
     comm_start_time_ = millis();
     if (comm_start_time_ == 0) comm_start_time_ = 1; // avoid 0 sentinel
 
+    query_state_=QueryState::Idle;
     // Start communication with smart protocol detection
     last_query_cycle_ = 0; // Force immediate cycle start
 
@@ -368,21 +374,21 @@ void DaikinDriver::loop()
         return;
     }
 
-    static uint32_t last_loop_time = 0;
+
     uint32_t now = millis();
     // Detect high load conditions (loop taking too long)
-    if (last_loop_time != 0 && (now - last_loop_time) > 20)
+    if (last_loop_time_ != 0 && (now - last_loop_time_) > 20)
     {
         if (!high_load_detected_)
         {
             high_load_detected_ = true;
         }
     }
-    else if (high_load_detected_ && (now - last_loop_time) <= 10)
+    else if (high_load_detected_ && (now - last_loop_time_) <= 10)
     {
         high_load_detected_ = false;
     }
-    last_loop_time = now;
+    last_loop_time_ = now;
 
     serial_->loop(); // Process serial communication (non-blocking)
     if (!serial_->busy() && !isInPostWriteSettle()) {
@@ -402,7 +408,7 @@ void DaikinDriver::loop()
     checkOnlineTimeout();
 
     // Protocol detection retry mechanism - configurable interval if protocol unknown
-    if (protocol_version_ == daikin::ProtocolUndetected)
+    if (protocol_version_ == daikin::ProtocolUndetected && !protocol_detection_phase_ && query_state_ == QueryState::Idle)
     {
         if (last_protocol_detection_attempt_ == 0 ||
             (now - last_protocol_detection_attempt_) >= PROTOCOL_DETECTION_RETRY_MS)
@@ -503,6 +509,7 @@ void DaikinDriver::setPower(bool power)
 
     // Update pending state - preserve current pending values, only change power
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    ++climate_generation_[0];
     climate_dirty_ |= DirtyPower;
     pending_.climate.power = power; // UPDATE power state only
     pending_.activate_climate = true;
@@ -523,6 +530,7 @@ void DaikinDriver::setMode(AirConditionMode mode)
 
     // Update pending state - preserve current pending values, only change mode
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    ++climate_generation_[1];
     climate_dirty_ |= DirtyMode;
     pending_.climate.mode = daikinMode; // UPDATE mode only
     pending_.activate_climate = true;
@@ -539,10 +547,11 @@ void DaikinDriver::setTargetTemperature(float temperaturCelsius)
     }
 
     if (!std::isfinite(temperaturCelsius)) return;
-    float temp = std::clamp(temperaturCelsius, getMinimumTargetTemperature(), getMaximumTargetTemperature()); // Clamp temperature to valid range
+    float temp = std::round(std::clamp(temperaturCelsius, getMinimumTargetTemperature(), getMaximumTargetTemperature()) * 2.0f) / 2.0f; // Clamp temperature to valid range
 
     // Update pending state - preserve current pending values, only change temperature
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    ++climate_generation_[2];
     climate_dirty_ |= DirtyTemperature;
     pending_.climate.targetC = temp; // UPDATE temperature only
     pending_.activate_climate = true;
@@ -557,6 +566,7 @@ void DaikinDriver::setFanSpeed(unsigned int speed)
         logErrorP("S21 driver not initialized");
         return;
     }
+    if (support_.fan_capability_known && !support_.fan) return;
     if (speed > getMaximumFanSpeed())
     {
         logErrorP("Invalid fan speed: %u (max: %u)", speed, getMaximumFanSpeed());
@@ -569,6 +579,7 @@ void DaikinDriver::setFanSpeed(unsigned int speed)
 
     // Update pending state - preserve current pending values, only change fan
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    ++climate_generation_[3];
     climate_dirty_ |= DirtyFan;
     pending_.climate.fan_mode = fanMode; // UPDATE fan mode only
     pending_.activate_climate = true;
@@ -584,6 +595,8 @@ void DaikinDriver::setSwingHorizontal(bool swing)
         return;
     }
 
+    if (swing && support_.f2_known && !support_.horizontal_swing) return;
+
     // What the unit currently reports (from last F5)
     const bool devV = (state_.swing == daikin::Swing::Vertical || state_.swing == daikin::Swing::Both);
     const bool devH = (state_.swing == daikin::Swing::Horizontal || state_.swing == daikin::Swing::Both);
@@ -592,7 +605,7 @@ void DaikinDriver::setSwingHorizontal(bool swing)
     const bool wantH = swing;
     const bool wantV = pending_.activate_swing_mode ? pending_.climate.swing_v == daikin::Swing::Vertical : devV;
 
-    if (wantV == devV && wantH == devH)
+    if (!pending_.activate_swing_mode && wantV == devV && wantH == devH)
     {
         logDebugP("Swing unchanged vs device; not sending D5");
         return;
@@ -620,7 +633,7 @@ void DaikinDriver::setSwingVertical(bool swing)
     const bool wantV = swing;
     const bool wantH = pending_.activate_swing_mode ? pending_.climate.swing_h == daikin::Swing::Horizontal : devH;
 
-    if (wantV == devV && wantH == devH)
+    if (!pending_.activate_swing_mode && wantV == devV && wantH == devH)
     {
         logDebugP("Swing unchanged vs device; not sending D5");
         return;
@@ -1470,7 +1483,8 @@ void DaikinDriver::sendClimateCommand()
     // ALWAYS use pending_ values as single source of truth
     const auto power_to_send = pending_.climate.power;
     const auto mode_to_send = pending_.climate.mode;
-    const auto temp_to_send = std::clamp(pending_.climate.targetC, getMinimumTargetTemperature(), getMaximumTargetTemperature());
+    const auto temp_to_send = std::round(std::clamp(pending_.climate.targetC, getMinimumTargetTemperature(), getMaximumTargetTemperature()) * 2.0f) / 2.0f;
+    if (climate_dirty_ & DirtyTemperature) pending_.climate.targetC = temp_to_send;
     const auto fan_to_send = pending_.climate.fan_mode;
 
     // Byte 0: Power ('0'/'1' ASCII, not 0x00/0x01)
@@ -1493,6 +1507,8 @@ void DaikinDriver::sendClimateCommand()
     // Byte 2: Target temperature (format: (setpoint/5) + 28)
     int16_t setpoint_c10 = static_cast<int16_t>(temp_to_send * 10); // Convert to C*10
     payload[2] = (setpoint_c10 / 5) + 28;
+    if (!(climate_dirty_ & (DirtyMode | DirtyTemperature)) && state_.setpointRawValid &&
+        (state_.setpointRaw == 0x80 || state_.setpointRaw == 0xC0)) payload[2] = state_.setpointRaw;
 
     // Byte 3: Fan speed
     switch (fan_to_send)
@@ -1587,6 +1603,10 @@ void DaikinDriver::sendClimateCommand()
              power_to_send ? "ON" : "OFF", modeStr, payload[1], temp_to_send, fanStr, payload[3]);
 
     std::string cmd("D1");
+    sent_climate_dirty_ = climate_dirty_;
+    sent_climate_generation_ = climate_generation_;
+    d1_awaiting_ack_ = true;
+    climate_confirmation_started_ = millis();
     serial_->send_frame(cmd, payload.data(), 4);
 
     // Store payload for deduplication
@@ -1633,7 +1653,8 @@ void DaikinDriver::sendSwingCommand()
         payload[1] = v || h ? '?' : '0';
     }
     if (humidity_pending_) payload[2] = requested_humidity_;
-    // Humidity and the unknown fourth byte belong to the same state register.
+    payload[3] = '0'; // request format differs from G5 response byte 3
+    // Preserve the humidity field; response-only reserved bytes are not echoed.
     if (sendCombined("D5", payload)) { pending_.activate_swing_mode = false; humidity_pending_ = false; }
 }
 
@@ -1648,6 +1669,7 @@ void DaikinDriver::sendEconoCommand()
     if (support_.special_features_known && !support_.econo) pending_.activate_econo = false;
     if (!pending_.activate_econo && !demand_pending_) return;
     PayloadBuffer payload = d7_.confirmed;
+    payload[2] = payload[3] = '0';
     if (pending_.activate_econo) payload[1] = pending_.climate.econo ? '2' : '0';
     if (demand_pending_) payload[0] = 0x30 + (100 - requested_demand_);
     if (sendCombined("D7", payload)) {
@@ -1758,6 +1780,9 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     daikin::Mode old_mode = state_.mode;
     float old_targetC = state_.targetC;
 
+    state_.basicValid = true;
+    state_.setpointRaw = data[2]; state_.setpointRawValid = true;
+    state_.targetTemperatureValid = data[2] >= 0x30 && data[2] <= 0x7F;
     // Power: ASCII '1' = on, '0' = off
     state_.power = (data[0] == '1');
 
@@ -1835,6 +1860,7 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
             break;
     }
 
+    state_.fanValid = support_.fan_mode_query || data[3] != 'A';
     // Fan: Only if RG (fan query) doesn't work - Faikin logic
     if (!support_.fan_mode_query)
     {
@@ -1904,6 +1930,10 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     if (state_.mode == pending_.climate.mode) climate_dirty_ &= ~DirtyMode;
     if (std::abs(state_.targetC - pending_.climate.targetC) < 0.1f) climate_dirty_ &= ~DirtyTemperature;
     if (!support_.fan_mode_query && state_.fan == pending_.climate.fan_mode) climate_dirty_ &= ~DirtyFan;
+
+    // A fresh post-write readback is authoritative. Do not replay a rejected or
+    // remotely superseded request on a later unrelated property change.
+    if (sent_climate_dirty_) rejectClimateWrite();
 
     // Mark F1 sample as seen for publish gating
     sample_seen_mask_ |= SEEN_F1;
@@ -2125,6 +2155,7 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
     if (data[0] != '0' && data[0] != '1' && data[0] != '2' && data[0] != '7') return;
     std::copy_n(data, 4, d5_.confirmed.begin());
     d5_.valid = true;
+    state_.swingValid = true;
     stats_.frames_ok++;
 
     logInfoP("F5: raw G5 response [%02X %02X %02X %02X] (4 bytes: swing1, swing2, humidity, unknown)",
@@ -2169,6 +2200,7 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
 
     std::copy_n(data, 4, d6_.confirmed.begin());
     d6_.valid = true;
+    state_.specialModesValid = true;
     support_.f6_special_modes = true; // Mark F6 as supported since we got a successful response
 
     state_.powerful = (!support_.special_features_known || support_.powerful) && (data[0] & 0x02) != 0; // payload[0] & 0x02 = powerful
@@ -2217,6 +2249,7 @@ void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
     if (data[0] < 0x30 || data[0] > 0x94 || (data[1] != '0' && data[1] != '2')) return;
     std::copy_n(data, 4, d7_.confirmed.begin());
     d7_.valid = true;
+    state_.demandValid = true;
     stats_.frames_ok++;
 
     if (data[0] >= 0x30 && data[0] <= 0x30 + 100)
@@ -2238,9 +2271,10 @@ void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
         value += (data[i] - '0') * multiplier;
         multiplier *= 10;
     }
-    if (value != 0 && value != 10 && value != 20) return;
+    if (data[0] != '0' || (value != 0 && value != 10 && value != 20)) return;
     protocol_version_ = {static_cast<uint8_t>(value / 10), 0};
     old_protocol_detected_ = value == 0;
+    state_.protocol=protocol_version_; state_.protocolVersion=protocol_version_.major;
     stats_.frames_ok++;
 }
 
@@ -2322,6 +2356,7 @@ void DaikinDriver::handle_fy00_response(uint8_t* data, size_t data_size)
     const uint8_t minor = (data[1]-'0')*10 + data[0]-'0';
     if (major < 3) return;
     protocol_version_ = {major, minor};
+    state_.protocol=protocol_version_; state_.protocolVersion=major;
     old_protocol_detected_ = false;
     stats_.frames_ok++;
 }
@@ -2634,6 +2669,7 @@ void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
     support_.fan_mode_query = true; // Mark fan mode query as supported once valid payload is seen
 
     daikin::DaikinFanMode old_fan = state_.fan;
+    state_.fanValid = true;
     state_.fan = daikin_to_fan_mode(raw);
     if (state_.fan == pending_.climate.fan_mode) climate_dirty_ &= ~DirtyFan;
     logDebugP("RG: fan_mode decoded from raw 0x%02X ('%c') -> %d",
@@ -2723,15 +2759,8 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
                 logDebugP("Fan mode: using RX/SX target %.1f°C as state_.targetC", state_.targetC);
             }
 
-            // If real target differs from set target, sensor is actively adjusting
-            bool sensor_active = std::abs(state_.realTargetC - state_.targetC) > 0.5f;
-            if (sensor_active != state_.sensor)
-            {
-                state_.sensor = sensor_active;
-                logInfoP("Sensor activity via RX: %s (real: %.1f°C, set: %.1f°C)",
-                         sensor_active ? "active" : "inactive",
-                         state_.realTargetC, state_.targetC);
-            }
+            state_.targetOffsetValid = state_.targetTemperatureValid;
+            state_.targetOffsetC = state_.realTargetC - state_.targetC;
 
             logInfoP("RX/SX: sensor_adjusted_target=%.1f°C (raw: %c%c%c%c)",
                      state_.realTargetC, data[0], data[1], data[2], data[3]);
@@ -2799,7 +2828,7 @@ void DaikinDriver::handle_rd_response(uint8_t* data, size_t size)
     if (!s21_valid_decimal(data,size,false)) return;
     const unsigned hz=(data[0]-'0')+(data[1]-'0')*10+(data[2]-'0')*100;
     if (hz>=999) return; // observed unsupported sentinel
-    state_.compressorHz=hz;
+    state_.compressorHz=hz; state_.compressorHzValid=true;
 }
 
 void DaikinDriver::handle_re_response(uint8_t* data, size_t size)
@@ -2812,15 +2841,10 @@ void DaikinDriver::handle_re_response(uint8_t* data, size_t size)
     state_.humidity=humidity;
 }
 
-void DaikinDriver::handle_rg2_response(uint8_t* data, size_t data_size)
+void DaikinDriver::handle_rg2_response(uint8_t* data, size_t size)
 {
-    // Rg response contains compressor on/off
-    if (data_size >= 1)
-    {
-        stats_.frames_ok++;
-        state_.compressorOn = (data[0] & 0x01) != 0; // Store compressor state for action determination
-        logInfoP("Rg: compressor_on=%d", state_.compressorOn);
-    }
+    if (size != 1 || (data[0] != '0' && data[0] != '1')) return;
+    state_.compressorOn = data[0] == '1'; state_.compressorOnValid = true;
 }
 
 void DaikinDriver::handle_rzb2_response(uint8_t* data, size_t data_size)
@@ -2844,6 +2868,11 @@ void DaikinDriver::handle_rzc3_response(uint8_t* data, size_t data_size)
 void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uint8_t* data, size_t data_size)
 {
     uint32_t now = millis();
+    if (d1_awaiting_ack_) {
+        if (result == daikin::DaikinSerial::Result::Nak || result == daikin::DaikinSerial::Result::Error || result == daikin::DaikinSerial::Result::Timeout)
+            rejectClimateWrite();
+        else if (result == daikin::DaikinSerial::Result::Ack) d1_awaiting_ack_ = false;
+    }
 
     const bool accept_response = query_state_ == QueryState::WaitingForAck ||
                                  query_state_ == QueryState::WaitingForGrace ||
@@ -3007,6 +3036,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                     const auto f8 = std::find_if(queries_.begin(), queries_.end(), [](const DaikinQueryState& q) { return q.command == "F8"; });
                     if (f8 != queries_.end() && f8->naks) {
                         protocol_version_ = daikin::ProtocolUnknown;
+                        state_.protocol=protocol_version_; state_.protocolVersion=0;
                         old_protocol_detected_ = true;
                     }
                 }
@@ -3082,250 +3112,83 @@ void DaikinDriver::handle_serial_idle()
 // === State Management ===
 void DaikinDriver::publishState()
 {
-    // Update the OpenKNX status feedback with current S21 state
-    logDebugP("Publishing S21 state to OpenKNX");
-
-    // Gating: erst publizieren, wenn alle Werte einmal empfangen wurden oder Gate per Timeout fallen lassen
-    if (gate_publish_until_full_sample_ &&
-        (sample_seen_mask_ & (SEEN_F1 | SEEN_RH | SEEN_RX | SEEN_RA)) != (SEEN_F1 | SEEN_RH | SEEN_RX | SEEN_RA))
-    {
-        uint32_t now = millis();
-        if (online_since_ms_ != 0 && (now - online_since_ms_) > FULL_SAMPLE_GATE_TIMEOUT_MS)
-        {
-            logInfoP("Gate timeout after %lu ms -> publishing with partial sample (mask=0x%02X)",
-                     (unsigned long)(now - online_since_ms_), sample_seen_mask_);
-            gate_publish_until_full_sample_ = false; // fall through and publish
+    // Publish only confirmed, valid properties. Cache belongs to this instance.
+    const auto& p = published_;
+    const bool seed = !publication_initialized_ || seed_kos_pending_;
+    if (state_.basicValid) {
+        if (seed || !p.basicValid || state_.power != p.power) statusFeedback.updatePower(state_.power);
+        if (seed || !p.basicValid || state_.mode != p.mode) statusFeedback.updateMode(daikin_to_openknx_mode(state_.mode));
+    }
+    if (state_.targetTemperatureValid && (seed || !p.targetTemperatureValid || state_.targetC != p.targetC)) statusFeedback.updateTargetTemperature(state_.targetC);
+    if (state_.insideTemperatureValid && (seed || !p.insideTemperatureValid || state_.homeC != p.homeC)) statusFeedback.updateCurrentTemperature(state_.homeC);
+    if (state_.outsideTemperatureValid && (seed || !p.outsideTemperatureValid || state_.outsideC != p.outsideC)) statusFeedback.updateOutdoorTemperature(state_.outsideC);
+    if (state_.fanValid && (seed || !p.fanValid || state_.fan != p.fan)) statusFeedback.updateFanSpeed(daikin_to_openknx_fan(state_.fan));
+    if (state_.swingValid && (seed || !p.swingValid || state_.swing != p.swing)) {
+        statusFeedback.updateSwingHorizontal(state_.swing == daikin::Swing::Horizontal || state_.swing == daikin::Swing::Both);
+        statusFeedback.updateSwingVertical(state_.swing == daikin::Swing::Vertical || state_.swing == daikin::Swing::Both);
+    }
+    if (state_.verticalPositionValid && getMaximumVerticalFixPosition() && (seed || !p.verticalPositionValid || p.verticalPosition != state_.verticalPosition))
+        statusFeedback.swingVerticalFixPositionChanged(state_.verticalPosition);
+    if (state_.specialModesValid) {
+        if (seed || !p.specialModesValid || state_.powerful!=p.powerful || state_.quiet!=p.quiet || state_.econo!=p.econo)
+            statusFeedback.updateDeviceMode(state_.powerful ? AirConditionDeviceModeHiPower : state_.quiet ? AirConditionDeviceModeSilent1 : state_.econo ? AirConditionDeviceModeEco : AirConditionDeviceModeStandard);
+        if (seed || !p.specialModesValid || state_.streamer != p.streamer) statusFeedback.updateAirPurification(state_.streamer);
+    }
+    if (state_.demandValid && (seed || !p.demandValid || state_.demand_percentage != p.demand_percentage)) statusFeedback.updateMaxPowerLevel(state_.demand_percentage);
+    if (state_.ledState != daikin::LedState::Unknown && (seed || p.ledState != state_.ledState)) statusFeedback.updateWifiLed(state_.led);
+    if (state_.humidityValid && (seed || !p.humidityValid || state_.humidity != p.humidity)) statusFeedback.updateHumidity(state_.humidity);
+    if (state_.humidityModeValid && (seed || !p.humidityModeValid || state_.humidityMode != p.humidityMode)) {
+        uint8_t step = 0;
+        switch(state_.humidityMode) {
+            case daikin::HumidityMode::Low: step=1; break;
+            case daikin::HumidityMode::Standard: step=2; break;
+            case daikin::HumidityMode::High: step=3; break;
+            case daikin::HumidityMode::Continuous: step=4; break;
+            default: break;
         }
-        else
-        {
-            logDebugP("Gating publish: waiting for full sample after Online (mask=0x%02X)", sample_seen_mask_);
-            return;
-        }
+        statusFeedback.updateHumidityMode(step);
     }
-    gate_publish_until_full_sample_ = false;
+    if (state_.totalEnergyValid && (seed || !p.totalEnergyValid || state_.totalEnergyWh != p.totalEnergyWh)) statusFeedback.updateTotalEnergyConsumption(state_.totalEnergyWh);
+    if (seed || state_.online != p.online) statusFeedback.updateOnlineStatus(state_.online);
+    if (seed || state_.fu04_valid!=p.fu04_valid || state_.fu04_cooling_wh!=p.fu04_cooling_wh || state_.fu04_heating_wh!=p.fu04_heating_wh || state_.fx60_valid!=p.fx60_valid || state_.fx60_raw!=p.fx60_raw)
+        statusFeedback.updateDaikinExtensionTelemetry(state_.fu04_valid && state_.fu04_cooling_wh<=UINT32_MAX && state_.fu04_heating_wh<=UINT32_MAX,
+            uint32_t(std::min<uint64_t>(state_.fu04_cooling_wh,UINT32_MAX)),uint32_t(std::min<uint64_t>(state_.fu04_heating_wh,UINT32_MAX)),state_.fx60_valid,state_.fx60_power_w*10U);
+    state_.action = calculateCurrentAction(); state_.actionValid=state_.action!=daikin::Action::Unknown;
+    published_ = state_; publication_initialized_=true;
+    seed_kos_pending_=false; gate_publish_until_full_sample_=false;
+}
 
-    // Cache previous state to avoid redundant callbacks
-    static bool last_power = false;
-    static AirConditionMode last_mode = AirConditionMode::AirConditionModeAuto;
-    static daikin::Action last_action = daikin::Action::Off;
-    static float last_target_temp = 0.0f;
-    static float last_current_temp = 0.0f;
-    static float last_outdoor_temp = 0.0f;
-    static unsigned int last_fan_speed = 0;
-    static bool last_swing_h = false;
-    static bool last_swing_v = false;
-    static AirConditionDeviceMode last_device_mode = AirConditionDeviceMode::AirConditionDeviceModeStandard;
-    static bool last_air_purification = false;
-    static bool last_wifi_led = false;
-    static int last_humidity = 0;
-    static uint8_t last_humidity_mode = 0;
-    static uint32_t last_total_energy = 0;
-    static bool last_online = false;
-    static bool last_fu04_valid = false;
-    static uint64_t last_fu04_cooling_wh = 0;
-    static uint64_t last_fu04_heating_wh = 0;
-    static bool last_fx60_valid = false;
-    static uint32_t last_fx60_value10 = 0;
+void DaikinDriver::rejectClimateWrite()
+{
+    for (size_t i=0;i<4;i++) if ((sent_climate_dirty_ & (1U<<i)) && climate_generation_[i] == sent_climate_generation_[i]) climate_dirty_ &= ~(1U<<i);
+    sent_climate_dirty_=0; d1_awaiting_ack_=false; climate_confirmation_started_=0;
+}
 
-    // KO Seeding: Initialize all KOs after first complete sample to fix missing states after KNX restart
-    if (seed_kos_pending_)
-    {
-        logInfoP("Seeding all KOs after first complete sample to prevent missing states");
-
-        // Force all cache mismatches to ensure first publish writes all values
-        last_power = !state_.power; // Opposite to force update
-        last_mode = (state_.mode == daikin::Mode::Auto) ? AirConditionMode::AirConditionModeCool : AirConditionMode::AirConditionModeAuto;
-        last_target_temp = state_.targetC + 10.0f; // Different to force update
-        last_current_temp = state_.homeC + 10.0f;
-        last_outdoor_temp = state_.outsideC + 10.0f;
-        last_fan_speed = (daikin_to_openknx_fan(state_.fan) == 0) ? 1 : 0; // Different to force update
-        last_swing_h = !((state_.swing == daikin::Swing::Horizontal) || (state_.swing == daikin::Swing::Both));
-        last_swing_v = !((state_.swing == daikin::Swing::Vertical) || (state_.swing == daikin::Swing::Both));
-        if (!state_.online)
-        {
-            last_online = true; // force KO463=false during offline startup seeding
-        }
-
-        seed_kos_pending_ = false;
-        logInfoP("KO seeding completed - all states will be published");
-
-        // Mirror current state to pending to prevent unintended shutdowns
-        // After first complete sample, any subsequent D1 writes should preserve current state
-        if (!(climate_dirty_ & DirtyPower)) pending_.climate.power = state_.power;
-        if (!(climate_dirty_ & DirtyMode)) pending_.climate.mode = state_.mode;
-        if (!(climate_dirty_ & DirtyTemperature)) pending_.climate.targetC = state_.targetC;
-        if (!(climate_dirty_ & DirtyFan)) pending_.climate.fan_mode = state_.fan;
-        logDebugP("Mirrored state to pending after first complete sample");
-    }
-
-    // Only update changed values
-    if (state_.power != last_power)
-    {
-        statusFeedback.updatePower(state_.power);
-        last_power = state_.power;
-    }
-    AirConditionMode current_mode = daikin_to_openknx_mode(state_.mode);
-    if (current_mode != last_mode)
-    {
-        statusFeedback.updateMode(current_mode);
-        last_mode = current_mode;
-    }
-    // Calculate and update action based on mode, AutoBias, and compressor state
-    daikin::Action current_action = calculateCurrentAction();
-    if (current_action != last_action)
-    {
-        state_.action = current_action; // Update state
-
-        // Log action changes with context for debugging
-        const char* actionStr = (current_action == daikin::Action::Off) ? "Off" : (current_action == daikin::Action::Idle)  ? "Idle"
-                                                                              : (current_action == daikin::Action::Cooling) ? "Cooling"
-                                                                              : (current_action == daikin::Action::Heating) ? "Heating"
-                                                                              : (current_action == daikin::Action::Drying)  ? "Drying"
-                                                                              : (current_action == daikin::Action::Fan)     ? "Fan"
-                                                                              : (current_action == daikin::Action::Auto)    ? "Auto"
-                                                                                                                            : "Unknown";
-
-        const char* biasStr = (state_.autoBias == daikin::AutoBias::Cooling) ? "Cool-bias" : (state_.autoBias == daikin::AutoBias::Heating) ? "Heat-bias"
-                                                                                                                                            : "Unknown";
-
-        logInfoP("Action: %s (mode=%s, autoBias=%s)",
-                 actionStr,
-                 (state_.mode == daikin::Mode::Auto) ? "Auto" : "Direct",
-                 biasStr);
-
-        last_action = current_action;
-    }
-
-    if (abs(state_.targetC - last_target_temp) > 0.1f)
-    {
-        statusFeedback.updateTargetTemperature(state_.targetC);
-        last_target_temp = state_.targetC;
-    }
-    if (abs(state_.homeC - last_current_temp) > 0.1f)
-    {
-        statusFeedback.updateCurrentTemperature(state_.homeC);
-        last_current_temp = state_.homeC;
-    }
-    if (abs(state_.outsideC - last_outdoor_temp) > 0.1f)
-    {
-        statusFeedback.updateOutdoorTemperature(state_.outsideC);
-        last_outdoor_temp = state_.outsideC;
-    }
-    unsigned int current_fan_speed = daikin_to_openknx_fan(state_.fan);
-    if (current_fan_speed != last_fan_speed)
-    {
-        statusFeedback.updateFanSpeed(current_fan_speed);
-        last_fan_speed = current_fan_speed;
-    }
-    bool current_swing_h = (state_.swing == daikin::Swing::Horizontal || state_.swing == daikin::Swing::Both);
-    if (current_swing_h != last_swing_h)
-    {
-        statusFeedback.updateSwingHorizontal(current_swing_h);
-        last_swing_h = current_swing_h;
-    }
-    bool current_swing_v = (state_.swing == daikin::Swing::Vertical || state_.swing == daikin::Swing::Both);
-    if (current_swing_v != last_swing_v)
-    {
-        statusFeedback.updateSwingVertical(current_swing_v);
-        last_swing_v = current_swing_v;
-    }
-    // Device modes
-    AirConditionDeviceMode current_device_mode;
-    if (state_.powerful)
-    {
-        current_device_mode = AirConditionDeviceMode::AirConditionDeviceModeHiPower;
-    }
-    else if (state_.quiet)
-    {
-        current_device_mode = AirConditionDeviceMode::AirConditionDeviceModeSilent1;
-    }
-    else if (state_.econo)
-    {
-        current_device_mode = AirConditionDeviceMode::AirConditionDeviceModeEco;
-    }
-    else
-    {
-        current_device_mode = AirConditionDeviceMode::AirConditionDeviceModeStandard;
-    }
-    if (current_device_mode != last_device_mode)
-    {
-        statusFeedback.updateDeviceMode(current_device_mode);
-        last_device_mode = current_device_mode;
-    }
-    // Extended features - only update if changed
-    if (state_.streamer != last_air_purification)
-    {
-        statusFeedback.updateAirPurification(state_.streamer);
-        last_air_purification = state_.streamer;
-    }
-    if (state_.led != last_wifi_led)
-    {
-        statusFeedback.updateWifiLed(state_.led);
-        last_wifi_led = state_.led;
-    }
-    if (state_.humidity != last_humidity)
-    {
-        statusFeedback.updateHumidity(state_.humidity);
-        last_humidity = state_.humidity;
-    }
-    uint8_t current_humidity_mode = static_cast<uint8_t>(state_.humidityMode);
-    if (state_.humidityModeValid && current_humidity_mode != last_humidity_mode)
-    {
-        statusFeedback.updateHumidityMode(current_humidity_mode);
-        last_humidity_mode = current_humidity_mode;
-    }
-    if (state_.totalEnergyWh != last_total_energy)
-    {
-        statusFeedback.updateTotalEnergyConsumption(state_.totalEnergyWh);
-        last_total_energy = state_.totalEnergyWh;
-    }
-    if (state_.online != last_online)
-    {
-        statusFeedback.updateOnlineStatus(state_.online);
-        last_online = state_.online;
-    }
-
-    if (state_.fu04_valid != last_fu04_valid ||
-        state_.fu04_cooling_wh != last_fu04_cooling_wh ||
-        state_.fu04_heating_wh != last_fu04_heating_wh ||
-        state_.fx60_valid != last_fx60_valid ||
-        state_.fx60_raw != last_fx60_value10)
-    {
-        statusFeedback.updateDaikinExtensionTelemetry(
-            state_.fu04_valid && state_.fu04_cooling_wh <= UINT32_MAX && state_.fu04_heating_wh <= UINT32_MAX,
-            static_cast<uint32_t>(std::min<uint64_t>(state_.fu04_cooling_wh, UINT32_MAX)),
-            static_cast<uint32_t>(std::min<uint64_t>(state_.fu04_heating_wh, UINT32_MAX)),
-            state_.fx60_valid,
-            state_.fx60_power_w * 10U); // existing common telemetry interface expects W x 10
-
-        last_fu04_valid = state_.fu04_valid;
-        last_fu04_cooling_wh = state_.fu04_cooling_wh;
-        last_fu04_heating_wh = state_.fu04_heating_wh;
-        last_fx60_valid = state_.fx60_valid;
-        last_fx60_value10 = state_.fx60_raw;
-    }
+void DaikinDriver::invalidateTelemetry()
+{
+    state_.online=false;
+    state_.basicValid=state_.targetTemperatureValid=state_.fanValid=state_.swingValid=false;
+    state_.insideTemperatureValid=state_.outsideTemperatureValid=state_.humidityValid=false;
+    state_.specialModesValid=state_.demandValid=state_.compressorOnValid=state_.compressorHzValid=false;
+    state_.indoorHeatExchangerValid=state_.humidityModeValid=state_.unitStateValid=state_.systemStateValid=false;
+    state_.vaneAngleValid=state_.vaneAngleSetpointValid=state_.vaneAngleDegreesValid=state_.vaneAngleSetpointDegreesValid=false;
+    state_.fanRpmValid=state_.fanRpmSetpointValid=state_.timerLampValid=state_.serialErrorValid=false;
+    state_.timersValid=state_.verticalPositionValid=state_.targetOffsetValid=false;
+    state_.fu04_valid=state_.fx60_valid=state_.totalEnergyValid=false;
+    state_.setpointRawValid=false; state_.ledState=daikin::LedState::Unknown;
+    support_.inside_temperature_query=support_.outside_temperature_query=support_.humidity_query=support_.fan_mode_query=false;
+    d5_.valid=d6_.valid=d7_.valid=d3_.valid=dr_.valid=false;
+    rejectClimateWrite(); sample_seen_mask_=0;
+    publishState();
 }
 
 void DaikinDriver::updateOnlineStatus()
 {
-    // Consider online if we have recent successful communication
-    bool was_online = state_.online;
-    state_.online = (stats_.acks > 0 || stats_.frames_ok > 0);
-
+    const bool was_online = state_.online;
+    state_.online = online_;
     if (was_online != state_.online)
-    {
-        logInfoP("S21 online status changed: %s", state_.online ? "Online" : "Offline");
-
-        if (state_.online)
-        {
-            statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateOk);
-        }
-        else
-        {
-            statusFeedback.driverStateChanged(AirConditionDriverState::AirConditionDriverStateError,
-                                              "Communication lost");
-        }
-    }
+        statusFeedback.driverStateChanged(state_.online ? AirConditionDriverStateOk : AirConditionDriverStateError,
+                                          state_.online ? "" : "Communication lost");
 }
 
 // === Conversion Utilities ===
@@ -3371,41 +3234,17 @@ daikin::Action DaikinDriver::daikin_to_action(uint8_t action) const
 
 daikin::Action DaikinDriver::calculateCurrentAction() const
 {
-    // If unit is off or offline, return off
-    if (!state_.power || !state_.online)
-    {
-        return daikin::Action::Off;
-    }
-    // Handle modes directly based on mode setting
-    switch (state_.mode)
-    {
-        case daikin::Mode::Cool:
-            return daikin::Action::Cooling;
-        case daikin::Mode::Heat:
-            return daikin::Action::Heating;
-        case daikin::Mode::Dry:
-            return daikin::Action::Drying;
-        case daikin::Mode::FanOnly:
-            return daikin::Action::Fan;
-        case daikin::Mode::Off:
-            return daikin::Action::Off;
-        case daikin::Mode::Auto:
-            // Auto mode: use AutoBias to determine intended action
-            if (state_.autoBias == daikin::AutoBias::Heating)
-            {
-                return daikin::Action::Heating;
-            }
-            else if (state_.autoBias == daikin::AutoBias::Cooling)
-            {
-                return daikin::Action::Cooling;
-            }
-            else
-            {
-                return daikin::Action::Auto; // Unknown bias - generic auto mode
-            }
-        default:
-            return daikin::Action::Off;
-    }
+    if (!state_.online || !state_.basicValid) return daikin::Action::Unknown;
+    if (!state_.power) return daikin::Action::Off;
+    if (state_.mode == daikin::Mode::FanOnly) return daikin::Action::Fan;
+    if (!state_.compressorOnValid) return daikin::Action::Unknown;
+    if (!state_.compressorOn) return daikin::Action::Idle;
+    if (state_.mode == daikin::Mode::Cool) return daikin::Action::Cooling;
+    if (state_.mode == daikin::Mode::Heat) return daikin::Action::Heating;
+    if (state_.mode == daikin::Mode::Dry) return daikin::Action::Drying;
+    if (state_.autoBias == daikin::AutoBias::Cooling) return daikin::Action::Cooling;
+    if (state_.autoBias == daikin::AutoBias::Heating) return daikin::Action::Heating;
+    return daikin::Action::Unknown;
 }
 
 daikin::Swing DaikinDriver::daikin_to_swing_mode(uint8_t mode) const
@@ -3566,6 +3405,7 @@ void DaikinDriver::markOnline(uint32_t now)
     if (!online_)
     {
         online_ = true;
+        state_.online = true;
 
         // Reset sample tracking to ensure full snapshot before publishing
         sample_seen_mask_ = 0;
@@ -3586,20 +3426,21 @@ void DaikinDriver::markOnline(uint32_t now)
 void DaikinDriver::checkOnlineTimeout()
 {
     static constexpr uint32_t OFFLINE_MS = 15000; // 15s timeout for offline detection
-    static uint32_t last_framed_retry_ms = 0;
+
 
     uint32_t now = millis();
     if (online_ && last_rx_ok_ms_ != 0 && (now - last_rx_ok_ms_) > OFFLINE_MS)
     {
         online_ = false;
+        invalidateTelemetry();
         logInfoP("S21 online status changed: Offline (no ACK/frame for %lu ms)", (unsigned long)(now - last_rx_ok_ms_));
         statusFeedback.updateOnlineStatus(false); // → KO463 = 0
 
         // Force framed mode retry after offline timeout (recovery mechanism)
-        if (serial_ && (last_framed_retry_ms == 0 || (now - last_framed_retry_ms) > 30000))
+        if (serial_ && (last_framed_retry_ms_ == 0 || (now - last_framed_retry_ms_) > 30000))
         {
             serial_->force_framed_mode("offline recovery");
-            last_framed_retry_ms = now;
+            last_framed_retry_ms_ = now;
         }
     }
 
