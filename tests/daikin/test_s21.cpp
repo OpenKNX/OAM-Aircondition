@@ -282,4 +282,15 @@ void test_query_rates() {
         if(q.command=="FU05" || q.command=="FU35" || q.command=="FX00") assert(q.is_static);
     }
 }
-int main() { test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_read_write_capabilities() {
+    Feedback f; DaikinDriver d(f); d.setup(); d.queries_.emplace_back("F6");
+    using A=DaikinDriver::FeatureAccess;
+    assert(d.commandAccess("F6")==A::Unknown);
+    d.queries_[0].acked=true; assert(d.commandAccess("F6")==A::ReadOnly);
+    d.d6_.write=DaikinDriver::CommandSupport::Unsupported; assert(d.commandAccess("F6")==A::ReadOnly);
+    d.d6_.write=DaikinDriver::CommandSupport::Supported; assert(d.commandAccess("F6")==A::Writable);
+    d.query_state_=DaikinDriver::QueryState::WaitingForAck;
+    d.handle_serial_result(Result::Timeout,nullptr,0);
+    assert(!d.queries_[0].bad && d.queries_[0].naks==0);
+}
+int main() { test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

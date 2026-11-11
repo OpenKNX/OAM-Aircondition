@@ -157,6 +157,9 @@ public:
     virtual const std::string name() const override;
     virtual void showInformations() override;
     
+    enum class FeatureAccess : uint8_t { Unknown, Unsupported, ReadOnly, Writable };
+    FeatureAccess commandAccess(std::string_view read_command) const;
+
     // Capability queries
     virtual float getMinimumTargetTemperature() override;
     virtual float getMaximumTargetTemperature() override;

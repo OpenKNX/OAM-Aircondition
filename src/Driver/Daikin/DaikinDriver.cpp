@@ -258,6 +258,10 @@ void DaikinDriver::startCommunication(bool restart)
         failed_queries_.clear();
         protocol_version_ = daikin::ProtocolUndetected;
         support_ = {};
+        d5_ = {}; d6_ = {}; d7_ = {};
+        outstanding_write_ = {};
+        humidity_modes_ = 0;
+        humidity_pending_ = demand_pending_ = false;
         // Reinitialize default state
         state_.homeC = 20.0f;
         state_.targetC = 22.0f;
@@ -372,6 +376,17 @@ void DaikinDriver::loop()
         }
     }
     updateOnlineStatus(); // Update online status based on recent communication
+}
+
+DaikinDriver::FeatureAccess DaikinDriver::commandAccess(std::string_view read_command) const
+{
+    const CombinedCommand* combined = read_command == "F5" ? &d5_ : read_command == "F6" ? &d6_ : read_command == "F7" ? &d7_ : nullptr;
+    auto query = std::find_if(queries_.begin(), queries_.end(), [&](const DaikinQueryState& q) { return q.command == read_command; });
+    if (query == queries_.end()) return FeatureAccess::Unknown;
+    if (query->bad) return FeatureAccess::Unsupported;
+    if (combined && combined->write == CommandSupport::Supported) return FeatureAccess::Writable;
+    if (query->acked) return FeatureAccess::ReadOnly;
+    return FeatureAccess::Unknown;
 }
 
 // === Capability Queries ===
@@ -1569,6 +1584,8 @@ void DaikinDriver::sendPowerfulCommand()
 void DaikinDriver::sendEconoCommand()
 {
     if ((!pending_.activate_econo && !demand_pending_) || !d7_.valid) return;
+    if (support_.special_features_known && !support_.econo) pending_.activate_econo = false;
+    if (!pending_.activate_econo && !demand_pending_) return;
     PayloadBuffer payload = d7_.confirmed;
     if (pending_.activate_econo) payload[1] = pending_.climate.econo ? '2' : '0';
     if (demand_pending_) payload[0] = 0x30 + (100 - requested_demand_);
@@ -1617,6 +1634,12 @@ bool DaikinDriver::sendCombined(std::string_view command, const PayloadBuffer& p
 void DaikinDriver::sendSpecialModesCommand()
 {
     if (!d6_.valid) return; // read before modifying shared fields
+    if (support_.special_features_known) {
+        if (!support_.powerful) pending_.activate_powerful = false;
+        if (!support_.streamer) pending_.activate_streamer = false;
+    }
+    if (!(pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
+          pending_.activate_streamer || pending_.activate_sensor || pending_.activate_led)) return;
     PayloadBuffer payload = d6_.confirmed;
     auto bit = [&](size_t byte, uint8_t mask, bool on) {
         payload[byte] = (payload[byte] & ~mask) | (on ? mask : 0);
@@ -2769,7 +2792,6 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             markOnline(millis()); // Mark device online on ACK
             stats_.acks++;
             // An ACK alone does not satisfy a static read.
-            query.naks = 0;
             // Wait for framed reply (if any) -> stay in WaitingForGrace
             query_state_ = QueryState::WaitingForGrace;
             state_start_time_ = millis();
@@ -2831,6 +2853,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 {
                     if (payload_len > 0)
                     {
+                        query.naks = 0;
                         query.acked = true;
                         query.last_sample_ms = now;
                         query.response_data.assign(payload, payload + payload_len);
@@ -2923,23 +2946,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             {
                 // logInfoP("S21: Timeout waiting for %.*s", static_cast<int>(query.command.size()), query.command.data());
             }
-            // Timeouts also count as NAKs for bad query detection
-            query.naks++;
-            if (!query.naks)
-            { // Overflow protection (255 -> 0 wraparound)
-                query.bad = true;
-            }
-            else if (query.naks >= 3)
-            {
-                query.bad = true;
-                failed_queries_.push_back(query.command);
-                // Check if F6 failed and switch to F3 fallback
-                if (query.command == StateQuery::SpecialModes)
-                {
-                    checkF6ToF3Fallback();
-                }
-            }
-
+            // Silence is transport failure, not evidence of an unsupported command.
             query_index_++;
             query_state_ = QueryState::WaitingToSend;
             state_start_time_ = millis();
