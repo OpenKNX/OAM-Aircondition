@@ -188,6 +188,7 @@ public:
 
     // Configure only after validating the model's reduced-demand range on hardware.
     bool configureDemandLimits(uint8_t minimum, uint8_t step);
+    bool configureVaneAngleScale(uint8_t divisor);
     bool setHumidityMode(daikin::HumidityMode mode);
     void setLedState(daikin::LedState state);
     void setComfort(bool on);
@@ -425,6 +426,8 @@ private:
     void checkOnlineTimeout();
     
     // Response handlers
+    uint8_t vane_angle_divisor_{0}; // unknown until verified per model (1 or 10)
+    void handle_vane_angle(bool requested, uint8_t* data, size_t size);
     void handle_fan_rpm(bool requested, uint8_t* data, size_t size);
     void handle_ri_response(uint8_t* data, size_t size);
     void handle_status_sensor(std::string_view command, uint8_t* data, size_t size);

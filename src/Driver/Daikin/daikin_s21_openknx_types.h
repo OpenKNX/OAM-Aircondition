@@ -285,7 +285,10 @@ namespace daikin
         bool fanRpmValid{false}, fanRpmSetpointValid{false};
         uint16_t fanRpm{0};
         uint16_t fanRpmSetpoint{0};
-        int16_t swingVerticalAngle{0};
+        bool vaneAngleValid{false}, vaneAngleSetpointValid{false};
+        bool vaneAngleDegreesValid{false}, vaneAngleSetpointDegreesValid{false};
+        float vaneAngleDegrees{NAN}, vaneAngleSetpointDegrees{NAN};
+        int16_t swingVerticalAngle{0}; // signed raw decimal; model scaling can differ
         int16_t swingVerticalAngleSetpoint{0};
 
         // Advanced features and modifiers

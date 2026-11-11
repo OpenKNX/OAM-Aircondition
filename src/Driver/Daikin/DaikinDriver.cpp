@@ -877,6 +877,8 @@ void DaikinDriver::initializeQueries()
     for (auto cmd : {std::string_view{"RA"}, std::string_view{"RB"}, std::string_view{"RC"}})
         queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_status_sensor(cmd,data,n); });
 #endif
+    queries_.emplace_back("RM", [this](uint8_t* data, size_t n) { handle_vane_angle(true,data,n); });
+    queries_.emplace_back("RN", [this](uint8_t* data, size_t n) { handle_vane_angle(false,data,n); });
     queries_.emplace_back("RK", [this](uint8_t* data, size_t n) { handle_fan_rpm(true,data,n); });
     queries_.emplace_back("RL", [this](uint8_t* data, size_t n) { handle_fan_rpm(false,data,n); });
     queries_.emplace_back("RI", [this](uint8_t* data, size_t n) { handle_ri_response(data,n); });
@@ -1205,6 +1207,7 @@ void DaikinDriver::startQueryCycle()
 
 bool DaikinDriver::isQuerySupported(std::string_view command) const
 {
+    if ((command == "RM" || command == "RN") && !support_.swing) return false;
     // Check if this query has been marked as failed
     auto it = std::find(failed_queries_.begin(), failed_queries_.end(), command);
     if (it != failed_queries_.end())
@@ -1921,6 +1924,29 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
               support_.fan, support_.sensor, support_.streamer, support_.led);
     logDebugP("F2: bytes [0x%02X, -, -, 0x%02X] de-shielded [0x%02X, -, -, 0x%02X]",
               data[0], data[3], b0, b3_view);
+}
+
+bool DaikinDriver::configureVaneAngleScale(uint8_t divisor)
+{
+    if (divisor != 1 && divisor != 10) return false;
+    vane_angle_divisor_ = divisor;
+    return true;
+}
+
+void DaikinDriver::handle_vane_angle(bool requested, uint8_t* data, size_t size)
+{
+    bool& valid = requested ? state_.vaneAngleSetpointValid : state_.vaneAngleValid;
+    bool& degrees_valid = requested ? state_.vaneAngleSetpointDegreesValid : state_.vaneAngleDegreesValid;
+    valid = s21_valid_decimal(data,size,true);
+    degrees_valid = valid && vane_angle_divisor_ != 0;
+    if (!valid) return;
+    const int16_t value = s21_decode_int_sensor(data);
+    if (requested) state_.swingVerticalAngleSetpoint = value;
+    else state_.swingVerticalAngle = value;
+    if (degrees_valid) {
+        if (requested) state_.vaneAngleSetpointDegrees = float(value) / vane_angle_divisor_;
+        else state_.vaneAngleDegrees = float(value) / vane_angle_divisor_;
+    }
 }
 
 void DaikinDriver::handle_fan_rpm(bool requested, uint8_t* data, size_t size)
