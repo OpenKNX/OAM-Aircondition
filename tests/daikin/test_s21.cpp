@@ -184,4 +184,14 @@ void test_explicit_d1() {
     assert(tx[3]=='0' && tx[4]=='1' && tx[5]==0x48 && tx[6]=='B');
     assert(d.climate_dirty_==15); // transmission alone is not confirmation
 }
-int main() { test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_confirmed_d1() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t g1[]={'1','3',0x4C,'A'}; d.handle_f1_response(g1,4);
+    d.state_.online=true; d.gate_publish_until_full_sample_=false;
+    d.setTargetTemperature(22);
+    assert(d.state_.targetC==24); // queued write cannot become confirmed state
+    d.handle_serial_result(Result::Ack,nullptr,0); assert(d.state_.targetC==24);
+    g1[2]=0x48; d.handle_f1_response(g1,4);
+    assert(d.state_.targetC==22 && !(d.climate_dirty_ & DaikinDriver::DirtyTemperature));
+}
+int main() { test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
