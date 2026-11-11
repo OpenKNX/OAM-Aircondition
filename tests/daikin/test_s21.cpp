@@ -143,4 +143,12 @@ void test_d6() {
     assert(d.d6_.write==DaikinDriver::CommandSupport::Unsupported);
     assert(!d.supportExternalRoomTemperatureSensor());
 }
-int main() { test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_econo() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t g7[]={0x44,'0','A','G'}; d.handle_f7_response(g7,4);
+    d.pending_.climate.econo=true; d.pending_.activate_econo=true; d.sendEconoCommand();
+    auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
+    assert(tx[1]=='D' && tx[2]=='7' && tx[3]==0x44 && tx[4]=='2' && tx[5]=='A' && tx[6]=='G');
+    assert(!d.d7_.valid); // cannot reuse stale readback on the next change
+}
+int main() { test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

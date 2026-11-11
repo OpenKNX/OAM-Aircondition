@@ -341,6 +341,7 @@ void DaikinDriver::loop()
         if (pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
             pending_.activate_sensor || pending_.activate_led || pending_.activate_streamer)
             sendSpecialModesCommand();
+        if (pending_.activate_econo) sendEconoCommand();
     }
 
     updateQueryStateMachine(); // non-blocking state machine
@@ -1621,27 +1622,10 @@ void DaikinDriver::sendPowerfulCommand()
 
 void DaikinDriver::sendEconoCommand()
 {
-    if (!serial_ || !pending_.activate_econo)
-    {
-        return;
-    }
-    logDebugP("Sending S21 econo command D3");
-
-    PayloadBuffer payload{};
-    // 4-byte structured payload; byte 1 bit 1 carries econo flag
-    payload[0] = 0x30;
-    payload[1] = 0x30;
-    payload[2] = 0x30;
-    payload[3] = 0x30;
-    if (pending_.climate.econo) payload[1] |= 0x02;
-
-    std::string cmd(StateCommand::Econo);
-    serial_->send_frame(cmd, payload.data(), 4);
-
-    // v0 stability: Enter post-write settle for D-type commands
-    handleWriteCommandSent(LastWriteCommand::Other);
-
-    pending_.activate_econo = false;
+    if (!pending_.activate_econo || !d7_.valid) return;
+    PayloadBuffer payload = d7_.confirmed;
+    payload[1] = pending_.climate.econo ? '2' : '0';
+    if (sendCombined("D7", payload)) pending_.activate_econo = false;
 }
 
 void DaikinDriver::sendQuietCommand()
@@ -1674,6 +1658,7 @@ bool DaikinDriver::sendCombined(std::string_view command, const PayloadBuffer& p
     }
     outstanding_write_ = command;
     serial_->send_frame(command, payload.data(), payload.size());
+    combined.valid = false; // require fresh readback before another shared-field write
     last_send_time_ = millis();
     handleWriteCommandSent(command == "D5" ? LastWriteCommand::D5_Swing : LastWriteCommand::Other);
     return true;
@@ -2102,11 +2087,13 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
 {
-    if (data_size < 2)
+    if (data_size < 4)
     {
         logErrorP("F7 response too short: %zu bytes", data_size);
         return;
     }
+    std::copy_n(data, 4, d7_.confirmed.begin());
+    d7_.valid = true;
     stats_.frames_ok++;
 
     // Demand encoding per Faikout S21 wiki:
