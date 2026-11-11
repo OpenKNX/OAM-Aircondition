@@ -261,6 +261,10 @@ namespace daikin
         float outsideC{25.0f};
         float liquidC{25.0f};
 
+        bool independentPowerValid{false}, independentPower{false};
+        bool independentModeValid{false}, coarseTargetValid{false};
+        uint8_t independentMode{0};
+        int16_t coarseTargetC{0};
         bool verticalPositionValid{false}, verticalPositionVerified{false};
         uint8_t verticalPosition{0};
         bool timerLampValid{false}, timerLamp{false};

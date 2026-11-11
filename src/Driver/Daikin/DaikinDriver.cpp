@@ -864,6 +864,11 @@ void DaikinDriver::initializeQueries()
         queries_.emplace_back("Rz52", nullptr, true);
         queries_.emplace_back("Rz72", nullptr, true);
     }
+#ifdef DAIKIN_EXTRA_DIAGNOSTICS
+    // Optional cross-checks do not replace precise F1/RX climate state.
+    for (auto cmd : {std::string_view{"RA"}, std::string_view{"RB"}, std::string_view{"RC"}})
+        queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_status_sensor(cmd,data,n); });
+#endif
     // Environment queries (most are supported across protocols)
     queries_.emplace_back(EnvironmentQuery::InsideTemperature, [this](uint8_t* data, size_t data_size) { handle_rh_response(data, data_size); });
     queries_.emplace_back(EnvironmentQuery::TargetTemperature, [this](uint8_t* data, size_t data_size) { handle_rx_response(data, data_size); });
@@ -1905,6 +1910,20 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
               support_.fan, support_.sensor, support_.streamer, support_.led);
     logDebugP("F2: bytes [0x%02X, -, -, 0x%02X] de-shielded [0x%02X, -, -, 0x%02X]",
               data[0], data[3], b0, b3_view);
+}
+
+void DaikinDriver::handle_status_sensor(std::string_view command, uint8_t* data, size_t size)
+{
+    if (command == "RA" && size == 1 && (data[0] == '0' || data[0] == '1')) {
+        state_.independentPower = data[0] == '1'; state_.independentPowerValid = true;
+    } else if (command == "RB" && size == 1 && (data[0] >= '0' && data[0] <= '7') && data[0] != '5') {
+        state_.independentMode = data[0] - '0'; state_.independentModeValid = true;
+    } else if (command == "RC" && size == 4) {
+        for (size_t i=0;i<3;i++) if (data[i] < '0' || data[i] > '9') return;
+        if (data[3] != '+' && data[3] != '-') return;
+        state_.coarseTargetC = s21_decode_int_sensor(data); // whole degrees, not C/10
+        state_.coarseTargetValid = true;
+    }
 }
 
 void DaikinDriver::handle_fr_response(uint8_t* data, size_t size)

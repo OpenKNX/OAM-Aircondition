@@ -314,4 +314,10 @@ void test_vertical_position() {
     assert(d.getMaximumVerticalFixPosition()==5 && d.getMaximumHorizontalFixPosition()==0);
     gr[0]='?'; d.handle_fr_response(gr,4); assert(!d.telemetry().verticalPositionValid);
 }
-int main() { test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_independent_status() {
+    Feedback f; DaikinDriver d(f); uint8_t power[]={'1'}, mode[]={'7'}, target[]={'1','2','0','+'};
+    d.handle_status_sensor("RA",power,1); d.handle_status_sensor("RB",mode,1); d.handle_status_sensor("RC",target,4);
+    assert(d.telemetry().independentPower && d.telemetry().independentMode==7 && d.telemetry().coarseTargetC==21);
+    assert(d.state_.targetC==22); // diagnostics do not overwrite precise feedback
+}
+int main() { test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
