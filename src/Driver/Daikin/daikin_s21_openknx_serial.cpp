@@ -300,6 +300,9 @@ void DaikinSerial::finalize_frame() {
   
   //Serial.printf("[S21-RX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"cmd\":\"%s\",\"data\":\"%s\"}\n", hex_dump.c_str(), cmd_code_hex.c_str(), response_data_hex.c_str());
 
+  // Complete the read handshake only after validating the full frame.
+  serial_hal_->write(&ACK, 1); // queued UART TX; never flush/block the task loop
+
   // Deliver frame payload (command + payload) to upper layer
   if (result_callback) result_callback(Result::Frame, payload.data(), payload.size());
   // Successful frame reception in framed mode resets timeout counter
