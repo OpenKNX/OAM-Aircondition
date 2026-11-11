@@ -1742,6 +1742,7 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
         logErrorP("F1 response too short: %zu bytes", data_size);
         return;
     }
+    if (!s21_valid_response("F1",data,data_size)) return;
     stats_.frames_ok++; // Count successful response
 
     // F1/G1 contains: power(ASCII), mode(ASCII), target_temp(encoded), fan(encoded)
@@ -1793,7 +1794,8 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     if (state_.mode == daikin::Mode::Heat || state_.mode == daikin::Mode::Cool || state_.mode == daikin::Mode::Auto)
     {
         // s21_decode_target_temp: 18.0 + 0.5 * ((signed) v - '@')
-        state_.targetC = 18.0f + 0.5f * (static_cast<int8_t>(data[2]) - '@');
+        if (data[2] >= 0x30 && data[2] <= 0x7F)
+            state_.targetC = 18.0f + 0.5f * (int(data[2]) - '@');
 
         // Detect temperature changes from remote control (with tolerance for float comparison)
         if (abs(old_targetC - state_.targetC) > 0.1f)

@@ -456,4 +456,20 @@ void test_combined_mode_changes() {
     g6[0]=0x32; d.handle_f6_response(g6,4); d.sendStreamerCommand();
     assert(hal.tx[sent+3]==0x32 && hal.tx[sent+4]==0x30 && hal.tx[sent+5]==0x31);
 }
-int main() { test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_explicit_settings_readback() {
+    Feedback f; DaikinDriver d(f); d.setup(); uint8_t g1[]={'1','3',0x4C,'A'}; d.handle_f1_response(g1,4);
+    d.query_state_=DaikinDriver::QueryState::PostWriteSettle;
+    d.setTargetTemperature(22); d.setMode(AirConditionModeAuto); d.setPower(false); d.setFanSpeed(1);
+    d.query_state_=DaikinDriver::QueryState::Idle; d.sendClimateCommand();
+    d.handle_serial_result(Result::Nak,nullptr,0);
+    assert(d.state_.targetC==24 && d.state_.mode==daikin::Mode::Cool && d.state_.power);
+    g1[0]='0'; g1[1]='1'; g1[2]=0x48; g1[3]='A'; d.handle_f1_response(g1,4);
+    // G1 can alias Quiet to Auto; RG supplies the reliable quiet fan confirmation.
+    d.support_.fan_mode_query=true; uint8_t rg[]={'B'}; d.handle_rg_response(rg,1);
+    assert(d.climate_dirty_==0 && !d.state_.power && d.state_.targetC==22 && d.state_.mode==daikin::Mode::Auto);
+    d.query_state_=DaikinDriver::QueryState::PostWriteSettle;
+    d.setTargetTemperature(100); assert(d.pending_.climate.targetC==32);
+    d.setTargetTemperature(NAN); assert(d.pending_.climate.targetC==32);
+    d.setTargetTemperature(-100); assert(d.pending_.climate.targetC==18);
+}
+int main() { test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
