@@ -340,4 +340,10 @@ void test_vane_angles() {
     assert(std::abs(d.telemetry().vaneAngleDegrees-40.4f)<0.001f);
     sn[3]='-'; d.handle_vane_angle(true,sn,4); assert(d.telemetry().vaneAngleSetpointDegrees<0);
 }
-int main() { test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_supplemental_sensors() {
+    Feedback f; DaikinDriver d(f); uint8_t sf[]={'1','F'}, sd[]={'4','4','1'}, se[]={'7','2','0'};
+    d.handle_supplemental_sensor("RF",sf,2); d.handle_supplemental_sensor("RD",sd,3); d.handle_supplemental_sensor("RE",se,3);
+    assert(d.telemetry().supplementalSwing==daikin::Swing::Vertical);
+    assert(d.telemetry().onTimerPeriods==144 && d.telemetry().offTimerPeriods==27);
+}
+int main() { test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

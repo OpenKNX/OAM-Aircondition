@@ -430,6 +430,7 @@ private:
     void handle_vane_angle(bool requested, uint8_t* data, size_t size);
     void handle_fan_rpm(bool requested, uint8_t* data, size_t size);
     void handle_ri_response(uint8_t* data, size_t size);
+    void handle_supplemental_sensor(std::string_view command, uint8_t* data, size_t size);
     void handle_status_sensor(std::string_view command, uint8_t* data, size_t size);
     void handle_fr_response(uint8_t* data, size_t data_size);
     void handle_fb_response(uint8_t* data, size_t data_size);

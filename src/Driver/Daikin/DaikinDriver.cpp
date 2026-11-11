@@ -873,6 +873,8 @@ void DaikinDriver::initializeQueries()
         queries_.emplace_back("Rz72", nullptr, true);
     }
 #ifdef DAIKIN_EXTRA_DIAGNOSTICS
+    for (auto cmd : {std::string_view{"RF"}, std::string_view{"RD"}, std::string_view{"RE"}})
+        queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_supplemental_sensor(cmd,data,n); });
     // Optional cross-checks do not replace precise F1/RX climate state.
     for (auto cmd : {std::string_view{"RA"}, std::string_view{"RB"}, std::string_view{"RC"}})
         queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_status_sensor(cmd,data,n); });
@@ -1964,6 +1966,22 @@ void DaikinDriver::handle_ri_response(uint8_t* data, size_t size)
     if (!s21_valid_decimal(data,size,true)) { state_.indoorHeatExchangerValid = false; return; }
     state_.indoorHeatExchangerC = s21_decode_float_sensor(data);
     state_.indoorHeatExchangerValid = true;
+}
+
+void DaikinDriver::handle_supplemental_sensor(std::string_view command, uint8_t* data, size_t size)
+{
+    if (command == "RF") {
+        if (size != 2 || (data[0]!='0' && data[0]!='1' && data[0]!='2' && data[0]!='7') ||
+            (data[1]!='0' && data[1]!='F')) return;
+        state_.supplementalSwing = data[0]=='1' ? daikin::Swing::Vertical : data[0]=='2' ? daikin::Swing::Horizontal :
+                                   data[0]=='7' ? daikin::Swing::Both : daikin::Swing::Off;
+        state_.supplementalSwingValid = true;
+    } else if (s21_valid_decimal(data,size,false)) {
+        const uint16_t value=(data[0]-'0') + (data[1]-'0')*10 + (data[2]-'0')*100;
+        if (value > 144) return;
+        if (command=="RD") { state_.onTimerPeriods=value; state_.onTimerPeriodsValid=true; }
+        if (command=="RE") { state_.offTimerPeriods=value; state_.offTimerPeriodsValid=true; }
+    }
 }
 
 void DaikinDriver::handle_status_sensor(std::string_view command, uint8_t* data, size_t size)

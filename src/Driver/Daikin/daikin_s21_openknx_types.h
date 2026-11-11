@@ -263,6 +263,9 @@ namespace daikin
         bool indoorHeatExchangerValid{false};
         float indoorHeatExchangerC{NAN};
 
+        bool supplementalSwingValid{false}, onTimerPeriodsValid{false}, offTimerPeriodsValid{false};
+        Swing supplementalSwing{Swing::Off};
+        uint16_t onTimerPeriods{0}, offTimerPeriods{0}; // 10-minute units from time set, not remaining time
         bool independentPowerValid{false}, independentPower{false};
         bool independentModeValid{false}, coarseTargetValid{false};
         uint8_t independentMode{0};
