@@ -250,6 +250,9 @@ private:
         bool comfort{false};
     } pending_;
     
+    enum ClimateDirty : uint8_t { DirtyPower=1, DirtyMode=2, DirtyTemperature=4, DirtyFan=8 };
+    uint8_t climate_dirty_{0};
+
     // Track explicit OFF commands to prevent safety guard from overriding them
     bool pending_explicit_off_{false};
     

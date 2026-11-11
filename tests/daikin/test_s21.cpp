@@ -173,4 +173,15 @@ void test_led() {
     d.support_.sensor_hardware=true; g6[3]=0x3C; d.handle_f6_response(g6,4);
     assert(d.state_.sensor && d.state_.sensorLed);
 }
-int main() { test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_explicit_d1() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t g1[]={'1','3',0x4C,'A'}; d.handle_f1_response(g1,4); // Cool, 24 C
+    // Coalesce all explicit settings while a previous write is settling.
+    d.query_state_=DaikinDriver::QueryState::PostWriteSettle;
+    d.setMode(AirConditionModeAuto); d.setTargetTemperature(22); d.setPower(false); d.setFanSpeed(1);
+    d.query_state_=DaikinDriver::QueryState::Idle; d.sendClimateCommand();
+    auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
+    assert(tx[3]=='0' && tx[4]=='1' && tx[5]==0x48 && tx[6]=='B');
+    assert(d.climate_dirty_==15); // transmission alone is not confirmation
+}
+int main() { test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

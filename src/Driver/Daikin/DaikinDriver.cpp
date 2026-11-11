@@ -277,6 +277,7 @@ void DaikinDriver::startCommunication(bool restart)
     pending_.activate_sensor = false;
     pending_explicit_off_ = false;
     pending_explicit_fan_ = false;
+    climate_dirty_ = 0;
 
     // Do not publish default/offline values on startup.
     // Wait until we have a real sample from the indoor unit, then seed all KOs once.
@@ -338,6 +339,7 @@ void DaikinDriver::loop()
 
     serial_->loop(); // Process serial communication (non-blocking)
     if (!serial_->busy() && !isInPostWriteSettle()) {
+        if (pending_.activate_climate) sendClimateCommand();
         if (pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
             pending_.activate_sensor || pending_.activate_led || pending_.activate_streamer)
             sendSpecialModesCommand();
@@ -429,6 +431,7 @@ void DaikinDriver::setPower(bool power)
 
     // Update pending state - preserve current pending values, only change power
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    climate_dirty_ |= DirtyPower;
     pending_.climate.power = power; // UPDATE power state only
     pending_.activate_climate = true;
 
@@ -448,6 +451,7 @@ void DaikinDriver::setMode(AirConditionMode mode)
 
     // Update pending state - preserve current pending values, only change mode
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    climate_dirty_ |= DirtyMode;
     pending_.climate.mode = daikinMode; // UPDATE mode only
     pending_.activate_climate = true;
 
@@ -462,10 +466,12 @@ void DaikinDriver::setTargetTemperature(float temperaturCelsius)
         return;
     }
 
+    if (!std::isfinite(temperaturCelsius)) return;
     float temp = std::clamp(temperaturCelsius, getMinimumTargetTemperature(), getMaximumTargetTemperature()); // Clamp temperature to valid range
 
     // Update pending state - preserve current pending values, only change temperature
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    climate_dirty_ |= DirtyTemperature;
     pending_.climate.targetC = temp; // UPDATE temperature only
     pending_.activate_climate = true;
 
@@ -491,6 +497,7 @@ void DaikinDriver::setFanSpeed(unsigned int speed)
 
     // Update pending state - preserve current pending values, only change fan
     // CRITICAL: Always preserve pending_ values, never overwrite with state_
+    climate_dirty_ |= DirtyFan;
     pending_.climate.fan_mode = fanMode; // UPDATE fan mode only
     pending_.activate_climate = true;
 
@@ -1360,7 +1367,7 @@ void DaikinDriver::sendClimateCommand()
     }
 
     // Write coordination: Block new D1 commands during post-write settle
-    if (isInPostWriteSettle())
+    if (isInPostWriteSettle() || serial_->busy())
     {
         write_pending_ = true; // Mark that we have a pending write
         logDebugP("Coalescing D1 during settle; will send after settle completes");
@@ -1369,39 +1376,12 @@ void DaikinDriver::sendClimateCommand()
 
     PayloadBuffer payload;
 
-    // Safety guard: If pending values are still at defaults, fill from current state
-    // This prevents unintended shutdowns when only partial updates are made
-    // EXCEPTION: Respect explicit OFF commands from KO to allow intentional shutdown
-    if (pending_.climate.power == false && state_.power == true && !pending_explicit_off_)
-    {
-        logDebugP("D1 safety: pending.power was false but state.power is true - using state value");
-        pending_.climate.power = state_.power;
-    }
-    else if (pending_explicit_off_)
-    {
-        logDebugP("D1 explicit OFF: respecting explicit power=OFF command from KO");
-    }
-    if (pending_.climate.mode == daikin::Mode::Auto && state_.mode != daikin::Mode::Auto)
-    {
-        logDebugP("D1 safety: using current mode %d instead of default Auto", static_cast<int>(state_.mode));
-        pending_.climate.mode = state_.mode;
-    }
-    if (std::abs(pending_.climate.targetC - 22.0f) < 0.1f && std::abs(state_.targetC - 22.0f) > 0.1f)
-    {
-        logDebugP("D1 safety: using current target %.1f°C instead of default 22°C", state_.targetC);
-        pending_.climate.targetC = state_.targetC;
-    }
-    if (!pending_explicit_fan_ &&
-        pending_.climate.fan_mode == daikin::DaikinFanMode::Auto &&
-        state_.fan != daikin::DaikinFanMode::Auto)
-    {
-        logDebugP("D1 safety: using current fan mode instead of default Auto");
-        pending_.climate.fan_mode = state_.fan;
-    }
-    else if (pending_explicit_fan_)
-    {
-        logDebugP("D1 explicit fan: respecting explicit fan mode command from KO");
-    }
+    // Only explicit requests override the most recent confirmed device sample.
+    if (!(sample_seen_mask_ & SEEN_F1)) return;
+    if (!(climate_dirty_ & DirtyPower)) pending_.climate.power = state_.power;
+    if (!(climate_dirty_ & DirtyMode)) pending_.climate.mode = state_.mode;
+    if (!(climate_dirty_ & DirtyTemperature)) pending_.climate.targetC = state_.targetC;
+    if (!(climate_dirty_ & DirtyFan)) pending_.climate.fan_mode = state_.fan;
 
     // ALWAYS use pending_ values as single source of truth
     const auto power_to_send = pending_.climate.power;
@@ -1866,6 +1846,11 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
              support_.fan_mode_query ? f1FanStr : fanToStr(state_.fan),
              support_.fan_mode_query ? "RG" : "F1",
              (char)data[3], f1FanStr);
+
+    if (state_.power == pending_.climate.power) climate_dirty_ &= ~DirtyPower;
+    if (state_.mode == pending_.climate.mode) climate_dirty_ &= ~DirtyMode;
+    if (std::abs(state_.targetC - pending_.climate.targetC) < 0.1f) climate_dirty_ &= ~DirtyTemperature;
+    if (!support_.fan_mode_query && state_.fan == pending_.climate.fan_mode) climate_dirty_ &= ~DirtyFan;
 
     // Mark F1 sample as seen for publish gating
     sample_seen_mask_ |= SEEN_F1;
@@ -3315,10 +3300,10 @@ void DaikinDriver::publishState()
 
         // Mirror current state to pending to prevent unintended shutdowns
         // After first complete sample, any subsequent D1 writes should preserve current state
-        pending_.climate.power = state_.power;
-        pending_.climate.mode = state_.mode;
-        pending_.climate.targetC = state_.targetC;
-        pending_.climate.fan_mode = state_.fan;
+        if (!(climate_dirty_ & DirtyPower)) pending_.climate.power = state_.power;
+        if (!(climate_dirty_ & DirtyMode)) pending_.climate.mode = state_.mode;
+        if (!(climate_dirty_ & DirtyTemperature)) pending_.climate.targetC = state_.targetC;
+        if (!(climate_dirty_ & DirtyFan)) pending_.climate.fan_mode = state_.fan;
         logDebugP("Mirrored state to pending after first complete sample");
     }
 
