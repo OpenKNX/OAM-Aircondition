@@ -259,6 +259,7 @@ namespace daikin
         AutoBias autoBias{AutoBias::Unknown}; // S21 mode '0'/'7' distinction
         float targetC{23.0f};
         float realTargetC{23.0f}; // RX: Actual target temp with sensor adjustments
+        bool insideTemperatureValid{false}, outsideTemperatureValid{false}, humidityValid{false};
         float homeC{25.0f};
         float outsideC{25.0f};
         float liquidC{25.0f};

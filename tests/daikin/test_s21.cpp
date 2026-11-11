@@ -409,4 +409,12 @@ void test_real_timers() {
     assert(tx.size()==8 && tx[2]=='3' && tx[3]=='1' && tx[4]==0x36 && tx[5]==0xFE);
     g3[0]='1';g3[1]=0x36; d.handle_f3_response(g3,4); assert(d.telemetry().onTimerConfiguredMinutes==60);
 }
-int main() { test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_coarse_sentinels() {
+    Feedback f; DaikinDriver d(f); uint8_t g9[]={0xAC,0xAA,0x4E,'0'};
+    d.handle_f9_response(g9,4); assert(d.telemetry().homeC==22 && d.telemetry().outsideC==21 && d.telemetry().humidity==30);
+    g9[0]=g9[1]=g9[2]=0xFF; d.handle_f9_response(g9,4);
+    assert(!d.telemetry().insideTemperatureValid && !d.telemetry().outsideTemperatureValid && !d.telemetry().humidityValid);
+    uint8_t rh[]={'5','6','2','+'}; d.handle_rh_response(rh,4);
+    g9[0]=0xAC; d.handle_f9_response(g9,4); assert(d.telemetry().homeC==26.5f);
+}
+int main() { test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

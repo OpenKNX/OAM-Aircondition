@@ -2235,43 +2235,21 @@ void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
     stats_.frames_ok++;
 }
 
-void DaikinDriver::handle_f9_response(uint8_t* data, size_t data_size)
+void DaikinDriver::handle_f9_response(uint8_t* data, size_t size)
 {
-    if (data_size < 4)
-    {
-        logErrorP("F9 response too short: %zu bytes", data_size);
-        return;
+    if (size != 4) return;
+    // Prefer precise RH/Ra/Re samples; FF is unavailable, never a measurement.
+    if (!support_.inside_temperature_query) {
+        state_.insideTemperatureValid = data[0] != 0xFF;
+        if (state_.insideTemperatureValid) state_.homeC = (int(data[0])-0x80)/2.0f;
     }
-    stats_.frames_ok++;
-
-    // F9 response format: G9 with "Home temp (@ based) | Outside temp (@ based)"
-    // However, the actual format uses a different encoding: (temp * 10) / 5 + 0x80
-    // To decode: temp = ((byte - 0x80) * 5) / 10.0
-
-    // Decode inside temperature (byte 0)
-    if (data[0] >= 0x80)
-    {
-        float inside_temp = ((data[0] - 0x80) * 5.0f) / 10.0f;
-        state_.homeC = inside_temp;
-        logDebugP("F9: inside=%.1f degC (from 0x%02X)", inside_temp, data[0]);
+    if (!support_.outside_temperature_query) {
+        state_.outsideTemperatureValid = data[1] != 0xFF;
+        if (state_.outsideTemperatureValid) state_.outsideC = (int(data[1])-0x80)/2.0f;
     }
-    else
-    {
-        logDebugP("F9: inside temp byte 0x%02X out of range (< 0x80)", data[0]);
-        state_.homeC = 22.0f; // Default
-    }
-
-    // Decode outside temperature (byte 1)
-    if (data[1] >= 0x80)
-    {
-        float outside_temp = ((data[1] - 0x80) * 5.0f) / 10.0f;
-        state_.outsideC = outside_temp;
-        logDebugP("F9: outside=%.1f degC (from 0x%02X)", outside_temp, data[1]);
-    }
-    else
-    {
-        logDebugP("F9: outside temp byte 0x%02X out of range (< 0x80)", data[1]);
-        state_.outsideC = 25.0f; // Default
+    if (!support_.humidity_query) {
+        state_.humidityValid = data[2] >= 0x30 && data[2] <= 0x94;
+        if (state_.humidityValid) state_.humidity = data[2]-0x30;
     }
 }
 
@@ -2659,6 +2637,9 @@ void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_rh_response(uint8_t* data, size_t data_size)
 {
+    if (!s21_valid_decimal(data,data_size,true)) return;
+    support_.inside_temperature_query=true;
+    state_.insideTemperatureValid=true;
     if (data_size < 1)
     {
         logErrorP("RH response empty");
@@ -2808,6 +2789,9 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
 {
+    if (!s21_valid_decimal(data,data_size,true)) return;
+    support_.outside_temperature_query=true;
+    state_.outsideTemperatureValid=true;
     if (data_size < 1)
     {
         logErrorP("Ra response empty");
