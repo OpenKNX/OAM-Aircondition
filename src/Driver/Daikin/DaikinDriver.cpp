@@ -174,6 +174,8 @@ void DaikinDriver::showInformations()
     if (state_.indoorHeatExchangerValid) logInfoP("RI indoor heat exchanger: %.1f C", state_.indoorHeatExchangerC);
 
     // Protocol information
+    if (!model_name_.empty()) logInfoP("Model: %s",model_name_.c_str());
+    if (!firmware_version_.empty()) logInfoP("Indoor firmware: %s",firmware_version_.c_str());
     logInfoP("--- Protocol ---");
     if (protocol_version_ == daikin::ProtocolUndetected)
     {
@@ -875,6 +877,9 @@ void DaikinDriver::initializeQueries()
 
             for (const auto cmd : fu_v340)
             {
+#ifndef DAIKIN_PRODUCTION_DIAGNOSTICS
+                if (cmd != StateQuery::ExtensionFU05) continue;
+#endif
                 queries_.emplace_back(cmd, [this, cmd](uint8_t* data, size_t data_size) { handle_fu_fx_response(cmd, data, data_size); }, true);
             }
             for (const auto cmd : fx_v340)
@@ -2546,6 +2551,22 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
         support_.econo = data[1] == 0x33;
         support_.streamer = data[5] == 0x33;
         return;
+    }
+
+    if (command == StateQuery::ExtensionFU05) {
+        if (data_size != 32) return;
+        std::string model;
+        for (size_t i=0;i<22;i++) {
+            if (data[i]==0xFF || data[i]==0) break;
+            if (data[i]<0x20 || data[i]>0x7E) return;
+            model.push_back(static_cast<char>(data[i]));
+        }
+        while (!model.empty() && model.back()==' ') model.pop_back();
+        model_name_=model;
+        return;
+    }
+    if (command == "FU15" || command == "FU25" || command == "FU35" || command == "FU45") {
+        return; // raw local diagnostics only; never log serial/production content
     }
 
     if (command == StateQuery::ExtensionFU02)

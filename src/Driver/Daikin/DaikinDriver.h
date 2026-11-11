@@ -157,6 +157,7 @@ public:
     virtual const std::string name() const override;
     virtual void showInformations() override;
     
+    const std::string& modelName() const { return model_name_; }
     const std::string& firmwareVersion() const { return firmware_version_; }
     std::vector<uint8_t> diagnosticResponse(std::string_view command) const;
     const daikin::State& telemetry() const { return state_; }
@@ -310,7 +311,7 @@ private:
     bool sendCombined(std::string_view command, const PayloadBuffer& payload);
     void sendSpecialModesCommand();
 
-    std::string firmware_version_;
+    std::string firmware_version_, model_name_;
     void handle_firmware_response(uint8_t* data, size_t size);
 
     // Serial communication
