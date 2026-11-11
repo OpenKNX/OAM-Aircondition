@@ -1672,16 +1672,16 @@ void DaikinDriver::sendSpecialModesCommand()
     if (!(pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
           pending_.activate_streamer || pending_.activate_sensor || pending_.activate_led)) return;
     PayloadBuffer payload = d6_.confirmed;
-    auto bit = [&](size_t byte, uint8_t mask, bool on) {
+    auto update_bit = [&](size_t byte, uint8_t mask, bool on) {
         payload[byte] = (payload[byte] & ~mask) | (on ? mask : 0);
     };
-    if (pending_.activate_powerful) bit(0, 0x02, pending_.climate.powerful);
-    if (pending_.activate_quiet) bit(0, 0x80, pending_.climate.quiet);
-    if (pending_.activate_comfort) bit(0, 0x40, pending_.comfort);
-    if (pending_.activate_streamer) bit(1, 0x80, pending_.climate.streamer);
-    if (pending_.activate_sensor && support_.sensor_hardware) bit(3, 0x08, pending_.climate.sensor);
+    if (pending_.activate_powerful) update_bit(0, 0x02, pending_.climate.powerful);
+    if (pending_.activate_quiet) update_bit(0, 0x80, pending_.climate.quiet);
+    if (pending_.activate_comfort) update_bit(0, 0x40, pending_.comfort);
+    if (pending_.activate_streamer) update_bit(1, 0x80, pending_.climate.streamer);
+    if (pending_.activate_sensor && support_.sensor_hardware) update_bit(3, 0x08, pending_.climate.sensor);
     if (pending_.activate_led) {
-        if (support_.sensor_hardware) bit(3, 0x04, pending_.climate.led);
+        if (support_.sensor_hardware) update_bit(3, 0x04, pending_.climate.led);
         else payload[3] = (payload[3] & ~0x0C) |
             (pending_.led == daikin::LedState::On ? 0x04 : pending_.led == daikin::LedState::Dark ? 0x08 : 0x0C);
     }
