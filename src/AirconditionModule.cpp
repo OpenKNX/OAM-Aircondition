@@ -1101,3 +1101,29 @@ void AirconditionModule::updateVerticalPositionStatus(bool valid, uint8_t positi
     KoAIR_VerticalPositionVerified.valueCompare(verifiedMask, DPT_Value_1_Ucount);
     if (valid) KoAIR_VerticalPositionCodeState.valueCompare(position, DPT_Value_1_Ucount);
 }
+
+
+void AirconditionModule::updateAdditionalTelemetry(const AirConditionTelemetry& sample)
+{
+    using T=AirConditionTelemetry;
+    // Publish available values first, then their validity mask. Invalid samples
+    // retain the last numeric value; consumers must check this mask and OnlineState.
+    if (sample.valid & T::Coil) KoAIR_IndoorCoilTemperature.valueCompare(sample.indoorCoilC, DPT_Value_Temp);
+    if (sample.valid & T::FanRpm) KoAIR_IndoorFanRpm.valueCompare(sample.fanRpm, DPT_Value_2_Ucount);
+    if (sample.valid & T::FanTargetRpm) KoAIR_IndoorFanTargetRpm.valueCompare(sample.fanTargetRpm, DPT_Value_2_Ucount);
+    if (sample.valid & T::AngleRaw) KoAIR_VaneAngleRaw.valueCompare(sample.angleRaw, DPT_Value_2_Count);
+    if (sample.valid & T::AngleTargetRaw) KoAIR_VaneAngleTargetRaw.valueCompare(sample.angleTargetRaw, DPT_Value_2_Count);
+    if (sample.valid & T::AngleDegrees) KoAIR_VaneAngleDegrees.valueCompare(sample.angleDegrees, DPT_Value_AngleDeg);
+    if (sample.valid & T::AngleTargetDegrees) KoAIR_VaneAngleTargetDegrees.valueCompare(sample.angleTargetDegrees, DPT_Value_AngleDeg);
+    if (sample.valid & T::Pull) KoAIR_CompressorPull.valueCompare(sample.pull, DPT_Value_1_Ucount);
+    if (sample.valid & T::ErrorByte) KoAIR_SerialErrorByte.valueCompare(sample.errorByte, DPT_Value_1_Ucount);
+    if (sample.valid & T::Protocol) KoAIR_ProtocolVersion.valueCompare(sample.protocol, DPT_Value_2_Ucount);
+    if (sample.valid & T::Firmware) KoAIR_FirmwareVersion.valueCompare(sample.firmware.substr(0,14).c_str(), DPT_String_ASCII);
+    if (sample.valid & T::Model) {
+        KoAIR_ModelName.valueCompare(sample.model.substr(0,14).c_str(), DPT_String_ASCII);
+        KoAIR_ModelNameContinuation.valueCompare((sample.model.size()>14?sample.model.substr(14,14):std::string{}).c_str(), DPT_String_ASCII);
+    }
+    if (sample.valid & T::CompressorFrequency) KoAIR_CompressorFrequency.valueCompare(sample.compressorHz, DPT_Value_2_Ucount);
+    if (sample.valid & T::CompressorRunning) KoAIR_CompressorRunning.valueCompare(sample.compressorRunning, DPT_Bool);
+    KoAIR_TelemetryValidity.valueCompare(sample.valid, DPT_Value_2_Ucount);
+}

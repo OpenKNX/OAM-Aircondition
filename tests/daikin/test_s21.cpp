@@ -38,6 +38,8 @@ struct Transport {
     void receive(std::initializer_list<uint8_t> bytes) { hal().rx.insert(hal().rx.end(),bytes); while(!hal().rx.empty()) serial.loop(); }
 };
 struct Feedback : AirConditionDriverStatusFeedback {
+    AirConditionTelemetry extra;
+    void updateAdditionalTelemetry(const AirConditionTelemetry& s) override {extra=s;}
     unsigned humidity_mode_updates{0};
     bool positionValid{false}; uint8_t positionCode{0}, positionMax{0}, positionMask{0};
     void updateVerticalPositionStatus(bool valid,uint8_t code,uint8_t maximum,uint8_t mask) override {positionValid=valid;positionCode=code;positionMax=maximum;positionMask=mask;}
@@ -691,4 +693,17 @@ void test_shared_fixed_position_contract() {
     assert(f.positionValid && f.positionCode==0 && f.positionMask==1);
     d.invalidateTelemetry();assert(!f.positionValid);
 }
-int main() { test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_shared_telemetry_contract() {
+    Feedback f;DaikinDriver d(f);d.setup();
+    uint8_t coil[]={'5','2','2','+'}, rpm[]={'5','7','0'}, angle[]={'4','0','4','+'}, error[]={'0',0,0xA0,0};
+    d.handle_ri_response(coil,4);d.handle_fan_rpm(false,rpm,3);d.handle_vane_angle(false,angle,4);d.handle_f4_response(error,4);
+    d.state_.pullValid=true;d.state_.pull=15;d.state_.protocol={3,40};d.firmware_version_="22017101";
+    d.model_name_="FTXM-LONG-MODEL-22";d.publishState();
+    using T=AirConditionTelemetry;
+    assert((f.extra.valid & (T::Coil|T::FanRpm|T::AngleRaw|T::ErrorByte|T::Protocol|T::Model))==(T::Coil|T::FanRpm|T::AngleRaw|T::ErrorByte|T::Protocol|T::Model));
+    assert(f.extra.indoorCoilC==22.5f && f.extra.fanRpm==750 && f.extra.angleRaw==404 && f.extra.errorByte==0xA0);
+    assert(!(f.extra.valid & T::AngleDegrees));assert(f.extra.protocol==0x0328 && f.extra.model==d.model_name_);
+    assert(d.configureVaneAngleScale(10));d.handle_vane_angle(false,angle,4);d.publishState();assert(f.extra.valid & T::AngleDegrees);assert(std::abs(f.extra.angleDegrees-40.4f)<0.01f);
+    d.invalidateTelemetry();assert(!(f.extra.valid & (T::Coil|T::FanRpm|T::AngleRaw|T::Protocol)));
+}
+int main() { test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

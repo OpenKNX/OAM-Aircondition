@@ -81,6 +81,7 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     void updateHumidity(uint8_t humidity) override;
     void updateHumidityMode(uint8_t step) override;
     void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) override;
+    void updateAdditionalTelemetry(const AirConditionTelemetry& sample) override;
     void updateTotalEnergyConsumption(uint32_t totalEnergyWh) override;
     void updateDaikinExtensionTelemetry(bool fu04Valid,
                                         uint32_t fu04CoolingWh,

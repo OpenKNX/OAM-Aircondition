@@ -713,6 +713,22 @@
               <ComObject Id="%AID%_O-%TT%00068" Number="68" Name="VerticalPositionMaximum" Text="Lamellenposition adressierbares Maximum" FunctionText="AC: Lamellenposition adressierbares Maximum" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <ComObject Id="%AID%_O-%TT%00069" Number="69" Name="VerticalPositionVerified" Text="Lamellenpositionen geprüft (Bit 0-5)" FunctionText="AC: Lamellenpositionen geprüft (Bit 0-5)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <ComObject Id="%AID%_O-%TT%00070" Number="70" Name="VerticalPositionValid" Text="Lamellenposition gültig" FunctionText="AC: Lamellenposition gültig" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00071" Number="71" Name="TelemetryValidity" Text="Diagnose gültig (Bitmaske)" FunctionText="AC: Diagnose gültig (Bitmaske)" ObjectSize="2 Bytes" DatapointType="DPST-7-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00072" Number="72" Name="IndoorCoilTemperature" Text="Wärmetauscher innen (°C)" FunctionText="AC: Wärmetauscher innen (°C)" ObjectSize="2 Bytes" DatapointType="DPST-9-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00073" Number="73" Name="IndoorFanRpm" Text="Lüfter innen Ist (U/min)" FunctionText="AC: Lüfter innen Ist (U/min)" ObjectSize="2 Bytes" DatapointType="DPST-7-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00074" Number="74" Name="IndoorFanTargetRpm" Text="Lüfter innen Soll (U/min)" FunctionText="AC: Lüfter innen Soll (U/min)" ObjectSize="2 Bytes" DatapointType="DPST-7-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00075" Number="75" Name="VaneAngleRaw" Text="Lamellenwinkel Ist Rohwert" FunctionText="AC: Lamellenwinkel Ist Rohwert" ObjectSize="2 Bytes" DatapointType="DPST-8-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00076" Number="76" Name="VaneAngleTargetRaw" Text="Lamellenwinkel Soll Rohwert" FunctionText="AC: Lamellenwinkel Soll Rohwert" ObjectSize="2 Bytes" DatapointType="DPST-8-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00077" Number="77" Name="VaneAngleDegrees" Text="Lamellenwinkel Ist (Grad)" FunctionText="AC: Lamellenwinkel Ist (Grad)" ObjectSize="4 Bytes" DatapointType="DPST-14-7" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00078" Number="78" Name="VaneAngleTargetDegrees" Text="Lamellenwinkel Soll (Grad)" FunctionText="AC: Lamellenwinkel Soll (Grad)" ObjectSize="4 Bytes" DatapointType="DPST-14-7" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00079" Number="79" Name="CompressorPull" Text="Kompressor Anforderung (0-15)" FunctionText="AC: Kompressor Anforderung (0-15)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00080" Number="80" Name="SerialErrorByte" Text="S21 Fehlerflags Rohwert (F4 Byte 2)" FunctionText="AC: S21 Fehlerflags Rohwert (F4 Byte 2)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00081" Number="81" Name="ProtocolVersion" Text="S21 Version (Major*256+Minor)" FunctionText="AC: S21 Version (Major*256+Minor)" ObjectSize="2 Bytes" DatapointType="DPST-7-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00082" Number="82" Name="FirmwareVersion" Text="Klimagerät Firmwarekennung" FunctionText="AC: Klimagerät Firmwarekennung" ObjectSize="14 Bytes" DatapointType="DPST-16-0" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00083" Number="83" Name="ModelName" Text="Klimagerät Modell (Zeichen 1-14)" FunctionText="AC: Klimagerät Modell (Zeichen 1-14)" ObjectSize="14 Bytes" DatapointType="DPST-16-0" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00084" Number="84" Name="ModelNameContinuation" Text="Klimagerät Modell (Zeichen 15-28)" FunctionText="AC: Klimagerät Modell (Zeichen 15-28)" ObjectSize="14 Bytes" DatapointType="DPST-16-0" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00085" Number="85" Name="CompressorFrequency" Text="Kompressorfrequenz (Hz)" FunctionText="AC: Kompressorfrequenz (Hz)" ObjectSize="2 Bytes" DatapointType="DPST-7-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00086" Number="86" Name="CompressorRunning" Text="Kompressor Betrieb" FunctionText="AC: Kompressor Betrieb" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
             </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -838,6 +854,22 @@
               <ComObjectRef Id="%AID%_O-%TT%00068_R-%TT%0006801" RefId="%AID%_O-%TT%00068" />
               <ComObjectRef Id="%AID%_O-%TT%00069_R-%TT%0006901" RefId="%AID%_O-%TT%00069" />
               <ComObjectRef Id="%AID%_O-%TT%00070_R-%TT%0007001" RefId="%AID%_O-%TT%00070" />
+              <ComObjectRef Id="%AID%_O-%TT%00071_R-%TT%0007101" RefId="%AID%_O-%TT%00071" />
+              <ComObjectRef Id="%AID%_O-%TT%00072_R-%TT%0007201" RefId="%AID%_O-%TT%00072" />
+              <ComObjectRef Id="%AID%_O-%TT%00073_R-%TT%0007301" RefId="%AID%_O-%TT%00073" />
+              <ComObjectRef Id="%AID%_O-%TT%00074_R-%TT%0007401" RefId="%AID%_O-%TT%00074" />
+              <ComObjectRef Id="%AID%_O-%TT%00075_R-%TT%0007501" RefId="%AID%_O-%TT%00075" />
+              <ComObjectRef Id="%AID%_O-%TT%00076_R-%TT%0007601" RefId="%AID%_O-%TT%00076" />
+              <ComObjectRef Id="%AID%_O-%TT%00077_R-%TT%0007701" RefId="%AID%_O-%TT%00077" />
+              <ComObjectRef Id="%AID%_O-%TT%00078_R-%TT%0007801" RefId="%AID%_O-%TT%00078" />
+              <ComObjectRef Id="%AID%_O-%TT%00079_R-%TT%0007901" RefId="%AID%_O-%TT%00079" />
+              <ComObjectRef Id="%AID%_O-%TT%00080_R-%TT%0008001" RefId="%AID%_O-%TT%00080" />
+              <ComObjectRef Id="%AID%_O-%TT%00081_R-%TT%0008101" RefId="%AID%_O-%TT%00081" />
+              <ComObjectRef Id="%AID%_O-%TT%00082_R-%TT%0008201" RefId="%AID%_O-%TT%00082" />
+              <ComObjectRef Id="%AID%_O-%TT%00083_R-%TT%0008301" RefId="%AID%_O-%TT%00083" />
+              <ComObjectRef Id="%AID%_O-%TT%00084_R-%TT%0008401" RefId="%AID%_O-%TT%00084" />
+              <ComObjectRef Id="%AID%_O-%TT%00085_R-%TT%0008501" RefId="%AID%_O-%TT%00085" />
+              <ComObjectRef Id="%AID%_O-%TT%00086_R-%TT%0008601" RefId="%AID%_O-%TT%00086" />
             </ComObjectRefs>
           </Static>
           <Dynamic>
@@ -1168,6 +1200,22 @@
                           <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
                           <!-- TotalEnergy -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00071_R-%TT%0007101" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00072_R-%TT%0007201" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00073_R-%TT%0007301" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00074_R-%TT%0007401" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00075_R-%TT%0007501" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00076_R-%TT%0007601" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00077_R-%TT%0007701" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00078_R-%TT%0007801" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00079_R-%TT%0007901" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00080_R-%TT%0008001" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00081_R-%TT%0008101" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00082_R-%TT%0008201" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00083_R-%TT%0008301" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00084_R-%TT%0008401" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00085_R-%TT%0008501" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00086_R-%TT%0008601" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00066_R-%TT%0006601" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00067_R-%TT%0006701" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00068_R-%TT%0006801" />

@@ -2010,6 +2010,7 @@ void DaikinDriver::handle_f4_response(uint8_t* data, size_t size)
     if (size != 4) return;
     // Read-clears at the unit: this is the latest sample, never a latched error.
     state_.serialErrorValid = true;
+    state_.serialErrorByte = data[2];
     state_.serialError = (data[2] & 0x20) != 0;
     if (state_.serialError) ++state_.serialErrorSamples;
 }
@@ -2988,6 +2989,24 @@ void DaikinDriver::publishState()
             uint32_t(std::min<uint64_t>(state_.fu04_cooling_wh,UINT32_MAX)),uint32_t(std::min<uint64_t>(state_.fu04_heating_wh,UINT32_MAX)),state_.fx60_valid,state_.fx60_power_w*10U);
     state_.action = calculateCurrentAction(); state_.actionValid=state_.action!=daikin::Action::Unknown;
     statusFeedback.updateVerticalPositionStatus(state_.verticalPositionCodeValid, state_.verticalPosition, getMaximumVerticalFixPosition(), verified_vertical_positions_);
+    AirConditionTelemetry sample;
+    using T=AirConditionTelemetry;
+    sample.valid=(state_.indoorHeatExchangerValid?T::Coil:0) | (state_.fanRpmValid?T::FanRpm:0) |
+        (state_.fanRpmSetpointValid?T::FanTargetRpm:0) | (state_.vaneAngleValid?T::AngleRaw:0) |
+        (state_.vaneAngleSetpointValid?T::AngleTargetRaw:0) | (state_.vaneAngleDegreesValid?T::AngleDegrees:0) |
+        (state_.vaneAngleSetpointDegreesValid?T::AngleTargetDegrees:0) | (state_.pullValid?T::Pull:0) |
+        (state_.serialErrorValid?T::ErrorByte:0) | (state_.protocol.major!=0xFF && state_.protocol.minor!=0xFF?T::Protocol:0) |
+        (!firmware_version_.empty()?T::Firmware:0) | ((!model_name_.empty() || !identification_.modelCode.empty())?T::Model:0) |
+        (state_.compressorHzValid?T::CompressorFrequency:0) | (state_.compressorOnValid?T::CompressorRunning:0);
+    sample.indoorCoilC=state_.indoorHeatExchangerC;
+    sample.fanRpm=state_.fanRpm; sample.fanTargetRpm=state_.fanRpmSetpoint;
+    sample.angleRaw=state_.swingVerticalAngle; sample.angleTargetRaw=state_.swingVerticalAngleSetpoint;
+    sample.angleDegrees=state_.vaneAngleDegrees; sample.angleTargetDegrees=state_.vaneAngleSetpointDegrees;
+    sample.pull=state_.pull; sample.errorByte=state_.serialErrorByte;
+    sample.protocol=(uint16_t(state_.protocol.major)<<8)|state_.protocol.minor;
+    sample.firmware=firmware_version_; sample.model=model_name_.empty()?identification_.modelCode:model_name_;
+    sample.compressorHz=state_.compressorHz; sample.compressorRunning=state_.compressorOn;
+    statusFeedback.updateAdditionalTelemetry(sample);
     published_ = state_; publication_initialized_=true;
     seed_kos_pending_=false; gate_publish_until_full_sample_=false;
 }

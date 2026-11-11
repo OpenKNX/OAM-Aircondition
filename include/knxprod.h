@@ -23,7 +23,7 @@
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9298
-#define MAIN_MaxKoNumber 470
+#define MAIN_MaxKoNumber 486
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 24
 #define NET_ModuleVersion 6
@@ -1667,6 +1667,22 @@
 #define AIR_KoVerticalPositionMaximum 468
 #define AIR_KoVerticalPositionVerified 469
 #define AIR_KoVerticalPositionValid 470
+#define AIR_KoTelemetryValidity 471
+#define AIR_KoIndoorCoilTemperature 472
+#define AIR_KoIndoorFanRpm 473
+#define AIR_KoIndoorFanTargetRpm 474
+#define AIR_KoVaneAngleRaw 475
+#define AIR_KoVaneAngleTargetRaw 476
+#define AIR_KoVaneAngleDegrees 477
+#define AIR_KoVaneAngleTargetDegrees 478
+#define AIR_KoCompressorPull 479
+#define AIR_KoSerialErrorByte 480
+#define AIR_KoProtocolVersion 481
+#define AIR_KoFirmwareVersion 482
+#define AIR_KoModelName 483
+#define AIR_KoModelNameContinuation 484
+#define AIR_KoCompressorFrequency 485
+#define AIR_KoCompressorRunning 486
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -1792,6 +1808,38 @@
 #define KoAIR_VerticalPositionVerified            (knx.getGroupObject(AIR_KoVerticalPositionVerified))
 // Lamellenposition gültig
 #define KoAIR_VerticalPositionValid               (knx.getGroupObject(AIR_KoVerticalPositionValid))
+// Diagnose gültig (Bitmaske)
+#define KoAIR_TelemetryValidity                   (knx.getGroupObject(AIR_KoTelemetryValidity))
+// Wärmetauscher innen (°C)
+#define KoAIR_IndoorCoilTemperature               (knx.getGroupObject(AIR_KoIndoorCoilTemperature))
+// Lüfter innen Ist (U/min)
+#define KoAIR_IndoorFanRpm                        (knx.getGroupObject(AIR_KoIndoorFanRpm))
+// Lüfter innen Soll (U/min)
+#define KoAIR_IndoorFanTargetRpm                  (knx.getGroupObject(AIR_KoIndoorFanTargetRpm))
+// Lamellenwinkel Ist Rohwert
+#define KoAIR_VaneAngleRaw                        (knx.getGroupObject(AIR_KoVaneAngleRaw))
+// Lamellenwinkel Soll Rohwert
+#define KoAIR_VaneAngleTargetRaw                  (knx.getGroupObject(AIR_KoVaneAngleTargetRaw))
+// Lamellenwinkel Ist (Grad)
+#define KoAIR_VaneAngleDegrees                    (knx.getGroupObject(AIR_KoVaneAngleDegrees))
+// Lamellenwinkel Soll (Grad)
+#define KoAIR_VaneAngleTargetDegrees              (knx.getGroupObject(AIR_KoVaneAngleTargetDegrees))
+// Kompressor Anforderung (0-15)
+#define KoAIR_CompressorPull                      (knx.getGroupObject(AIR_KoCompressorPull))
+// S21 Fehlerflags Rohwert (F4 Byte 2)
+#define KoAIR_SerialErrorByte                     (knx.getGroupObject(AIR_KoSerialErrorByte))
+// S21 Version (Major*256+Minor)
+#define KoAIR_ProtocolVersion                     (knx.getGroupObject(AIR_KoProtocolVersion))
+// Klimagerät Firmwarekennung
+#define KoAIR_FirmwareVersion                     (knx.getGroupObject(AIR_KoFirmwareVersion))
+// Klimagerät Modell (Zeichen 1-14)
+#define KoAIR_ModelName                           (knx.getGroupObject(AIR_KoModelName))
+// Klimagerät Modell (Zeichen 15-28)
+#define KoAIR_ModelNameContinuation               (knx.getGroupObject(AIR_KoModelNameContinuation))
+// Kompressorfrequenz (Hz)
+#define KoAIR_CompressorFrequency                 (knx.getGroupObject(AIR_KoCompressorFrequency))
+// Kompressor Betrieb
+#define KoAIR_CompressorRunning                   (knx.getGroupObject(AIR_KoCompressorRunning))
 
 #define LOG_VisibleChannels                     625      // uint8_t
 #define LOG_VacationKo                          626      // 1 Bit, Bit 7

@@ -41,6 +41,23 @@ enum AirConditionDeviceMode
 
 };
 
+// Optional, confirmed samples. Values are meaningful only when the corresponding
+// validity bit is set. RPMs are indoor fan readings; no outdoor RPM is fabricated.
+struct AirConditionTelemetry
+{
+    enum Valid : uint16_t { Coil=1, FanRpm=2, FanTargetRpm=4, AngleRaw=8,
+        AngleTargetRaw=16, AngleDegrees=32, AngleTargetDegrees=64, Pull=128,
+        ErrorByte=256, Protocol=512, Firmware=1024, Model=2048,
+        CompressorFrequency=4096, CompressorRunning=8192 };
+    uint16_t valid{0};
+    float indoorCoilC{0}, angleDegrees{0}, angleTargetDegrees{0};
+    uint16_t fanRpm{0}, fanTargetRpm{0}, protocol{0}, compressorHz{0};
+    int16_t angleRaw{0}, angleTargetRaw{0};
+    uint8_t pull{0}, errorByte{0};
+    bool compressorRunning{false};
+    std::string firmware, model;
+};
+
 class AirConditionDriverStatusFeedback
 {
 public:
@@ -77,6 +94,7 @@ public:
     virtual void updateHumidityMode(uint8_t step) = 0;
     // Position 6 is the S21 automatic marker; verifiedMask is independent of read support.
     virtual void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) {}
+    virtual void updateAdditionalTelemetry(const AirConditionTelemetry& sample) {}
 
     virtual void updateTotalEnergyConsumption(uint32_t totalEnergyWh) = 0;
 

@@ -319,6 +319,7 @@ namespace daikin
         uint8_t verticalPosition{0};
         bool timerLampValid{false}, timerLamp{false};
         bool serialErrorValid{false}, serialError{false};
+        uint8_t serialErrorByte{0};
         uint32_t serialErrorSamples{0};
 
         // System status
