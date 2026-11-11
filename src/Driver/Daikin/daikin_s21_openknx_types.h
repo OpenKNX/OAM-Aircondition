@@ -317,7 +317,7 @@ namespace daikin
 
         bool totalEnergyValid{false};
         uint32_t totalEnergyWh{0}; // Total energy consumption in Watt-hours (from FM command)
-        uint8_t compressorHz{0};
+        uint16_t compressorHz{0};
         uint16_t irCounter{0};
 
         // v3.20+/v3.40+ extension pages (FU/FX):

@@ -37,6 +37,33 @@ namespace
         return !sign || data[3] == '+' || data[3] == '-';
     }
 
+    bool s21_valid_response(std::string_view cmd, const uint8_t* data, size_t size)
+    {
+        size_t expected = 4;
+        if (cmd.substr(0,2)=="FU") expected=32;
+        else if (cmd=="FY10") expected=8;
+        else if (cmd=="VS000M") expected=14;
+        else if (cmd.substr(0,2)=="FX" && cmd!="FX60") return size>0 && size<=32;
+        else if (cmd.substr(0,2)=="Rz") expected=2;
+        else if (cmd=="RA" || cmd=="RB" || cmd=="RG" || cmd=="Rg") expected=1;
+        else if (cmd=="RF") expected=2;
+        else if (cmd=="RK" || cmd=="RL" || cmd=="Rd" || cmd=="Re" || cmd=="Rb" || cmd=="RD" || cmd=="RE") expected=3;
+        if (size != expected) return false;
+        if (cmd=="F1") {
+            if (data[0]!='0' && data[0]!='1') return false;
+            if (std::string_view{"0123467"}.find(char(data[1]))==std::string_view::npos) return false;
+            if (std::string_view{"0AB34567"}.find(char(data[3]))==std::string_view::npos) return false;
+        }
+        if (cmd=="F6") for(size_t i=0;i<4;i++) if ((data[i]&0x30)!=0x30) return false;
+        if (cmd=="F7" && (data[0]<0x30 || data[0]>0x94 || (data[1]!='0' && data[1]!='2'))) return false;
+        if (cmd=="FY00") for(size_t i=0;i<4;i++) if (data[i]<'0' || data[i]>'9') return false;
+        if (cmd=="RH" || cmd=="RI" || cmd=="RX" || cmd=="Ra" || cmd=="RM" || cmd=="RN" || cmd=="RC")
+            return s21_valid_decimal(data,size,true);
+        if (cmd=="Rd" || cmd=="Re" || cmd=="RK" || cmd=="RL" || cmd=="RD" || cmd=="RE")
+            return s21_valid_decimal(data,size,false);
+        return true;
+    }
+
     // s21_decode_target_temp function
     float s21_decode_target_temp(uint8_t v)
     {
@@ -2624,6 +2651,7 @@ void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
 
     daikin::DaikinFanMode old_fan = state_.fan;
     state_.fan = daikin_to_fan_mode(raw);
+    if (state_.fan == pending_.climate.fan_mode) climate_dirty_ &= ~DirtyFan;
     logDebugP("RG: fan_mode decoded from raw 0x%02X ('%c') -> %d",
               raw, (raw >= 32 && raw < 127) ? static_cast<char>(raw) : '?', static_cast<int>(state_.fan));
 
@@ -2678,25 +2706,11 @@ void DaikinDriver::handle_rh_response(uint8_t* data, size_t data_size)
             logErrorP("RH/SH: Invalid temperature %.1f°C", temp);
         }
     }
-    else if (data_size >= 2)
-    { // Fallback
-        stats_.frames_ok++;
-        state_.homeC = static_cast<float>(static_cast<int16_t>((data[1] << 8) | data[0])) / 10.0f;
-        logDebugP("RH legacy: inside_temp=%.1f°C", state_.homeC);
-
-        // Mark RH sample as seen for publish gating
-        sample_seen_mask_ |= SEEN_RH;
-        if (gate_publish_until_full_sample_ &&
-            (sample_seen_mask_ & (SEEN_F1 | SEEN_RH | SEEN_RX | SEEN_RA)) == (SEEN_F1 | SEEN_RH | SEEN_RX | SEEN_RA))
-        {
-            logDebugP("RH legacy: full sample reached -> immediate publish");
-            publishState();
-        }
-    }
 }
 
 void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
 {
+    if (!s21_valid_decimal(data,data_size,true)) return;
     if (data_size < 1)
     {
         logErrorP("RX response empty");
@@ -2752,39 +2766,6 @@ void DaikinDriver::handle_rx_response(uint8_t* data, size_t data_size)
             logErrorP("RX/SX: Invalid temperature %.1f°C", temp);
         }
     }
-    else if (data_size >= 2)
-    { // Fallback
-        stats_.frames_ok++;
-        state_.realTargetC = static_cast<float>(static_cast<int16_t>((data[1] << 8) | data[0])) / 10.0f;
-
-        // In Fan mode, F1 provides no valid setpoint, so use RX/SX value as the actual target
-        if (state_.mode == daikin::Mode::FanOnly && state_.power)
-        {
-            state_.targetC = state_.realTargetC;
-            logDebugP("Fan mode legacy: using RX/SX target %.1f°C as state_.targetC", state_.targetC);
-        }
-
-        // Check for sensor activity via temperature difference
-        bool sensor_active = std::abs(state_.realTargetC - state_.targetC) > 0.5f;
-        if (sensor_active != state_.sensor)
-        {
-            state_.sensor = sensor_active;
-            logInfoP("Sensor activity via RX legacy: %s (real: %.1f°C, set: %.1f°C)",
-                     sensor_active ? "active" : "inactive",
-                     state_.realTargetC, state_.targetC);
-        }
-
-        logDebugP("RX legacy: sensor_adjusted_target=%.1f°C", state_.realTargetC);
-
-        // Mark RX sample as seen for publish gating
-        sample_seen_mask_ |= SEEN_RX;
-        if (gate_publish_until_full_sample_ &&
-            (sample_seen_mask_ & (SEEN_F1 | SEEN_RH | SEEN_RX | SEEN_RA)) == (SEEN_F1 | SEEN_RH | SEEN_RX | SEEN_RA))
-        {
-            logDebugP("RX legacy: full sample reached -> immediate publish");
-            publishState();
-        }
-    }
 }
 
 void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
@@ -2827,43 +2808,24 @@ void DaikinDriver::handle_ra_response(uint8_t* data, size_t data_size)
             logErrorP("Ra/Sa: Invalid temperature %.1f°C", temp);
         }
     }
-    else if (data_size >= 2)
-    { // Fallback
-        stats_.frames_ok++;
-        state_.outsideC = static_cast<float>(static_cast<int16_t>((data[1] << 8) | data[0])) / 10.0f;
-        logInfoP("Ra legacy: outside_temp=%.1f°C", state_.outsideC);
-
-        // Mark RA sample as seen for publish gating
-        sample_seen_mask_ |= SEEN_RA;
-        if (gate_publish_until_full_sample_ &&
-            (sample_seen_mask_ & (SEEN_F1 | SEEN_RH | SEEN_RX | SEEN_RA)) == (SEEN_F1 | SEEN_RH | SEEN_RX | SEEN_RA))
-        {
-            logDebugP("RA legacy: full sample reached -> immediate publish");
-            publishState();
-        }
-    }
 }
 
-void DaikinDriver::handle_rd_response(uint8_t* data, size_t data_size)
+void DaikinDriver::handle_rd_response(uint8_t* data, size_t size)
 {
-    // Rd response contains compressor frequency
-    if (data_size >= 2)
-    {
-        stats_.frames_ok++;
-        state_.compressorHz = (data[1] << 8) | data[0];
-        logInfoP("Rd: compressor_freq=%dHz", state_.compressorHz);
-    }
+    if (!s21_valid_decimal(data,size,false)) return;
+    const unsigned hz=(data[0]-'0')+(data[1]-'0')*10+(data[2]-'0')*100;
+    if (hz>=999) return; // observed unsupported sentinel
+    state_.compressorHz=hz;
 }
 
-void DaikinDriver::handle_re_response(uint8_t* data, size_t data_size)
+void DaikinDriver::handle_re_response(uint8_t* data, size_t size)
 {
-    // Re response contains indoor humidity
-    if (data_size >= 1)
-    {
-        stats_.frames_ok++;
-        state_.humidity = data[0];
-        logInfoP("Re: humidity=%d%%", state_.humidity);
-    }
+    if (!s21_valid_decimal(data,size,false)) return;
+    const unsigned humidity=(data[0]-'0')+(data[1]-'0')*10+(data[2]-'0')*100;
+    if (humidity>100) return;
+    support_.humidity_query=true;
+    state_.humidityValid=true;
+    state_.humidity=humidity;
 }
 
 void DaikinDriver::handle_rg2_response(uint8_t* data, size_t data_size)
@@ -2958,7 +2920,6 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             state_start_time_ = millis();
             break;
         case daikin::DaikinSerial::Result::Frame:
-            markOnline(millis()); // Mark device online on Frame
             if (data_size >= 1)
             {
                 // S21 protocol command/response mapping:
@@ -3012,6 +2973,11 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
 
                 if (is_valid_response)
                 {
+                    if (!s21_valid_response(query.command,payload,payload_len)) {
+                        stats_.frames_bad_format++;
+                        return;
+                    }
+                    markOnline(now);
                     if (payload_len > 0)
                     {
                         query.naks = 0;

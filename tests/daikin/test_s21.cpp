@@ -124,9 +124,9 @@ void test_correlation() {
     uint8_t wrong[]={'G','U','0','2','0'};
     d.handle_serial_result(Result::Frame,wrong,sizeof(wrong));
     assert(d.query_index_==0 && d.queries_[0].response_data.empty());
-    uint8_t right[]={'G','U','0','4','0'};
+    uint8_t right[36]={'G','U','0','4'}; std::fill(right+4,right+36,'0');
     d.handle_serial_result(Result::Frame,right,sizeof(right));
-    assert(d.query_index_==1 && d.queries_[0].response_data.size()==1);
+    assert(d.query_index_==1 && d.queries_[0].response_data.size()==32);
     d.query_index_=0; d.query_state_=DaikinDriver::QueryState::Idle;
     d.handle_serial_result(Result::Frame,right,sizeof(right)); assert(d.query_index_==0);
 }
@@ -428,4 +428,18 @@ void test_delayed_wire_frames() {
     t.serial.send_frame("F1"); t.receive({2,'G','1','1','4','F','A',0x64,3});
     assert(t.results.back()==Result::Frame); // STX without initial ACK is tolerated
 }
-int main() { test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_decoder_lengths() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    for(auto cmd : {"F1","F2","F3","F5","F6","F7","F8","FY00","FU00","FU02","FU04","FX60","F4","FR","RH","RI","RK","RL","RM","RN"}) {
+        d.queries_.clear(); d.query_index_=0; d.queries_.emplace_back(cmd,nullptr,true);
+        std::string header=cmd; header[0]=header[0]=='F'?'G':'S';
+        std::vector<uint8_t> wire(header.begin(),header.end()); wire.push_back('0');
+        d.query_state_=DaikinDriver::QueryState::WaitingForAck;
+        d.handle_serial_result(Result::Frame,wire.data(),wire.size());
+        assert(d.query_index_==0 && !d.queries_[0].acked);
+    }
+    uint8_t sd[]={'4','5','0'}, se[]={'9','7','0'};
+    d.handle_rd_response(sd,3); d.handle_re_response(se,3);
+    assert(d.telemetry().compressorHz==54 && d.telemetry().humidity==79);
+}
+int main() { test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
