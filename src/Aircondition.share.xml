@@ -492,6 +492,9 @@
                   <Enumeration Text="Position 5" Value="5" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              <ParameterType Id="%AID%_PT-AIRTimerMinutes" Name="AIRTimerMinutes">
+                <TypeNumber SizeInBit="16" Type="unsignedInt" minInclusive="10" maxInclusive="1440" />
+              </ParameterType>
             </ParameterTypes>
             <Parameters>
               <!-- Base Settings -->
@@ -546,6 +549,15 @@
                 <Memory CodeSegment="%MID%" Offset="6" BitOffset="0" />
                 <Parameter Id="%AID%_UP-%TT%00013" Offset="0" BitOffset="0" Name="DaikinIndependentLed" ParameterType="%AID%_PT-OnOffYesNo" Text="Geräte-/Sensor-LED separat steuern (ersetzt WLAN-LED-Regelung)" Value="0" />
               </Union>
+              <Union SizeInBit="8">
+                <Memory CodeSegment="%MID%" Offset="7" BitOffset="0" />
+                <Parameter Id="%AID%_UP-%TT%00014" Offset="0" BitOffset="0" Name="DaikinTimers" ParameterType="%AID%_PT-OnOffYesNo" Text="Timer-Steuerung aktivieren (Modellwerte prüfen)" Value="0" />
+              </Union>
+              <Union SizeInBit="32">
+                <Memory CodeSegment="%MID%" Offset="8" BitOffset="0" />
+                <Parameter Id="%AID%_UP-%TT%00015" Offset="0" BitOffset="0" Name="DaikinTimerStep" ParameterType="%AID%_PT-AIRTimerMinutes" Text="Timer Schrittweite (Minuten, Vielfaches von 10)" Value="60" />
+                <Parameter Id="%AID%_UP-%TT%00016" Offset="2" BitOffset="0" Name="DaikinTimerMaximum" ParameterType="%AID%_PT-AIRTimerMinutes" Text="Timer Obergrenze (Minuten, Vielfaches der Schrittweite)" Value="720" />
+              </Union>
               <op:usePart name="Scene" xpath="//Parameters/*" />
             </Parameters>
             <ParameterRefs>
@@ -587,6 +599,9 @@
               <ParameterRef Id="%AID%_UP-%TT%00200_R-%TT%0020001" RefId="%AID%_UP-%TT%00200" />
 
               <ParameterRef Id="%AID%_UP-%TT%00013_R-%TT%0001301" RefId="%AID%_UP-%TT%00013" />
+              <ParameterRef Id="%AID%_UP-%TT%00014_R-%TT%0001401" RefId="%AID%_UP-%TT%00014" />
+              <ParameterRef Id="%AID%_UP-%TT%00015_R-%TT%0001501" RefId="%AID%_UP-%TT%00015" />
+              <ParameterRef Id="%AID%_UP-%TT%00016_R-%TT%0001601" RefId="%AID%_UP-%TT%00016" />
               <op:usePart name="Scene" xpath="//ParameterRefs/*" />
 
             </ParameterRefs>
@@ -761,6 +776,22 @@
               <ComObject Id="%AID%_O-%TT%00110" Number="110" Name="IndoorHeatingEnergy" Text="Energie Innengerät Heizen (Wh, 64 Bit)" FunctionText="AC: Energie Innengerät Heizen (Wh, 64 Bit)" ObjectSize="8 Bytes" DatapointType="DPST-29-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <ComObject Id="%AID%_O-%TT%00111" Number="111" Name="SystemEnergy" Text="Energie Gesamtsystem (Wh, 64 Bit)" FunctionText="AC: Energie Gesamtsystem (Wh, 64 Bit)" ObjectSize="8 Bytes" DatapointType="DPST-29-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <ComObject Id="%AID%_O-%TT%00112" Number="112" Name="EnergyTelemetryValid" Text="Leistung/Energie gültig (Bitmaske)" FunctionText="AC: Leistung/Energie gültig (Bitmaske)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00113" Number="113" Name="TimerOnMinutes" Text="Einschalttimer Verzögerung (Minuten, 0=Aus)" FunctionText="AC: Einschalttimer Verzögerung (Minuten, 0=Aus)" ObjectSize="2 Bytes" DatapointType="DPST-7-6" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00114" Number="114" Name="TimerOffMinutes" Text="Ausschalttimer Verzögerung (Minuten, 0=Aus)" FunctionText="AC: Ausschalttimer Verzögerung (Minuten, 0=Aus)" ObjectSize="2 Bytes" DatapointType="DPST-7-6" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00115" Number="115" Name="TimerOnMinutesState" Text="Einschalttimer konfigurierte Verzögerung (Minuten)" FunctionText="AC: Einschalttimer konfigurierte Verzögerung (Minuten)" ObjectSize="2 Bytes" DatapointType="DPST-7-6" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00116" Number="116" Name="TimerOffMinutesState" Text="Ausschalttimer konfigurierte Verzögerung (Minuten)" FunctionText="AC: Ausschalttimer konfigurierte Verzögerung (Minuten)" ObjectSize="2 Bytes" DatapointType="DPST-7-6" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00117" Number="117" Name="TimerOnEnable" Text="Einschalttimer aktivieren" FunctionText="AC: Einschalttimer aktivieren" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00118" Number="118" Name="TimerOffEnable" Text="Ausschalttimer aktivieren" FunctionText="AC: Ausschalttimer aktivieren" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00119" Number="119" Name="TimerOnEnabledState" Text="Einschalttimer aktiv Status" FunctionText="AC: Einschalttimer aktiv Status" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00120" Number="120" Name="TimerOffEnabledState" Text="Ausschalttimer aktiv Status" FunctionText="AC: Ausschalttimer aktiv Status" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00121" Number="121" Name="TimerLamp" Text="Timerleuchte Ein/Aus" FunctionText="AC: Timerleuchte Ein/Aus" ObjectSize="1 Bit" DatapointType="DPST-1-1" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00122" Number="122" Name="TimerLampState" Text="Timerleuchte Status" FunctionText="AC: Timerleuchte Status" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00123" Number="123" Name="TimerStatusValid" Text="Timerstatus gültig (Bit 0=Timer, 1=Leuchte)" FunctionText="AC: Timerstatus gültig (Bit 0=Timer, 1=Leuchte)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00124" Number="124" Name="TimerControlAvailable" Text="Timer verfügbar (Bitmaske)" FunctionText="AC: Timer verfügbar (Bitmaske)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00125" Number="125" Name="TimerWriteResult" Text="Timer Schreibstatus" FunctionText="AC: Timer Schreibstatus" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00126" Number="126" Name="TimerLampWriteResult" Text="Timerleuchte Schreibstatus" FunctionText="AC: Timerleuchte Schreibstatus" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00127" Number="127" Name="TimerConfiguredStep" Text="Timer konfigurierte Schrittweite (Minuten)" FunctionText="AC: Timer konfigurierte Schrittweite (Minuten)" ObjectSize="2 Bytes" DatapointType="DPST-7-6" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00128" Number="128" Name="TimerConfiguredMaximum" Text="Timer konfigurierte Obergrenze (Minuten)" FunctionText="AC: Timer konfigurierte Obergrenze (Minuten)" ObjectSize="2 Bytes" DatapointType="DPST-7-6" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
             </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -928,6 +959,22 @@
               <ComObjectRef Id="%AID%_O-%TT%00110_R-%TT%0011001" RefId="%AID%_O-%TT%00110" />
               <ComObjectRef Id="%AID%_O-%TT%00111_R-%TT%0011101" RefId="%AID%_O-%TT%00111" />
               <ComObjectRef Id="%AID%_O-%TT%00112_R-%TT%0011201" RefId="%AID%_O-%TT%00112" />
+              <ComObjectRef Id="%AID%_O-%TT%00113_R-%TT%0011301" RefId="%AID%_O-%TT%00113" />
+              <ComObjectRef Id="%AID%_O-%TT%00114_R-%TT%0011401" RefId="%AID%_O-%TT%00114" />
+              <ComObjectRef Id="%AID%_O-%TT%00115_R-%TT%0011501" RefId="%AID%_O-%TT%00115" />
+              <ComObjectRef Id="%AID%_O-%TT%00116_R-%TT%0011601" RefId="%AID%_O-%TT%00116" />
+              <ComObjectRef Id="%AID%_O-%TT%00117_R-%TT%0011701" RefId="%AID%_O-%TT%00117" />
+              <ComObjectRef Id="%AID%_O-%TT%00118_R-%TT%0011801" RefId="%AID%_O-%TT%00118" />
+              <ComObjectRef Id="%AID%_O-%TT%00119_R-%TT%0011901" RefId="%AID%_O-%TT%00119" />
+              <ComObjectRef Id="%AID%_O-%TT%00120_R-%TT%0012001" RefId="%AID%_O-%TT%00120" />
+              <ComObjectRef Id="%AID%_O-%TT%00121_R-%TT%0012101" RefId="%AID%_O-%TT%00121" />
+              <ComObjectRef Id="%AID%_O-%TT%00122_R-%TT%0012201" RefId="%AID%_O-%TT%00122" />
+              <ComObjectRef Id="%AID%_O-%TT%00123_R-%TT%0012301" RefId="%AID%_O-%TT%00123" />
+              <ComObjectRef Id="%AID%_O-%TT%00124_R-%TT%0012401" RefId="%AID%_O-%TT%00124" />
+              <ComObjectRef Id="%AID%_O-%TT%00125_R-%TT%0012501" RefId="%AID%_O-%TT%00125" />
+              <ComObjectRef Id="%AID%_O-%TT%00126_R-%TT%0012601" RefId="%AID%_O-%TT%00126" />
+              <ComObjectRef Id="%AID%_O-%TT%00127_R-%TT%0012701" RefId="%AID%_O-%TT%00127" />
+              <ComObjectRef Id="%AID%_O-%TT%00128_R-%TT%0012801" RefId="%AID%_O-%TT%00128" />
             </ComObjectRefs>
           </Static>
           <Dynamic>
@@ -952,6 +999,13 @@
                   <when test="1">
                     <!-- Daikin -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00013_R-%TT%0001301" IndentLevel="1" />
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00014_R-%TT%0001401" IndentLevel="1" />
+                    <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                      <when test="1">
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00015_R-%TT%0001501" IndentLevel="2" />
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00016_R-%TT%0001601" IndentLevel="2" />
+                      </when>
+                    </choose>
                   </when>
                   <when test="2">
                     <!-- Midea -->
@@ -1259,6 +1313,86 @@
                           <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
                           <!-- TotalEnergy -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" />
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00113_R-%TT%0011301" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00114_R-%TT%0011401" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00115_R-%TT%0011501" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00116_R-%TT%0011601" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00117_R-%TT%0011701" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00118_R-%TT%0011801" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00119_R-%TT%0011901" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00120_R-%TT%0012001" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00121_R-%TT%0012101" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00122_R-%TT%0012201" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00123_R-%TT%0012301" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00124_R-%TT%0012401" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00125_R-%TT%0012501" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00126_R-%TT%0012601" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00127_R-%TT%0012701" />
+                            </when>
+                          </choose>
+                          <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
+                            <when test="1">
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00128_R-%TT%0012801" />
+                            </when>
+                          </choose>
                           <ComObjectRefRef RefId="%AID%_O-%TT%00108_R-%TT%0010801" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00109_R-%TT%0010901" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00110_R-%TT%0011001" />

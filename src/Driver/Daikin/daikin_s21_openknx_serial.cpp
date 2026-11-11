@@ -79,6 +79,7 @@ void DaikinSerial::loop() {
       case CommState::WaitingAck:
         if (b == ACK) {
           response.clear();
+          optional_ack_received_=optional_reply_;
           comm_state = expecting_reply_ ? CommState::ReceivingFrame : CommState::Idle;
           timeout_active = false;
           if (expecting_reply_) start_rx_timeout(rx_timeout_ms_, TimeoutType::Rx);
@@ -144,7 +145,11 @@ bool DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
   if (!serial_hal_ || cmd.empty() || cmd.size()>MAX_COMMAND_SIZE || payload_size>EXTENDED_PAYLOAD_SIZE || (payload_size && !payload)) return error();
   for(char c:cmd) if(!((c>='A' && c<='Z') || (c>='a' && c<='z') || (c>='0' && c<='9'))) return error();
   for(size_t i=0;i<payload_size;i++) if(s21::forbidden(payload[i])) return error();
-  expecting_reply_ = !ack_only && cmd[0]!='D' && !(cmd=="FB" && payload_size);
+  // FB with a payload is a lamp write. Drain/ACK an optional GB reply, while
+  // ACK-only units complete without a synthetic response timeout. A later FB
+  // poll verifies application independently of this transaction.
+  optional_reply_=cmd=="FB" && payload_size>0;optional_ack_received_=false;
+  expecting_reply_ = optional_reply_ || (!ack_only && cmd[0]!='D');
   expected_response_ = s21::responseHeader(cmd);
   response.clear();
   std::vector<uint8_t> body(cmd.begin(),cmd.end());
@@ -196,6 +201,7 @@ void DaikinSerial::rx_timeout_handler() {
   comm_state = CommState::Idle;
   response.clear();
   timeout_active = false;
+  if (optional_ack_received_) {optional_ack_received_=false;return;}
   if (result_callback) result_callback(Result::Timeout, nullptr, 0);
 }
 
@@ -254,6 +260,7 @@ void DaikinSerial::finalize_frame() {
 }
 
 void DaikinSerial::force_framed_mode(const char*) {
+  optional_reply_=optional_ack_received_=false;
   // Recovery always uses the documented STX/ETX transport on every S21 version.
   comm_state = CommState::Idle;
   response.clear();

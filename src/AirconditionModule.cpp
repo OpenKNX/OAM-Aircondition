@@ -53,6 +53,9 @@ void AirconditionModule::setup()
         logInfoP("Start driver");
         _airConditionDriver->setup();
         logInfoP("Driver started");
+        if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinTimers &&
+            !_airConditionDriver->configureTimerGranularity(ParamAIR_DaikinTimerStep, ParamAIR_DaikinTimerMaximum))
+            logErrorP("Invalid Daikin timer profile: step and maximum must be verified multiples of 10 minutes");
         logInfoP("Start communication");
         driverStateChanged(AirConditionDriverState::AirConditionDriverStateStarting);
         _airConditionDriver->startCommunication(false);
@@ -596,6 +599,21 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 }
             }
             break;
+            case AIR_KoTimerOnMinutes:
+            case AIR_KoTimerOffMinutes:
+                if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinTimers)
+                    _airConditionDriver->setTimerDuration(ko.asap()==AIR_KoTimerOnMinutes?AirConditionTimer::On:AirConditionTimer::Off,
+                        uint16_t(ko.value(DPT_TimePeriodMin)));
+                break;
+            case AIR_KoTimerOnEnable:
+            case AIR_KoTimerOffEnable:
+                if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinTimers)
+                    _airConditionDriver->setTimerEnabled(ko.asap()==AIR_KoTimerOnEnable?AirConditionTimer::On:AirConditionTimer::Off,ko.value(DPT_Switch));
+                break;
+            case AIR_KoTimerLamp:
+                if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinTimers)
+                    _airConditionDriver->setTimerLamp(ko.value(DPT_Switch));
+                break;
             case AIR_KoHumidityLevel:
                 _airConditionDriver->setHumidityLevel(static_cast<AirConditionHumidityLevel>(uint8_t(ko.value(DPT_Value_1_Ucount))));
                 break;
@@ -1193,4 +1211,25 @@ void AirconditionModule::updateEnergyTelemetry(const AirConditionEnergyTelemetry
         KoAIR_SystemEnergy.valueCompare(int64_t(sample.systemWh), DPT_ActiveEnergy_V64);
     // Invalid samples retain their last number; consult this mask and OnlineState.
     KoAIR_EnergyTelemetryValid.valueCompare(valid, DPT_Value_1_Ucount);
+}
+
+
+void AirconditionModule::updateTimerStatus(const AirConditionTimerStatus& sample)
+{
+    // DPT 7.006 uses the same unsigned-16 wire integer as 7.001. Encode the
+    // numeric minutes directly: this KNX library's time-period encoder passes
+    // through gmtime/mktime and would otherwise depend on the local timezone.
+    if (sample.timersValid) {
+        KoAIR_TimerOnMinutesState.valueCompare(sample.onMinutes, DPT_Value_2_Ucount);
+        KoAIR_TimerOffMinutesState.valueCompare(sample.offMinutes, DPT_Value_2_Ucount);
+        KoAIR_TimerOnEnabledState.valueCompare(sample.onEnabled, DPT_Bool);
+        KoAIR_TimerOffEnabledState.valueCompare(sample.offEnabled, DPT_Bool);
+    }
+    if (sample.lampValid) KoAIR_TimerLampState.valueCompare(sample.lamp, DPT_Bool);
+    KoAIR_TimerConfiguredStep.valueCompare(sample.stepMinutes, DPT_Value_2_Ucount);
+    KoAIR_TimerConfiguredMaximum.valueCompare(sample.maximumMinutes, DPT_Value_2_Ucount);
+    KoAIR_TimerControlAvailable.valueCompare(sample.available, DPT_Value_1_Ucount);
+    KoAIR_TimerWriteResult.valueCompare(uint8_t(sample.timerResult), DPT_Value_1_Ucount);
+    KoAIR_TimerLampWriteResult.valueCompare(uint8_t(sample.lampResult), DPT_Value_1_Ucount);
+    KoAIR_TimerStatusValid.valueCompare(uint8_t((sample.timersValid?1:0)|(sample.lampValid?2:0)), DPT_Value_1_Ucount);
 }

@@ -280,8 +280,8 @@ void DaikinDriver::startCommunication(bool restart)
         failed_queries_.clear();
         protocol_version_ = daikin::ProtocolUndetected;
         support_ = {};
-        d5_ = {}; d6_ = {}; d7_ = {}; dr_ = {}; d3_ = {};
-        timer_disabled_byte_ = 0;
+        d5_ = {}; d6_ = {}; d7_ = {}; dr_ = {}; d3_ = {}; fb_ = {};
+        timer_disabled_bytes_ = {}; last_timer_minutes_={}; timer_dirty_=0; timer_lamp_pending_=false;
         requested_vertical_position_ = -1;
         vertical_pending_ = false;
         outstanding_write_ = {};
@@ -306,6 +306,7 @@ void DaikinDriver::startCommunication(bool restart)
     pending_.activate_sensor = false;
     pending_.activate_comfort = false;
     humidity_pending_ = demand_pending_ = timer_pending_ = vertical_pending_ = false;
+    timer_dirty_=0;timer_lamp_pending_=false;timer_request_error_=lamp_request_error_=AirConditionWriteResult::None;
     pending_explicit_off_ = false;
     pending_explicit_fan_ = false;
     climate_dirty_ = 0;
@@ -379,12 +380,13 @@ void DaikinDriver::loop()
         if (pending_.activate_econo || demand_pending_) sendEconoCommand();
         if (vertical_pending_) sendVerticalPositionCommand();
         if (timer_pending_) sendTimerCommand();
+        if (timer_lamp_pending_) sendTimerLampCommand();
     }
 
     if (!serial_->busy() && (query_state_==QueryState::Idle || query_state_==QueryState::WaitingToSend)) serviceDiagnostic();
     if (!diagnostic_active_) updateQueryStateMachine(); // non-blocking state machine
     if (climate_confirmation_started_ && millis()-climate_confirmation_started_>30000) {climate_outcome_=WriteOutcome::Timeout;rejectClimateWrite();}
-    for(auto* c:{&d3_,&d5_,&d6_,&d7_,&dr_}) if(c->awaiting_readback && millis()-c->sent_ms>30000) {c->awaiting_readback=false;c->outcome=WriteOutcome::Timeout;}
+    for(auto* c:{&d3_,&d5_,&d6_,&d7_,&dr_,&fb_}) if(c->awaiting_readback && millis()-c->sent_ms>30000) {c->awaiting_readback=false;c->outcome=WriteOutcome::Timeout;if(c==&d3_ || c==&fb_) publishTimerStatus();}
     if(version_changed_ && !serial_->busy() && !diagnostic_active_) {version_changed_=false;startCommunication(true);}
 
     // Check online timeout (independent of query state machine)
@@ -427,6 +429,7 @@ DaikinDriver::CombinedCommand* DaikinDriver::combinedFor(std::string_view c)
     if(c=="D6" || c=="F6") return &d6_;
     if(c=="D7" || c=="F7") return &d7_;
     if(c=="DR" || c=="FR") return &dr_;
+    if(c=="FB") return &fb_;
     return nullptr;
 }
 const DaikinDriver::CombinedCommand* DaikinDriver::combinedFor(std::string_view c) const { return const_cast<DaikinDriver*>(this)->combinedFor(c); }
@@ -445,7 +448,7 @@ bool DaikinDriver::fieldWriteVerified(std::string_view c,size_t byte,uint8_t mas
     const auto* p=combinedFor(c);return p && byte<4 && (p->verified_mask[byte]&mask)==mask;
 }
 void DaikinDriver::retryRejectedWrites() {
-    for(auto* p:{&d3_,&d5_,&d6_,&d7_,&dr_}) {p->rejected_valid=false;p->last_rejection_ms=0;}
+    for(auto* p:{&d3_,&d5_,&d6_,&d7_,&dr_,&fb_}) {p->rejected_valid=false;p->last_rejection_ms=0;}
 }
 void DaikinDriver::confirmCombined(std::string_view c,const uint8_t* data)
 {
@@ -560,8 +563,17 @@ void DaikinDriver::serviceDiagnostic()
 
 bool DaikinDriver::setTimerLamp(bool on)
 {
-    // FB's payload behavior is documented in the command table, not a fictitious DB.
-    return queueDiagnosticCommand("FB",{uint8_t(on?'1':'0'),'0','0','0'});
+    if (!serial_ || !fb_.read_supported) return rejectTimerRequest(true,AirConditionWriteResult::Unavailable);
+    lamp_request_error_=AirConditionWriteResult::None;
+    requested_timer_lamp_=on;timer_lamp_pending_=true;
+    sendTimerLampCommand();publishTimerStatus();return true;
+}
+
+void DaikinDriver::sendTimerLampCommand()
+{
+    if (!timer_lamp_pending_ || !fb_.valid) return;
+    const PayloadBuffer payload={uint8_t(requested_timer_lamp_?'1':'0'),'0','0','0'};
+    if (sendCombined("FB",payload)) timer_lamp_pending_=false;
 }
 
 bool DaikinDriver::configureTemperatureLimits(daikin::Mode mode,float minimum,float maximum)
@@ -1691,14 +1703,14 @@ bool DaikinDriver::sendCombined(std::string_view command,const PayloadBuffer& pa
     if(p->rejected_valid && payload==p->rejected && millis()-p->last_rejection_ms<timing_.reprobe_ms) return true; // report rejection, never replay it later
     p->mask.fill(0);
     for(size_t i=0;i<size;i++) {
-        if((command=="D5" && i==3) || (command=="D7" && i>=2) || (command=="DR" && i>=1)) continue;
+        if((command=="D5" && i==3) || (command=="D7" && i>=2) || (command=="DR" && i>=1) || (command=="FB" && i>=1)) continue;
         if(payload[i]!=p->confirmed[i]) p->mask[i]=command=="D6" ? payload[i]^p->confirmed[i] : 0xFF;
     }
     bool changed=false;for(auto m:p->mask) changed|=m!=0;
     if(!changed) return true; // already confirmed; do not manufacture write capability
     p->requested=payload;p->outcome=WriteOutcome::AwaitingAck;p->sent_ms=millis();p->awaiting_readback=false;
     outstanding_write_=command;
-    if(!serial_->send_frame(command,payload.data(),size)) {p->outcome=WriteOutcome::Error;outstanding_write_={};return false;}
+    if(!serial_->send_frame(command,payload.data(),size,command=="FB")) {p->outcome=WriteOutcome::Error;outstanding_write_={};return false;}
     p->valid=false;last_send_time_=millis();
     handleWriteCommandSent(command=="D5"?LastWriteCommand::D5_Swing:LastWriteCommand::Other);
     return true;
@@ -2091,8 +2103,11 @@ void DaikinDriver::handle_fb_response(uint8_t* data, size_t size)
 {
     if(!daikin::s21::validResponse("FB",data,size)) return;
     if (size != 4 || (data[0] != '0' && data[0] != '1')) return;
+    confirmCombined("FB",data);
+    std::copy_n(data,4,fb_.confirmed.begin());fb_.valid=true;
     state_.timerLampValid = true;
     state_.timerLamp = data[0] == '1'; // orange timer indicator, independent of D6 LEDs
+    publishTimerStatus();
 }
 
 void DaikinDriver::handle_f4_response(uint8_t* data, size_t size)
@@ -2115,37 +2130,93 @@ void DaikinDriver::handle_f3_response(uint8_t* data, size_t size)
             if (data[i] < 0x31 || data[i] > 0xC0) return;
         } else if (data[i] != 0xFE && data[i] != 0x30) return;
     }
-    for (size_t i=1;i<=2;i++) if (!(enabled & (1<<(i-1)))) timer_disabled_byte_ = data[i];
+    for (size_t i=1;i<=2;i++) if (!(enabled & (1<<(i-1)))) timer_disabled_bytes_[i-1] = data[i];
     confirmCombined("D3",data);
     std::copy_n(data,4,d3_.confirmed.begin()); d3_.valid=true;
     state_.timersValid=true; state_.onTimerEnabled=enabled&1; state_.offTimerEnabled=enabled&2;
     state_.onTimerConfiguredMinutes=state_.onTimerEnabled ? (data[1]-0x30)*10 : 0;
     state_.offTimerConfiguredMinutes=state_.offTimerEnabled ? (data[2]-0x30)*10 : 0;
+    if (state_.onTimerConfiguredMinutes) last_timer_minutes_[0]=state_.onTimerConfiguredMinutes;
+    if (state_.offTimerConfiguredMinutes) last_timer_minutes_[1]=state_.offTimerConfiguredMinutes;
+    publishTimerStatus();
     // Byte 3 remains unknown: never infer Powerful or wall-clock expiry from it.
 }
 
 bool DaikinDriver::configureTimerGranularity(uint16_t minutes, uint16_t maximum)
 {
     if (!minutes || minutes%10 || maximum>1440 || maximum<minutes || maximum%minutes) return false;
-    timer_step_=minutes; timer_max_=maximum; return true;
+    timer_step_=minutes; timer_max_=maximum; publishTimerStatus();return true;
 }
 
 bool DaikinDriver::setTimers(uint16_t on, uint16_t off)
 {
-    if (!timer_step_ || on>timer_max_ || off>timer_max_ || on%timer_step_ || off%timer_step_ ||
-        ((!on || !off) && !timer_disabled_byte_)) return false;
-    requested_on_minutes_=on; requested_off_minutes_=off; timer_pending_=true;
-    sendTimerCommand(); return true;
+    if (!serial_ || !timer_step_) return rejectTimerRequest(false,AirConditionWriteResult::Unavailable);
+    if (on>timer_max_ || off>timer_max_ || on%timer_step_ || off%timer_step_) return rejectTimerRequest(false,AirConditionWriteResult::InvalidRequest);
+    if ((!on && !timer_disabled_bytes_[0]) || (!off && !timer_disabled_bytes_[1])) return rejectTimerRequest(false,AirConditionWriteResult::Unavailable);
+    timer_request_error_=AirConditionWriteResult::None;
+    requested_on_minutes_=on;requested_off_minutes_=off;timer_dirty_=3;timer_pending_=true;
+    if (on) last_timer_minutes_[0]=on;
+    if (off) last_timer_minutes_[1]=off;
+    sendTimerCommand();publishTimerStatus();return true;
+}
+
+bool DaikinDriver::setTimerDuration(AirConditionTimer timer,uint16_t minutes)
+{
+    const uint8_t index=uint8_t(timer);
+    if (index>1) return rejectTimerRequest(false,AirConditionWriteResult::InvalidRequest);
+    if (!serial_ || !d3_.read_supported || !timer_step_ || (!minutes && !timer_disabled_bytes_[index])) return rejectTimerRequest(false,AirConditionWriteResult::Unavailable);
+    if (minutes>timer_max_ || minutes%timer_step_) return rejectTimerRequest(false,AirConditionWriteResult::InvalidRequest);
+    timer_request_error_=AirConditionWriteResult::None;
+    if (index==0) requested_on_minutes_=minutes;else requested_off_minutes_=minutes;
+    if (minutes) last_timer_minutes_[index]=minutes;
+    timer_dirty_|=1U<<index;timer_pending_=true;
+    sendTimerCommand();publishTimerStatus();return true;
+}
+
+bool DaikinDriver::setTimerEnabled(AirConditionTimer timer,bool enabled)
+{
+    const uint8_t index=uint8_t(timer);
+    if (index>1) return rejectTimerRequest(false,AirConditionWriteResult::InvalidRequest);
+    if (!enabled) return setTimerDuration(timer,0);
+    if (!last_timer_minutes_[index]) return rejectTimerRequest(false,AirConditionWriteResult::InvalidRequest); // never invent a delay on enable
+    return setTimerDuration(timer,last_timer_minutes_[index]);
 }
 
 void DaikinDriver::sendTimerCommand()
 {
     if (!timer_pending_ || !d3_.valid) return;
+    const uint16_t on=timer_dirty_&1?requested_on_minutes_:state_.onTimerConfiguredMinutes;
+    const uint16_t off=timer_dirty_&2?requested_off_minutes_:state_.offTimerConfiguredMinutes;
+    // Only modified axes need the profile check. Preserve a remote's independently
+    // configured other timer even when it is outside this installer's profile.
+    if ((!on && !timer_disabled_bytes_[0]) || (!off && !timer_disabled_bytes_[1])) return;
     PayloadBuffer payload=d3_.confirmed;
-    payload[0]='0'+(requested_on_minutes_?1:0)+(requested_off_minutes_?2:0);
-    payload[1]=requested_on_minutes_ ? 0x30+requested_on_minutes_/10 : timer_disabled_byte_;
-    payload[2]=requested_off_minutes_ ? 0x30+requested_off_minutes_/10 : timer_disabled_byte_;
-    if (sendCombined("D3",payload)) timer_pending_=false;
+    payload[0]='0'+(on?1:0)+(off?2:0);
+    payload[1]=on?0x30+on/10:timer_disabled_bytes_[0];
+    payload[2]=off?0x30+off/10:timer_disabled_bytes_[1];
+    if (sendCombined("D3",payload)) {timer_pending_=false;timer_dirty_=0;}
+}
+
+AirConditionTimerStatus DaikinDriver::timerStatus() const
+{
+    AirConditionTimerStatus result;
+    result.timersValid=state_.timersValid;result.lampValid=state_.timerLampValid;
+    result.onEnabled=state_.onTimerEnabled;result.offEnabled=state_.offTimerEnabled;result.lamp=state_.timerLamp;
+    result.onMinutes=state_.onTimerConfiguredMinutes;result.offMinutes=state_.offTimerConfiguredMinutes;
+    result.stepMinutes=timer_step_;result.maximumMinutes=timer_max_;
+    result.available=(d3_.read_supported?1:0) | (fb_.read_supported?2:0) | (timer_step_?4:0) |
+        (timer_disabled_bytes_[0]?8:0) | (timer_disabled_bytes_[1]?16:0);
+    // Shared result enum inserts Queued before the transport/readback outcomes.
+    const auto convert=[](WriteOutcome value) {return value==WriteOutcome::None?AirConditionWriteResult::None:static_cast<AirConditionWriteResult>(uint8_t(value)+1);};
+    result.timerResult=timer_request_error_!=AirConditionWriteResult::None?timer_request_error_:timer_pending_?AirConditionWriteResult::Queued:convert(d3_.outcome);
+    result.lampResult=lamp_request_error_!=AirConditionWriteResult::None?lamp_request_error_:timer_lamp_pending_?AirConditionWriteResult::Queued:convert(fb_.outcome);
+    return result;
+}
+
+void DaikinDriver::publishTimerStatus() {statusFeedback.updateTimerStatus(timerStatus());}
+bool DaikinDriver::rejectTimerRequest(bool lamp,AirConditionWriteResult reason)
+{
+    (lamp?lamp_request_error_:timer_request_error_)=reason;publishTimerStatus();return false;
 }
 
 void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
@@ -2802,11 +2873,14 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
         auto* c=combinedFor(outstanding_write_);
         if(c) {
             if(result==daikin::DaikinSerial::Result::Ack) {c->awaiting_readback=true;c->outcome=WriteOutcome::AwaitingReadback;}
+            if(result==daikin::DaikinSerial::Result::Frame && outstanding_write_=="FB") {c->awaiting_readback=true;c->outcome=WriteOutcome::AwaitingReadback;}
             if(result==daikin::DaikinSerial::Result::Nak) {c->rejected=c->requested;c->rejected_valid=true;c->last_rejection_ms=now;c->outcome=WriteOutcome::Rejected;c->awaiting_readback=false;}
             if(result==daikin::DaikinSerial::Result::Timeout) c->outcome=WriteOutcome::Timeout;
             if(result==daikin::DaikinSerial::Result::Error) c->outcome=WriteOutcome::Error;
         }
-        if(result!=daikin::DaikinSerial::Result::Frame) outstanding_write_={};
+        const bool timerWrite=outstanding_write_=="D3" || outstanding_write_=="FB";
+        if(result!=daikin::DaikinSerial::Result::Frame || outstanding_write_=="FB") outstanding_write_={};
+        if(timerWrite) publishTimerStatus();
     }
     // During post-write settle we may receive ACK/frames that belong to D-commands.
     // Keep the settle state active so the coalesced D1 flush can run after timeout.
@@ -3117,6 +3191,7 @@ void DaikinDriver::publishState()
     energy.indoorCoolingWh=state_.fu04_cooling_wh; energy.indoorHeatingWh=state_.fu04_heating_wh;
     energy.systemWh=state_.totalEnergyWh;
     statusFeedback.updateEnergyTelemetry(energy);
+    publishTimerStatus();
     published_ = state_; publication_initialized_=true;
     seed_kos_pending_=false; gate_publish_until_full_sample_=false;
 }
@@ -3186,7 +3261,7 @@ void DaikinDriver::invalidateTelemetry()
     state_.supplementalSwingValid=state_.onTimerPeriodsValid=state_.offTimerPeriodsValid=false;
     state_.setpointRawValid=false; state_.ledState=daikin::LedState::Unknown;
     support_.inside_temperature_query=support_.outside_temperature_query=support_.humidity_query=support_.fan_mode_query=false;
-    d5_.valid=d6_.valid=d7_.valid=d3_.valid=dr_.valid=false;
+    d5_.valid=d6_.valid=d7_.valid=d3_.valid=dr_.valid=fb_.valid=false;
     rejectClimateWrite(); sample_seen_mask_=0;
     publishState();
 }
@@ -3384,9 +3459,11 @@ void DaikinDriver::checkOnlineTimeout()
         model_name_.clear();firmware_version_.clear();identification_={};
         protocol_version_=daikin::ProtocolUndetected;protocol_detection_phase_=false;
         support_={};queries_.clear();query_index_=0;query_state_=QueryState::Idle;
-        d3_={};d5_={};d6_={};d7_={};dr_={};outstanding_write_={};
+        d3_={};d5_={};d6_={};d7_={};dr_={};fb_={};outstanding_write_={};
+        timer_disabled_bytes_={};last_timer_minutes_={};timer_dirty_=0;timer_lamp_pending_=false;timer_request_error_=lamp_request_error_=AirConditionWriteResult::None;
         pending_={};humidity_pending_=demand_pending_=vertical_pending_=timer_pending_=false;
         verified_vertical_positions_=0;last_write_time_=last_command_time_=0;
+        publishTimerStatus();
         logInfoP("S21 online status changed: Offline (no ACK/frame for %lu ms)", (unsigned long)(now - last_rx_ok_ms_));
         statusFeedback.updateOnlineStatus(false); // → KO463 = 0
 

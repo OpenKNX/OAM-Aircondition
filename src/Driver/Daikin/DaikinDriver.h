@@ -173,7 +173,7 @@ public:
     bool setHumidityLevel(AirConditionHumidityLevel level) override;
     uint8_t availableHumidityLevels() const;
  // 0..5 or '?' (swing)
-    bool setTimerLamp(bool on);
+    bool setTimerLamp(bool on) override;
     void enableExtendedPolling(bool enabled) { extended_polling_=enabled; }
     void trustRzStateReadings(bool trusted) { rz_states_trusted_=trusted; }
     uint8_t verifiedVerticalPositions() const { return verified_vertical_positions_; }
@@ -227,7 +227,10 @@ public:
 
     // Configure only after validating the model's reduced-demand range on hardware.
     bool configureDemandLimits(uint8_t minimum, uint8_t step);
-    bool configureTimerGranularity(uint16_t minutes, uint16_t maximum_minutes);
+    bool configureTimerGranularity(uint16_t minutes, uint16_t maximum_minutes) override;
+    bool setTimerDuration(AirConditionTimer timer, uint16_t minutes) override;
+    bool setTimerEnabled(AirConditionTimer timer, bool enabled) override;
+    AirConditionTimerStatus timerStatus() const;
     bool setTimers(uint16_t on_minutes, uint16_t off_minutes);
     bool configureVaneAngleScale(uint8_t divisor);
     bool setHumidityMode(daikin::HumidityMode mode);
@@ -325,7 +328,7 @@ private:
         PayloadBuffer requested{}, mask{}, verified_mask{}, rejected{};
         uint32_t last_rejection_ms{0}, sent_ms{0};
         WriteOutcome outcome{WriteOutcome::None};
-    } d5_, d6_, d7_, dr_, d3_;
+    } d5_, d6_, d7_, dr_, d3_, fb_;
     CombinedCommand* combinedFor(std::string_view command);
     const CombinedCommand* combinedFor(std::string_view command) const;
     void confirmCombined(std::string_view command,const uint8_t* data);
@@ -340,9 +343,16 @@ private:
     bool vertical_pending_{false};
     void sendVerticalPositionCommand();
     void sendTimerCommand();
+    void sendTimerLampCommand();
+    void publishTimerStatus();
+    bool rejectTimerRequest(bool lamp, AirConditionWriteResult reason);
     uint16_t timer_step_{0}, timer_max_{0};
     uint16_t requested_on_minutes_{0}, requested_off_minutes_{0};
-    uint8_t timer_disabled_byte_{0};
+    std::array<uint8_t,2> timer_disabled_bytes_{};
+    uint8_t timer_dirty_{0};
+    std::array<uint16_t,2> last_timer_minutes_{};
+    bool timer_lamp_pending_{false}, requested_timer_lamp_{false};
+    AirConditionWriteResult timer_request_error_{AirConditionWriteResult::None}, lamp_request_error_{AirConditionWriteResult::None};
     bool timer_pending_{false};
     std::string_view outstanding_write_{};
     bool sendCombined(std::string_view command, const PayloadBuffer& payload);

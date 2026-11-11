@@ -23,7 +23,7 @@
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9298
-#define MAIN_MaxKoNumber 512
+#define MAIN_MaxKoNumber 528
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 24
 #define NET_ModuleVersion 6
@@ -846,6 +846,11 @@
 #define AIR_DaikinIndependentLed                411      // 1 Bit, Bit 7
 #define     AIR_DaikinIndependentLedMask 0x80
 #define     AIR_DaikinIndependentLedShift 7
+#define AIR_DaikinTimers                        412      // 1 Bit, Bit 7
+#define     AIR_DaikinTimersMask 0x80
+#define     AIR_DaikinTimersShift 7
+#define AIR_DaikinTimerStep                     413      // uint16_t
+#define AIR_DaikinTimerMaximum                  415      // uint16_t
 #define AIR_SCAActive                           425      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
 #define     AIR_SCAActiveShift 7
@@ -1149,6 +1154,12 @@
 #define ParamAIR_Mit_MinTemp                         (knx.paramByte(AIR_Mit_MinTemp))
 // Geräte-/Sensor-LED separat steuern (ersetzt WLAN-LED-Regelung)
 #define ParamAIR_DaikinIndependentLed                ((bool)(knx.paramByte(AIR_DaikinIndependentLed) & AIR_DaikinIndependentLedMask))
+// Timer-Steuerung aktivieren (Modellwerte prüfen)
+#define ParamAIR_DaikinTimers                        ((bool)(knx.paramByte(AIR_DaikinTimers) & AIR_DaikinTimersMask))
+// Timer Schrittweite (Minuten, Vielfaches von 10)
+#define ParamAIR_DaikinTimerStep                     (knx.paramWord(AIR_DaikinTimerStep))
+// Timer Obergrenze (Minuten, Vielfaches der Schrittweite)
+#define ParamAIR_DaikinTimerMaximum                  (knx.paramWord(AIR_DaikinTimerMaximum))
 // Szene A
 #define ParamAIR_SCAActive                           ((bool)(knx.paramByte(AIR_SCAActive) & AIR_SCAActiveMask))
 // Szenennummer
@@ -1714,6 +1725,22 @@
 #define AIR_KoIndoorHeatingEnergy 510
 #define AIR_KoSystemEnergy 511
 #define AIR_KoEnergyTelemetryValid 512
+#define AIR_KoTimerOnMinutes 513
+#define AIR_KoTimerOffMinutes 514
+#define AIR_KoTimerOnMinutesState 515
+#define AIR_KoTimerOffMinutesState 516
+#define AIR_KoTimerOnEnable 517
+#define AIR_KoTimerOffEnable 518
+#define AIR_KoTimerOnEnabledState 519
+#define AIR_KoTimerOffEnabledState 520
+#define AIR_KoTimerLamp 521
+#define AIR_KoTimerLampState 522
+#define AIR_KoTimerStatusValid 523
+#define AIR_KoTimerControlAvailable 524
+#define AIR_KoTimerWriteResult 525
+#define AIR_KoTimerLampWriteResult 526
+#define AIR_KoTimerConfiguredStep 527
+#define AIR_KoTimerConfiguredMaximum 528
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -1923,6 +1950,38 @@
 #define KoAIR_SystemEnergy                        (knx.getGroupObject(AIR_KoSystemEnergy))
 // Leistung/Energie gültig (Bitmaske)
 #define KoAIR_EnergyTelemetryValid                (knx.getGroupObject(AIR_KoEnergyTelemetryValid))
+// Einschalttimer Verzögerung (Minuten, 0=Aus)
+#define KoAIR_TimerOnMinutes                      (knx.getGroupObject(AIR_KoTimerOnMinutes))
+// Ausschalttimer Verzögerung (Minuten, 0=Aus)
+#define KoAIR_TimerOffMinutes                     (knx.getGroupObject(AIR_KoTimerOffMinutes))
+// Einschalttimer konfigurierte Verzögerung (Minuten)
+#define KoAIR_TimerOnMinutesState                 (knx.getGroupObject(AIR_KoTimerOnMinutesState))
+// Ausschalttimer konfigurierte Verzögerung (Minuten)
+#define KoAIR_TimerOffMinutesState                (knx.getGroupObject(AIR_KoTimerOffMinutesState))
+// Einschalttimer aktivieren
+#define KoAIR_TimerOnEnable                       (knx.getGroupObject(AIR_KoTimerOnEnable))
+// Ausschalttimer aktivieren
+#define KoAIR_TimerOffEnable                      (knx.getGroupObject(AIR_KoTimerOffEnable))
+// Einschalttimer aktiv Status
+#define KoAIR_TimerOnEnabledState                 (knx.getGroupObject(AIR_KoTimerOnEnabledState))
+// Ausschalttimer aktiv Status
+#define KoAIR_TimerOffEnabledState                (knx.getGroupObject(AIR_KoTimerOffEnabledState))
+// Timerleuchte Ein/Aus
+#define KoAIR_TimerLamp                           (knx.getGroupObject(AIR_KoTimerLamp))
+// Timerleuchte Status
+#define KoAIR_TimerLampState                      (knx.getGroupObject(AIR_KoTimerLampState))
+// Timerstatus gültig (Bit 0=Timer, 1=Leuchte)
+#define KoAIR_TimerStatusValid                    (knx.getGroupObject(AIR_KoTimerStatusValid))
+// Timer verfügbar (Bitmaske)
+#define KoAIR_TimerControlAvailable               (knx.getGroupObject(AIR_KoTimerControlAvailable))
+// Timer Schreibstatus
+#define KoAIR_TimerWriteResult                    (knx.getGroupObject(AIR_KoTimerWriteResult))
+// Timerleuchte Schreibstatus
+#define KoAIR_TimerLampWriteResult                (knx.getGroupObject(AIR_KoTimerLampWriteResult))
+// Timer konfigurierte Schrittweite (Minuten)
+#define KoAIR_TimerConfiguredStep                 (knx.getGroupObject(AIR_KoTimerConfiguredStep))
+// Timer konfigurierte Obergrenze (Minuten)
+#define KoAIR_TimerConfiguredMaximum              (knx.getGroupObject(AIR_KoTimerConfiguredMaximum))
 
 #define LOG_VisibleChannels                     625      // uint8_t
 #define LOG_VacationKo                          626      // 1 Bit, Bit 7

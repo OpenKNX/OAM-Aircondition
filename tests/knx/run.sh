@@ -7,4 +7,5 @@ c++ -std=c++17 -g -fsanitize=address,undefined -fno-omit-frame-pointer -DKNX_NO_
   -Isrc -Ilib/knx/src/knx tests/knx/test_energy_dpts.cpp \
   lib/knx/src/knx/dpt.cpp lib/knx/src/knx/dptconvert.cpp \
   lib/knx/src/knx/knx_value.cpp lib/knx/src/knx/bits.cpp -o "$BUILD_DIR/test_energy"
-"$BUILD_DIR/test_energy"
+TZ=UTC "$BUILD_DIR/test_energy"
+TZ=Europe/Vienna "$BUILD_DIR/test_energy"

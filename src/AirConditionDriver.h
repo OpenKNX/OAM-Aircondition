@@ -73,6 +73,18 @@ struct AirConditionTelemetry
     std::string firmware, model;
 };
 
+enum class AirConditionTimer : uint8_t { On=0, Off=1 };
+enum class AirConditionWriteResult : uint8_t { None=0, Queued=1, AwaitingAck=2,
+    AwaitingReadback=3, Confirmed=4, Rejected=5, Timeout=6, Error=7, Mismatch=8, InvalidRequest=9, Unavailable=10 };
+struct AirConditionTimerStatus
+{
+    bool timersValid{false}, lampValid{false}, onEnabled{false}, offEnabled{false}, lamp{false};
+    uint16_t onMinutes{0}, offMinutes{0}, stepMinutes{0}, maximumMinutes{0};
+    // Available bits: F3 read, FB read, configured range, observed on/off disabled sentinel.
+    uint8_t available{0};
+    AirConditionWriteResult timerResult{AirConditionWriteResult::None}, lampResult{AirConditionWriteResult::None};
+};
+
 class AirConditionDriverStatusFeedback
 {
 public:
@@ -111,6 +123,7 @@ public:
     virtual void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) {}
     virtual void updateAdditionalTelemetry(const AirConditionTelemetry& sample) {}
     virtual void updateEnergyTelemetry(const AirConditionEnergyTelemetry& sample) {}
+    virtual void updateTimerStatus(const AirConditionTimerStatus& sample) {}
     virtual void updateOptionalControls(const AirConditionOptionalState& sample) {}
     virtual void updateHumidityControl(bool valid, AirConditionHumidityLevel level, uint8_t availableLevels, uint8_t operatingModes) {}
 
@@ -175,6 +188,11 @@ public:
     virtual bool setOptionalControl(AirConditionOptionalControl control, bool on) { return false; }
     virtual bool setUnitLed(AirConditionUnitLed state) { return false; }
     virtual bool setHumidityLevel(AirConditionHumidityLevel level) { return false; }
+    virtual bool configureTimerGranularity(uint16_t stepMinutes, uint16_t maximumMinutes) { return false; }
+    virtual bool setTimerDuration(AirConditionTimer timer, uint16_t minutes) { return false; }
+    virtual bool setTimerEnabled(AirConditionTimer timer, bool enabled) { return false; }
+    virtual bool setTimerLamp(bool on) { return false; }
+
 
 
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) = 0;

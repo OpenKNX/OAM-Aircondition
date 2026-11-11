@@ -100,6 +100,7 @@ protected:
   
   std::string expected_response_;
   bool expecting_reply_{true};
+  bool optional_reply_{false}, optional_ack_received_{false};
   uint32_t ack_timeout_ms_{900}, rx_timeout_ms_{900};
 
   // Timer management

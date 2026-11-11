@@ -139,6 +139,58 @@ The existing TotalEnergy object and legacy 32-bit callbacks remain compatible.
 `tests/knx/run.sh` exercises the real KNX library's DPT encoders/decoders for zero,
 full S21 ranges and the signed-64 maximum under ASan/UBSan.
 
+## Relative timers and timer lamp
+
+Enable **Timer-Steuerung aktivieren (Modellwerte prüfen)** in ETS after checking
+the unit's timer range. This parameter defaults to No, so updating an existing
+project introduces no automatic timer writes. Step and maximum are stored in
+reserved bytes and applied at startup. Defaults are 60 and 720 minutes, respectively;
+these are installer choices, not a claim about a particular model. Step must be a
+positive multiple of 10; maximum must be a multiple of step and at most 1,440.
+New objects are visible when the timer parameter is enabled:
+
+| Object | Meaning |
+| --- | --- |
+| 513/514 TimerOnMinutes / TimerOffMinutes | Set relative on/off delay in minutes (DPT 7.006). A nonzero value enables that timer; zero disables it. |
+| 515/516 TimerOnMinutesState / TimerOffMinutesState | Confirmed configured delays. These do not count down. |
+| 517/518 TimerOnEnable / TimerOffEnable | Disable, or re-enable with the last known positive delay for that axis. An unknown delay is rejected. |
+| 519/520 TimerOnEnabledState / TimerOffEnabledState | Confirmed enabled flags. |
+| 521/522 TimerLamp / TimerLampState | Set/read the independent orange timer lamp (FB), not the D6 unit/sensor LED. |
+| 523 TimerStatusValid | Bit 0: timer sample valid; bit 1: lamp sample valid. |
+| 524 TimerControlAvailable | Bit 0: F3 read discovered; 1: FB read discovered; 2: step/range configured; 3/4: on/off disabled encoding observed. This does not certify write support. |
+| 525 TimerWriteResult | Last timer request/transaction result. |
+| 526 TimerLampWriteResult | Last lamp request/transaction result. |
+| 527/528 TimerConfiguredStep / TimerConfiguredMaximum | Actual configured step and maximum in minutes. |
+
+Write results: 0 None/already unchanged, 1 Queued, 2 Awaiting ACK, 3 Awaiting
+readback, 4 Confirmed, 5 Rejected (NAK), 6 Timeout, 7 Transport error, 8 Readback
+mismatch, 9 Invalid request, 10 Unavailable prerequisites. A matching post-write
+readback is required for Confirmed; an ACK alone never changes numeric or enabled
+status. Fields without valid samples retain their last value and must be checked
+against TimerStatusValid and OnlineState.
+
+The unit must provide a valid F3/FB sample before the corresponding KNX control
+is accepted. Disabled timer bytes are learned separately for each axis from F3
+(`0x30` or `0xFE`); they are not guessed. If a unit boots with both timers enabled,
+disable via its remote once to establish the relevant encoding before using the
+KNX disable control. Re-enabling requires an observed or explicitly requested
+positive delay during the current communication session; restart/link loss clears
+the remembered delays. Setting a nonzero delay directly remains the way to
+program a timer without a previously remembered value.
+
+Changes to one timer preserve the other timer's latest confirmed configured
+setting. Queued writes merge against fresh readback so an earlier change cannot
+be overwritten by stale data. S21 writes both fields together and evaluates them
+relative to programming time; changing a timer may also restart the other timer's
+reference. The driver does not invent remaining time or a wall-clock schedule.
+The lamp's write transaction drains/acknowledges an optional GB reply and also
+accepts ACK-only units; independent FB readback verifies the applied setting.
+
+The minute objects retain DPT 7.006 metadata in ETS. Their wire integer is encoded
+directly with the equivalent unsigned-16 codec to avoid the local-time conversion
+in this version of the KNX library's time-period encoder. The real codec tests
+verify the declared minute decoding in UTC and Europe/Vienna.
+
 ## ETS update compatibility and validation
 
 Release/beta retain application number 0x36 and advance 0.11 → 0.12, explicitly

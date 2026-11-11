@@ -24,7 +24,17 @@ int main()
         assert(KNX_Decode_Value(bytes.data(),bytes.size(),DPT_Value_Power,decoded));
         assert(float(decoded)==watts);
     }
+    // The product declares DPT 7.006 minutes. Its wire layout is unsigned 16;
+    // match the module's integer encoding and the declared period decoding.
+    for (uint16_t minutes : {uint16_t(0),uint16_t(10),uint16_t(60),uint16_t(720),uint16_t(1440),uint16_t(65535)}) {
+        std::array<uint8_t,2> bytes{};
+        assert(KNX_Encode_Value(KNXValue(minutes),bytes.data(),bytes.size(),DPT_Value_2_Ucount));
+        assert(bytes[0]==uint8_t(minutes>>8) && bytes[1]==uint8_t(minutes));
+        KNXValue decoded(uint16_t(0));
+        assert(KNX_Decode_Value(bytes.data(),bytes.size(),DPT_TimePeriodMin,decoded));
+        assert(uint16_t(decoded)==minutes);
+    }
     AirConditionEnergyTelemetry s;s.valid=15;s.indoorCoolingWh=UINT64_MAX;
     assert(s.knxValidity()==13);
-    std::cout << "KNX power/energy DPT tests passed\n";
+    std::cout << "KNX energy/timer DPT tests passed\n";
 }
