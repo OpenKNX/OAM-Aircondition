@@ -877,6 +877,8 @@ void DaikinDriver::initializeQueries()
     for (auto cmd : {std::string_view{"RA"}, std::string_view{"RB"}, std::string_view{"RC"}})
         queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_status_sensor(cmd,data,n); });
 #endif
+    queries_.emplace_back("RK", [this](uint8_t* data, size_t n) { handle_fan_rpm(true,data,n); });
+    queries_.emplace_back("RL", [this](uint8_t* data, size_t n) { handle_fan_rpm(false,data,n); });
     queries_.emplace_back("RI", [this](uint8_t* data, size_t n) { handle_ri_response(data,n); });
     // Environment queries (most are supported across protocols)
     queries_.emplace_back(EnvironmentQuery::InsideTemperature, [this](uint8_t* data, size_t data_size) { handle_rh_response(data, data_size); });
@@ -1919,6 +1921,16 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
               support_.fan, support_.sensor, support_.streamer, support_.led);
     logDebugP("F2: bytes [0x%02X, -, -, 0x%02X] de-shielded [0x%02X, -, -, 0x%02X]",
               data[0], data[3], b0, b3_view);
+}
+
+void DaikinDriver::handle_fan_rpm(bool requested, uint8_t* data, size_t size)
+{
+    bool& valid = requested ? state_.fanRpmSetpointValid : state_.fanRpmValid;
+    valid = s21_valid_decimal(data,size,false);
+    if (!valid) return;
+    const uint16_t rpm = ((data[0]-'0') + (data[1]-'0')*10 + (data[2]-'0')*100) * 10;
+    if (requested) state_.fanRpmSetpoint = rpm;
+    else state_.fanRpm = rpm;
 }
 
 void DaikinDriver::handle_ri_response(uint8_t* data, size_t size)

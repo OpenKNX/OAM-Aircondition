@@ -282,6 +282,7 @@ namespace daikin
         uint8_t humidityRaw{0};
         bool humidityModeValid{false};
         HumidityMode humidityMode{HumidityMode::Unknown}; // F5 byte 2: humidity setting
+        bool fanRpmValid{false}, fanRpmSetpointValid{false};
         uint16_t fanRpm{0};
         uint16_t fanRpmSetpoint{0};
         int16_t swingVerticalAngle{0};
