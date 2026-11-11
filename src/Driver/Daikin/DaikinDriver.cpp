@@ -3109,6 +3109,14 @@ void DaikinDriver::publishState()
     statusFeedback.updateHumidityControl(state_.basicValid && state_.humidityModeValid && getMaximumHumidityModeLevels()>1,
         static_cast<AirConditionHumidityLevel>(humidityLevel), availableHumidityLevels(),
         support_.f2_known && !support_.simple_humidify ? humidity_modes_ : 0);
+    AirConditionEnergyTelemetry energy;
+    energy.valid=(state_.fx60_valid?AirConditionEnergyTelemetry::Power:0) |
+        (state_.fu04_valid?AirConditionEnergyTelemetry::Cooling|AirConditionEnergyTelemetry::Heating:0) |
+        (state_.totalEnergyValid?AirConditionEnergyTelemetry::System:0);
+    energy.indoorPowerW=state_.fx60_power_w;
+    energy.indoorCoolingWh=state_.fu04_cooling_wh; energy.indoorHeatingWh=state_.fu04_heating_wh;
+    energy.systemWh=state_.totalEnergyWh;
+    statusFeedback.updateEnergyTelemetry(energy);
     published_ = state_; publication_initialized_=true;
     seed_kos_pending_=false; gate_publish_until_full_sample_=false;
 }

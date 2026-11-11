@@ -19,11 +19,11 @@
 #define MAIN_FirmwareName "Klimaanlagen KNX Adapter"
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 54
-#define MAIN_ApplicationVersion 11
+#define MAIN_ApplicationVersion 12
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9298
-#define MAIN_MaxKoNumber 507
+#define MAIN_MaxKoNumber 512
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 24
 #define NET_ModuleVersion 6
@@ -1709,6 +1709,11 @@
 #define AIR_KoHumidityLevelAvailable 505
 #define AIR_KoHumidityLevelValid 506
 #define AIR_KoHumidityOperatingModes 507
+#define AIR_KoIndoorPower 508
+#define AIR_KoIndoorCoolingEnergy 509
+#define AIR_KoIndoorHeatingEnergy 510
+#define AIR_KoSystemEnergy 511
+#define AIR_KoEnergyTelemetryValid 512
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -1908,6 +1913,16 @@
 #define KoAIR_HumidityLevelValid                  (knx.getGroupObject(AIR_KoHumidityLevelValid))
 // Feuchteregelung Betriebsarten (Bitmaske)
 #define KoAIR_HumidityOperatingModes              (knx.getGroupObject(AIR_KoHumidityOperatingModes))
+// Leistungsaufnahme Innengerät (W)
+#define KoAIR_IndoorPower                         (knx.getGroupObject(AIR_KoIndoorPower))
+// Energie Innengerät Kühlen (Wh, 64 Bit)
+#define KoAIR_IndoorCoolingEnergy                 (knx.getGroupObject(AIR_KoIndoorCoolingEnergy))
+// Energie Innengerät Heizen (Wh, 64 Bit)
+#define KoAIR_IndoorHeatingEnergy                 (knx.getGroupObject(AIR_KoIndoorHeatingEnergy))
+// Energie Gesamtsystem (Wh, 64 Bit)
+#define KoAIR_SystemEnergy                        (knx.getGroupObject(AIR_KoSystemEnergy))
+// Leistung/Energie gültig (Bitmaske)
+#define KoAIR_EnergyTelemetryValid                (knx.getGroupObject(AIR_KoEnergyTelemetryValid))
 
 #define LOG_VisibleChannels                     625      // uint8_t
 #define LOG_VacationKo                          626      // 1 Bit, Bit 7

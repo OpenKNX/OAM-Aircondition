@@ -1112,7 +1112,8 @@ void AirconditionModule::updateDaikinExtensionTelemetry(bool fu04Valid,
     _daikinFx60Valid = fx60Valid;
     _daikinFx60Value10 = fx60Value10;
 
-    // TODO: Map FU04/FX60 extension telemetry to dedicated KOs once DPT/object definitions are finalized.
+    // Compatibility callback for callers using the old 32-bit extension API.
+    // Full-resolution KNX objects use updateEnergyTelemetry(), with explicit units.
     logDebugP("Daikin extension telemetry updated (FU04 valid=%d, FX60 valid=%d)",
               fu04Valid ? 1 : 0, fx60Valid ? 1 : 0);
 }
@@ -1176,4 +1177,20 @@ void AirconditionModule::updateHumidityControl(bool valid, AirConditionHumidityL
     KoAIR_HumidityLevelAvailable.valueCompare(availableLevels, DPT_Value_1_Ucount);
     KoAIR_HumidityOperatingModes.valueCompare(operatingModes, DPT_Value_1_Ucount);
     KoAIR_HumidityLevelValid.valueCompare(valid, DPT_Bool);
+}
+
+
+void AirconditionModule::updateEnergyTelemetry(const AirConditionEnergyTelemetry& sample)
+{
+    const uint8_t valid=sample.knxValidity();
+    if (valid & AirConditionEnergyTelemetry::Power)
+        KoAIR_IndoorPower.valueCompare(float(sample.indoorPowerW), DPT_Value_Power);
+    if (valid & AirConditionEnergyTelemetry::Cooling)
+        KoAIR_IndoorCoolingEnergy.valueCompare(int64_t(sample.indoorCoolingWh), DPT_ActiveEnergy_V64);
+    if (valid & AirConditionEnergyTelemetry::Heating)
+        KoAIR_IndoorHeatingEnergy.valueCompare(int64_t(sample.indoorHeatingWh), DPT_ActiveEnergy_V64);
+    if (valid & AirConditionEnergyTelemetry::System)
+        KoAIR_SystemEnergy.valueCompare(int64_t(sample.systemWh), DPT_ActiveEnergy_V64);
+    // Invalid samples retain their last number; consult this mask and OnlineState.
+    KoAIR_EnergyTelemetryValid.valueCompare(valid, DPT_Value_1_Ucount);
 }

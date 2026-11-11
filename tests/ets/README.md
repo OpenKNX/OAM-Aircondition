@@ -1,9 +1,9 @@
 # ETS update compatibility regression
 
 `compatibility_baseline.json.gz` is a deterministic gzip JSON snapshot of the
-expanded release 0.10 product at `4c8ea0c`, generated with OpenKNXproducer 4.3.12.
-It freezes all 395 objects, 28,842 parameters, parameter/object references,
-parameter type encodings and 3,848 existing generated header definitions.
+expanded release 0.11 product at `63f5dc2`, generated with OpenKNXproducer 4.3.12.
+It freezes all 437 objects, 28,853 parameters, parameter/object references,
+parameter type encodings and 3,956 existing generated header definitions.
 The beta/dev CLI variants preserve their original wrapper identity and version
 history while using the same frozen object/parameter definitions. The dev variant
 was also checked against an independently generated pre-extension dev product.
@@ -20,10 +20,10 @@ python3 tests/ets/check_compatibility.py src/Aircondition-Release.debug.xml incl
 ```
 
 The new version must retain the application number, increase its version and
-include all old replacements plus version 0.10 in `ReplacesVersions`. Development
-products retain application number 0x35, advance 0.15 to 1.0 and replace 0.15;
-the 4-bit minor version cannot encode 0.16.
-Release/beta retain application number 0x36 and advance 0.10 to 0.11.
+include all old replacements plus version 0.11 in `ReplacesVersions`. Development
+products retain application number 0x35, advance 1.0 to 1.1 and replace 1.0;
+the preceding 0.15-to-1.0 rollover respected the 4-bit minor version.
+Release/beta retain application number 0x36 and advance 0.11 to 0.12.
 
 Run `PYTHONDONTWRITEBYTECODE=1 python3 tests/ets/test_compatibility.py` for the
 eight positive/negative regression checks of the guard itself.

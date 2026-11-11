@@ -1,5 +1,6 @@
 #pragma once
 #include "OpenKNX.h"
+#include "AirConditionEnergy.h"
 
 enum AirConditionMode
 {
@@ -109,6 +110,7 @@ public:
     // Position 6 is the S21 automatic marker; verifiedMask is independent of read support.
     virtual void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) {}
     virtual void updateAdditionalTelemetry(const AirConditionTelemetry& sample) {}
+    virtual void updateEnergyTelemetry(const AirConditionEnergyTelemetry& sample) {}
     virtual void updateOptionalControls(const AirConditionOptionalState& sample) {}
     virtual void updateHumidityControl(bool valid, AirConditionHumidityLevel level, uint8_t availableLevels, uint8_t operatingModes) {}
 

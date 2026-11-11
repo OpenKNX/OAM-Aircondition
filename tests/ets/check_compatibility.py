@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check additions against the pre-extension release product (4c8ea0c).
+"""Check additions against the preceding release 0.11 product (63f5dc2).
 
 Usage: python3 tests/ets/check_compatibility.py expanded.debug.xml generated.h
 The baseline freezes old product identities, wire types, parameter values/storage,
@@ -90,13 +90,13 @@ if __name__ == '__main__':
     parser.add_argument('--variant', choices=('release','beta','dev'), default='release')
     args=parser.parse_args()
     baseline=json.loads(gzip.decompress(BASE.read_bytes()))
-    # Pre-extension wrappers use identical object/parameter definitions. Only
+    # The preceding wrappers use identical object/parameter definitions. Only
     # their existing application identity, version history and name differ.
     if args.variant=='beta':
         baseline['defines']['MAIN_FirmwareName']='"Klimaanlagen KNX Adapter (Beta)"'
     elif args.variant=='dev':
         baseline['applicationNumber']='44597'
-        baseline['version']=15; baseline['replaces']=list(range(14,-1,-1))
+        baseline['version']=16; baseline['replaces']=list(range(15,-1,-1))
         baseline['defines']['MAIN_ApplicationNumber']='53'
         baseline['defines']['MAIN_FirmwareName']='"Klimaanlagen KNX Adapter (Dev)"'
     check(contract(args.xml,args.header), baseline)

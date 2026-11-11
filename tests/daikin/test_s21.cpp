@@ -42,6 +42,8 @@ struct Feedback : AirConditionDriverStatusFeedback {
     void updateHumidityControl(bool valid,AirConditionHumidityLevel level,uint8_t available,uint8_t modes) override {humidityControlValid=valid;humidityLevel=uint8_t(level);humidityLevels=available;humidityModes=modes;}
     AirConditionOptionalState options;
     void updateOptionalControls(const AirConditionOptionalState& s) override {options=s;}
+    AirConditionEnergyTelemetry energy;
+    void updateEnergyTelemetry(const AirConditionEnergyTelemetry& s) override {energy=s;}
     AirConditionTelemetry extra;
     void updateAdditionalTelemetry(const AirConditionTelemetry& s) override {extra=s;}
     unsigned humidity_mode_updates{0};
@@ -741,4 +743,19 @@ void test_shared_humidity_control() {
     d.support_.simple_humidify=true;assert(!base.setHumidityLevel(H::High));
     d.invalidateTelemetry();assert(!f.humidityControlValid && f.humidityLevels==0);
 }
-int main() { test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_shared_energy_telemetry() {
+    Feedback f;DaikinDriver d(f);d.setup();d.publishState();assert(f.energy.valid==0);
+    std::string fu="FFFFFFFFFFFFFFFF0000000000000000";
+    d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&fu[0]),32);
+    uint8_t power[]={'2','3','0','0'},meter[]={'1','0','0','0'};
+    d.handle_fu_fx_response("FX60",power,4);d.handle_fm_response(meter,4);d.publishState();
+    assert(f.energy.valid==15 && f.energy.knxValidity()==15);
+    assert(f.energy.indoorPowerW==500 && f.energy.indoorCoolingWh==429496729500ULL && f.energy.indoorHeatingWh==429496729500ULL);
+    assert(f.energy.systemWh==100); // independent system meter, never indoor sum
+    power[0]='X';d.handle_fu_fx_response("FX60",power,4);d.publishState();assert(f.energy.valid==14);
+    d.invalidateTelemetry();assert(f.energy.valid==0);
+    AirConditionEnergyTelemetry sample;sample.valid=15;sample.indoorCoolingWh=UINT64_MAX;
+    sample.indoorHeatingWh=uint64_t(INT64_MAX);sample.systemWh=uint64_t(INT64_MAX)+1;
+    assert(sample.knxValidity()==(AirConditionEnergyTelemetry::Power|AirConditionEnergyTelemetry::Heating));
+}
+int main() { test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

@@ -52,7 +52,7 @@ consumers must check its validity bit and the existing OnlineState object.
 The wiki establishes RK/RL for the indoor fan. No outdoor fan RPM or outdoor coil
 temperature value is invented. Rm/Rt/RW and unknown extension-page fields remain
 local raw diagnostics. Production/serial identifiers are not published to KNX.
-Power/64-bit energy objects are a separate remaining task.
+Power and full-range energy feedback are described below.
 
 ## Independent optional controls
 
@@ -117,17 +117,39 @@ is distinct from measured percent humidity. Compound-mode selection remains
 available through local `s21 mode …` commands; a dedicated common/KNX compound-mode
 selector is a separate remaining task.
 
+## Power and energy
+
+The new optional shared callback carries explicit watts and 64-bit Wh counters.
+Other drivers default to no additional samples. New KNX objects are:
+
+| Object | Meaning |
+| --- | --- |
+| 508 IndoorPower | FX60 watts, DPT 14.056. Raw S21 × 10 W; no further scaling. |
+| 509 IndoorCoolingEnergy | FU04 indoor cooling lifetime energy, Wh, DPT 29.010 (signed 64 bit). |
+| 510 IndoorHeatingEnergy | FU04 indoor heating lifetime energy, Wh, DPT 29.010. |
+| 511 SystemEnergy | Independent FM shared outdoor/system counter, Wh, DPT 29.010. |
+| 512 EnergyTelemetryValid | Validity bits: 0 power, 1 indoor cooling, 2 indoor heating, 3 system energy. |
+
+FU04's maximum wire value is 429,496,729,500 Wh and fits these exact integer
+objects without narrowing. Generic unsigned samples above INT64_MAX are marked
+unavailable for their respective KNX object rather than wrapped. Invalid samples
+retain their last numeric content; use the validity mask and OnlineState. FM is
+not an indoor total or a sum of FU04 counters; resets/wraps are not guessed.
+The existing TotalEnergy object and legacy 32-bit callbacks remain compatible.
+`tests/knx/run.sh` exercises the real KNX library's DPT encoders/decoders for zero,
+full S21 ranges and the signed-64 maximum under ASan/UBSan.
+
 ## ETS update compatibility and validation
 
-Release/beta retain application number 0x36 and advance 0.10 → 0.11, explicitly
-replacing 0.10 and its predecessors. Development retains application number 0x35
-and advances 0.15 → 1.0; a 4-bit minor version cannot encode 0.16. Development
-also retains 0.15 and all predecessors in its replacement list. Product/order and
+Release/beta retain application number 0x36 and advance 0.11 → 0.12, explicitly
+replacing 0.11, 0.10 and their predecessors. Development retains application number 0x35
+and advances 1.0 → 1.1. The previous rollover from 0.15 respected the four-bit minor field. Development
+also retains 1.0, 0.15 and all predecessors in its replacement list. Product/order and
 manufacturer identities are unchanged.
 
 The regression in `tests/ets/check_compatibility.py` checks the generated product
-against the previous release. It preserves all 395 existing objects, 28,842
-parameters, their references and encodings, and 3,848 header definitions. It also
+against the previous release. It preserves all 437 existing objects, 28,853
+parameters, their references and encodings, and 3,956 header definitions. It also
 requires an increased application version, the replacement history and strictly
 appended object numbers. Development and beta are checked against their baselines
 as well. Existing parameter memory size remains 9,298 bytes.
