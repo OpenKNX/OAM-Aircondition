@@ -320,4 +320,10 @@ void test_independent_status() {
     assert(d.telemetry().independentPower && d.telemetry().independentMode==7 && d.telemetry().coarseTargetC==21);
     assert(d.state_.targetC==22); // diagnostics do not overwrite precise feedback
 }
-int main() { test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_indoor_coil() {
+    Feedback f; DaikinDriver d(f); uint8_t si[]={'5','7','2','+'};
+    d.handle_ri_response(si,4); assert(d.telemetry().indoorHeatExchangerValid && d.telemetry().indoorHeatExchangerC==27.5f);
+    si[3]='-'; d.handle_ri_response(si,4); assert(d.telemetry().indoorHeatExchangerC==-27.5f);
+    for(size_t n=0;n<4;n++) { d.handle_ri_response(si,n); assert(!d.telemetry().indoorHeatExchangerValid); }
+}
+int main() { test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

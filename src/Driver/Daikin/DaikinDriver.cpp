@@ -30,6 +30,13 @@ namespace
         return true;
     }
 
+    bool s21_valid_decimal(const uint8_t* data, size_t size, bool sign)
+    {
+        if (size != (sign ? 4U : 3U)) return false;
+        for (size_t i=0;i<3;i++) if (data[i] < '0' || data[i] > '9') return false;
+        return !sign || data[3] == '+' || data[3] == '-';
+    }
+
     // s21_decode_target_temp function
     float s21_decode_target_temp(uint8_t v)
     {
@@ -164,6 +171,7 @@ void DaikinDriver::showInformations()
     logInfoP("Total Energy: %u Wh", state_.totalEnergyWh);
     if (state_.serialErrorValid) logInfoP("S21 serial error (read-clears): %d, samples=%u", state_.serialError, state_.serialErrorSamples);
     logInfoP("Compressor Frequency: %d Hz", state_.compressorHz);
+    if (state_.indoorHeatExchangerValid) logInfoP("RI indoor heat exchanger: %.1f C", state_.indoorHeatExchangerC);
 
     // Protocol information
     logInfoP("--- Protocol ---");
@@ -869,6 +877,7 @@ void DaikinDriver::initializeQueries()
     for (auto cmd : {std::string_view{"RA"}, std::string_view{"RB"}, std::string_view{"RC"}})
         queries_.emplace_back(cmd, [this,cmd](uint8_t* data, size_t n) { handle_status_sensor(cmd,data,n); });
 #endif
+    queries_.emplace_back("RI", [this](uint8_t* data, size_t n) { handle_ri_response(data,n); });
     // Environment queries (most are supported across protocols)
     queries_.emplace_back(EnvironmentQuery::InsideTemperature, [this](uint8_t* data, size_t data_size) { handle_rh_response(data, data_size); });
     queries_.emplace_back(EnvironmentQuery::TargetTemperature, [this](uint8_t* data, size_t data_size) { handle_rx_response(data, data_size); });
@@ -1910,6 +1919,13 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
               support_.fan, support_.sensor, support_.streamer, support_.led);
     logDebugP("F2: bytes [0x%02X, -, -, 0x%02X] de-shielded [0x%02X, -, -, 0x%02X]",
               data[0], data[3], b0, b3_view);
+}
+
+void DaikinDriver::handle_ri_response(uint8_t* data, size_t size)
+{
+    if (!s21_valid_decimal(data,size,true)) { state_.indoorHeatExchangerValid = false; return; }
+    state_.indoorHeatExchangerC = s21_decode_float_sensor(data);
+    state_.indoorHeatExchangerValid = true;
 }
 
 void DaikinDriver::handle_status_sensor(std::string_view command, uint8_t* data, size_t size)

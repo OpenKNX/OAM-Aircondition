@@ -260,6 +260,8 @@ namespace daikin
         float homeC{25.0f};
         float outsideC{25.0f};
         float liquidC{25.0f};
+        bool indoorHeatExchangerValid{false};
+        float indoorHeatExchangerC{NAN};
 
         bool independentPowerValid{false}, independentPower{false};
         bool independentModeValid{false}, coarseTargetValid{false};
