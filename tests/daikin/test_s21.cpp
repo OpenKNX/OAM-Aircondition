@@ -194,4 +194,11 @@ void test_confirmed_d1() {
     g1[2]=0x48; d.handle_f1_response(g1,4);
     assert(d.state_.targetC==22 && !(d.climate_dirty_ & DaikinDriver::DirtyTemperature));
 }
-int main() { test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_swing_preserves_humidity() {
+    Feedback f; DaikinDriver d(f); d.setup(); d.support_.swing=true;
+    uint8_t g5[]={'0','0',0x3C,0x80}; d.handle_f5_response(g5,4);
+    d.setSwingVertical(true);
+    auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
+    assert(tx[2]=='5' && tx[3]=='1' && tx[4]=='?' && tx[5]==0x3C && tx[6]==0x80);
+}
+int main() { test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

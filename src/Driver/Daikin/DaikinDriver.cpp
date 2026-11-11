@@ -340,6 +340,7 @@ void DaikinDriver::loop()
     serial_->loop(); // Process serial communication (non-blocking)
     if (!serial_->busy() && !isInPostWriteSettle()) {
         if (pending_.activate_climate) sendClimateCommand();
+        if (pending_.activate_swing_mode) sendSwingCommand();
         if (pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
             pending_.activate_sensor || pending_.activate_led || pending_.activate_streamer)
             sendSpecialModesCommand();
@@ -518,7 +519,7 @@ void DaikinDriver::setSwingHorizontal(bool swing)
 
     // Keep the other axis as it is (or last requested if available)
     const bool wantH = swing;
-    const bool wantV = (pending_.climate.swing_v == daikin::Swing::Vertical) ? true : devV;
+    const bool wantV = pending_.activate_swing_mode ? pending_.climate.swing_v == daikin::Swing::Vertical : devV;
 
     if (wantV == devV && wantH == devH)
     {
@@ -546,7 +547,7 @@ void DaikinDriver::setSwingVertical(bool swing)
 
     // Keep the other axis as it is (or last requested if available)
     const bool wantV = swing;
-    const bool wantH = (pending_.climate.swing_h == daikin::Swing::Horizontal) ? true : devH;
+    const bool wantH = pending_.activate_swing_mode ? pending_.climate.swing_h == daikin::Swing::Horizontal : devH;
 
     if (wantV == devV && wantH == devH)
     {
@@ -1536,51 +1537,14 @@ void DaikinDriver::sendClimateCommand()
 
 void DaikinDriver::sendSwingCommand()
 {
-    if (!serial_ || !pending_.activate_swing_mode)
-    {
-        return;
-    }
-
-    // Write coordination: Block D5 commands during post-write settle to prevent conflicts
-    if (isInPostWriteSettle())
-    {
-        logDebugP("D5 swing delayed: in settle");
-        return; // The swing command will be retried later when settle completes
-    }
-
-    // Determine desired swing states
-    const bool wantV = (pending_.climate.swing_v == daikin::Swing::Vertical);
-    const bool wantH = (pending_.climate.swing_h == daikin::Swing::Horizontal);
-
-    // ---- build 4 ASCII bytes ----
-    char swingCode = '0';
-    if (wantV && wantH) swingCode = '7';
-    else if (wantV)
-        swingCode = '1';
-    else if (wantH)
-        swingCode = '2'; // off stays '0'
-
-    char swingActive = (swingCode == '0') ? '0' : '?';
-    char humidity = '0'; // keep off on v0
-    char reserved = '0';
-
-    uint8_t payload[4] = {
-        static_cast<uint8_t>(swingCode),
-        static_cast<uint8_t>(swingActive),
-        static_cast<uint8_t>(humidity),
-        static_cast<uint8_t>(reserved)};
-
-    logInfoP("Sending S21 D5 swing: ascii [%c %c %c %c] hex [%02X %02X %02X %02X]",
-             swingCode, swingActive, humidity, reserved,
-             payload[0], payload[1], payload[2], payload[3]);
-
-    std::string cmd(StateCommand::LouvreSwingMode);
-    serial_->send_frame(cmd, payload, 4);
-
-    // v0 stability: Enter post-write settle for D5 commands
-    handleWriteCommandSent(LastWriteCommand::D5_Swing);
-
-    pending_.activate_swing_mode = false;
+    if (!pending_.activate_swing_mode || !d5_.valid) return;
+    const bool v = pending_.climate.swing_v == daikin::Swing::Vertical;
+    const bool h = pending_.climate.swing_h == daikin::Swing::Horizontal;
+    PayloadBuffer payload = d5_.confirmed;
+    payload[0] = v && h ? '7' : v ? '1' : h ? '2' : '0';
+    payload[1] = v || h ? '?' : '0';
+    // Humidity and the unknown fourth byte belong to the same state register.
+    if (sendCombined("D5", payload)) pending_.activate_swing_mode = false;
 }
 
 void DaikinDriver::sendPowerfulCommand()
@@ -1942,6 +1906,9 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
         logErrorP("F5 response too short: %zu bytes (expected 4-byte G5 response)", data_size);
         return;
     }
+    if (data[0] != '0' && data[0] != '1' && data[0] != '2' && data[0] != '7') return;
+    std::copy_n(data, 4, d5_.confirmed.begin());
+    d5_.valid = true;
     stats_.frames_ok++;
 
     logInfoP("F5: raw G5 response [%02X %02X %02X %02X] (4 bytes: swing1, swing2, humidity, unknown)",
@@ -1953,44 +1920,9 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
     // F5 response contains swing or humidity data
     if (support_.swing)
     {
-        // Robust swing decoder: handle both two-flag format and combined ASCII
-        auto is01 = [](uint8_t b) { return b == 0x00 || b == 0x01 || b == '0' || b == '1'; };
-
-        daikin::Swing swing = daikin::Swing::Off;
-
-        if (data_size >= 2 && is01(data[0]) && is01(data[1]))
-        {
-            // Two-flag format: data[0] = vertical, data[1] = horizontal
-            bool v = (data[0] == 0x01 || data[0] == '1');
-            bool h = (data[1] == 0x01 || data[1] == '1');
-            if (v && h) swing = daikin::Swing::Both;
-            else if (v)
-                swing = daikin::Swing::Vertical;
-            else if (h)
-                swing = daikin::Swing::Horizontal;
-            else
-                swing = daikin::Swing::Off;
-
-            logInfoP("F5: swing V=%s H=%s -> %d (two-flag format)",
-                     v ? "ON" : "OFF", h ? "ON" : "OFF", static_cast<int>(swing));
-        }
-        else
-        {
-            // Fallback: combined ASCII in data[0]
-            char swing_char = data[0];
-            switch (swing_char)
-            {
-                case '0': swing = daikin::Swing::Off; break;
-                case '1': swing = daikin::Swing::Vertical; break;
-                case '2': swing = daikin::Swing::Horizontal; break;
-                case '7': swing = daikin::Swing::Both; break;
-                default:
-                    logInfoP("F5: Unknown swing ASCII char '%c' (0x%02X), defaulting to Off", swing_char, swing_char);
-                    swing = daikin::Swing::Off;
-                    break;
-            }
-            logInfoP("F5: swing=%d (combined ASCII='%c')", static_cast<int>(swing), swing_char);
-        }
+        daikin::Swing swing = data[0] == '1' ? daikin::Swing::Vertical :
+                              data[0] == '2' ? daikin::Swing::Horizontal :
+                              data[0] == '7' ? daikin::Swing::Both : daikin::Swing::Off;
         state_.swing = swing;
     }
 
