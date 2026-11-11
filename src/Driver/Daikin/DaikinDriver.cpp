@@ -296,7 +296,9 @@ void DaikinDriver::startCommunication(bool restart)
         failed_queries_.clear();
         protocol_version_ = daikin::ProtocolUndetected;
         support_ = {};
-        d5_ = {}; d6_ = {}; d7_ = {}; dr_ = {};
+        d5_ = {}; d6_ = {}; d7_ = {}; dr_ = {}; d3_ = {};
+        timer_disabled_byte_ = 0;
+        requested_vertical_position_ = -1;
         vertical_pending_ = false;
         outstanding_write_ = {};
         humidity_modes_ = 0;
@@ -318,6 +320,8 @@ void DaikinDriver::startCommunication(bool restart)
     pending_.activate_led = false;
     pending_.activate_streamer = false;
     pending_.activate_sensor = false;
+    pending_.activate_comfort = false;
+    humidity_pending_ = demand_pending_ = timer_pending_ = vertical_pending_ = false;
     pending_explicit_off_ = false;
     pending_explicit_fan_ = false;
     climate_dirty_ = 0;
@@ -694,50 +698,15 @@ void DaikinDriver::setLedState(daikin::LedState led)
 
 void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
 {
-    logInfoP("Setting device mode: %d", static_cast<int>(mode));
-    if (!serial_)
-    {
-        logErrorP("S21 driver not initialized");
-        return;
-    }
-
-    // Map OpenKNX device modes to S21 preset commands
-    switch (mode)
-    {
-        case AirConditionDeviceMode::AirConditionDeviceModeHiPower:
-            pending_.climate.powerful = true;
-            pending_.climate.econo = false;
-            pending_.climate.quiet = false;
-            pending_.activate_powerful = true;
-            sendPowerfulCommand();
-            break;
-
-        case AirConditionDeviceMode::AirConditionDeviceModeSilent1:
-            pending_.climate.powerful = false;
-            pending_.climate.econo = false;
-            pending_.climate.quiet = true;
-            pending_.activate_quiet = true;
-            sendQuietCommand();
-            break;
-
-        case AirConditionDeviceMode::AirConditionDeviceModeEco:
-            pending_.climate.powerful = false;
-            pending_.climate.econo = true;
-            pending_.climate.quiet = false;
-            pending_.activate_econo = true;
-            sendEconoCommand();
-            break;
-
-        case AirConditionDeviceMode::AirConditionDeviceModeStandard:
-        default:
-            // Disable all special modes
-            pending_.climate.powerful = false;
-            pending_.climate.econo = false;
-            pending_.climate.quiet = false;
-            pending_.activate_powerful = true; // Use powerful command to reset
-            sendPowerfulCommand();
-            break;
-    }
+    if (!serial_) return;
+    pending_.climate.powerful = mode == AirConditionDeviceModeHiPower;
+    pending_.climate.quiet = mode == AirConditionDeviceModeSilent1 || mode == AirConditionDeviceModeSilent2;
+    pending_.climate.econo = mode == AirConditionDeviceModeEco;
+    pending_.activate_powerful = pending_.activate_quiet = pending_.activate_econo = true;
+    // D7 Econo and D6 Powerful/Quiet share mutually exclusive presets.
+    // Disable confirmed Econo before requesting another special mode.
+    if (!pending_.climate.econo && state_.econo) sendEconoCommand();
+    else sendSpecialModesCommand();
 }
 
 void DaikinDriver::setMaxPowerLevel(uint8_t percentage)
@@ -1723,6 +1692,8 @@ bool DaikinDriver::sendCombined(std::string_view command, const PayloadBuffer& p
 void DaikinDriver::sendSpecialModesCommand()
 {
     if (!d6_.valid) return; // read before modifying shared fields
+    if (state_.econo && ((pending_.activate_powerful && pending_.climate.powerful) ||
+                         (pending_.activate_quiet && pending_.climate.quiet))) return;
     if (support_.special_features_known) {
         if (!support_.powerful) pending_.activate_powerful = false;
         if (!support_.streamer) pending_.activate_streamer = false;

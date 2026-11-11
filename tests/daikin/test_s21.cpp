@@ -442,4 +442,18 @@ void test_decoder_lengths() {
     d.handle_rd_response(sd,3); d.handle_re_response(se,3);
     assert(d.telemetry().compressorHz==54 && d.telemetry().humidity==79);
 }
-int main() { test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_combined_mode_changes() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t g6[]={0xB0,0xB0,0x31,0x34}; d.handle_f6_response(g6,4); // Quiet + Streamer
+    uint8_t g7[]={0x44,'0','A','G'}; d.handle_f7_response(g7,4);
+    d.setDeviceMode(AirConditionDeviceModeHiPower);
+    auto& hal=*static_cast<FakeHAL*>(d.serial_->serial_hal_.get());
+    assert(hal.tx[2]=='6' && hal.tx[3]==0x32 && hal.tx[4]==0xB0 && hal.tx[5]==0x31);
+    assert(!d.d6_.valid && d.pending_.activate_econo);
+    // A queued second change cannot rebuild D6 from the pre-write snapshot.
+    size_t sent=hal.tx.size(); d.setAirPurification(false); assert(hal.tx.size()==sent);
+    d.serial_->force_framed_mode(); d.query_state_=DaikinDriver::QueryState::Idle;
+    g6[0]=0x32; d.handle_f6_response(g6,4); d.sendStreamerCommand();
+    assert(hal.tx[sent+3]==0x32 && hal.tx[sent+4]==0x30 && hal.tx[sent+5]==0x31);
+}
+int main() { test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
