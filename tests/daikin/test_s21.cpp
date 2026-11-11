@@ -265,4 +265,14 @@ void test_versions() {
     d.query_state_=DaikinDriver::QueryState::WaitingForAck; d.handle_serial_result(Result::Nak,nullptr,0);
     assert(d.protocol_version_==daikin::ProtocolUnknown);
 }
-int main() { test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_rz_identity() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t b2[]={'C','0'}; d.handle_rzb2_response(b2,2); assert(d.state_.unitState.raw==0x0C);
+    uint8_t garbage[]={0x80,0xFF}; d.handle_rzb2_response(garbage,2); assert(d.state_.unitState.raw==0x0C);
+    d.protocol_version_={3,20}; d.initializeQueries();
+    for(auto cmd : {"Rz52","Rz72"}) {
+        auto it=std::find_if(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==cmd;});
+        assert(it!=d.queries_.end() && it->is_static && !it->handler);
+    }
+}
+int main() { test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

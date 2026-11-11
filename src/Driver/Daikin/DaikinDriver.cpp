@@ -822,6 +822,11 @@ void DaikinDriver::initializeQueries()
         }
     }
 
+    if (major > 3 || (major == 3 && minor >= 20)) {
+        // Rz52/Rz72 are distinct, undocumented pages; retain bytes only.
+        queries_.emplace_back("Rz52", nullptr, true);
+        queries_.emplace_back("Rz72", nullptr, true);
+    }
     // Environment queries (most are supported across protocols)
     queries_.emplace_back(EnvironmentQuery::InsideTemperature, [this](uint8_t* data, size_t data_size) { handle_rh_response(data, data_size); });
     queries_.emplace_back(EnvironmentQuery::TargetTemperature, [this](uint8_t* data, size_t data_size) { handle_rx_response(data, data_size); });
@@ -2683,92 +2688,18 @@ void DaikinDriver::handle_rg2_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_rzb2_response(uint8_t* data, size_t data_size)
 {
-    if (data_size < 1)
-    {
-        logErrorP("RzB2 response empty");
-        return;
-    }
-    if (data_size == 1)
-    { // Single-byte response is always ACK
-        uint8_t response = data[0];
-        logDebugP("RzB2: Single-byte ACK received (0x%02X) - no unit state data", response);
-        return;
-    }
-    // RzB2 response contains unit state bitfield
-    if (data_size >= 2)
-    {
-        stats_.frames_ok++;
-
-        uint8_t bitfield = data[0];
-        bool decoded_ascii = false;
-        uint8_t parsed = 0;
-        if (s21_decode_hex_byte_reversed(data, parsed))
-        {
-            bitfield = parsed;
-            decoded_ascii = true;
-        }
-
-        state_.unitState = daikin::DaikinUnitState(bitfield); // Parse unit state bitfield
-
-        logInfoP("RzB2: Unit state bitfield 0x%02X%s - powerful=%d, defrost=%d, active=%d, online=%d",
-                 bitfield,
-                 decoded_ascii ? " (decoded ASCII)" : "",
-                 state_.unitState.powerful(),
-                 state_.unitState.defrost(),
-                 state_.unitState.active(),
-                 state_.unitState.online());
-
-        // Update online status from unit state if available
-        if (state_.unitState.online())
-        {
-            state_.online = true;
-        }
-    }
+    uint8_t value = 0;
+    if (data_size != 2 || !s21_decode_hex_byte_reversed(data, value)) return;
+    state_.unitState.raw = value;
+    stats_.frames_ok++;
 }
 
 void DaikinDriver::handle_rzc3_response(uint8_t* data, size_t data_size)
 {
-    if (data_size < 1)
-    {
-        logErrorP("RzC3 response empty");
-        return;
-    }
-    if (data_size == 1)
-    { // Single-byte response is always ACK
-        uint8_t response = data[0];
-        logDebugP("RzC3: Single-byte ACK received (0x%02X) - no system state data", response);
-        return;
-    }
-    // RzC3 response contains system state bitfield
-    if (data_size >= 2)
-    {
-        stats_.frames_ok++;
-
-        uint8_t bitfield = data[0];
-        bool decoded_ascii = false;
-        uint8_t parsed = 0;
-        if (s21_decode_hex_byte_reversed(data, parsed))
-        {
-            bitfield = parsed;
-            decoded_ascii = true;
-        }
-
-        state_.systemState = daikin::DaikinSystemState(bitfield); // Parse system state bitfield
-
-        logInfoP("RzC3: System state bitfield 0x%02X%s - locked=%d, active=%d, defrost=%d, multizone_conflict=%d",
-                 bitfield,
-                 decoded_ascii ? " (decoded ASCII)" : "",
-                 state_.systemState.locked(),
-                 state_.systemState.active(),
-                 state_.systemState.defrost(),
-                 state_.systemState.multizone_conflict());
-
-        // Additional bytes may contain more system information
-        if (data_size >= 3)
-        {
-            logDebugP("RzC3: Additional system data bytes available (%zu total)", data_size);
-        }
-    }
+    uint8_t value = 0;
+    if (data_size != 2 || !s21_decode_hex_byte_reversed(data, value)) return;
+    state_.systemState.raw = value;
+    stats_.frames_ok++;
 }
 
 // === Serial Communication Callbacks ===
