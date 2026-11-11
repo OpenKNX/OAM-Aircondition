@@ -2565,17 +2565,17 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
         return;
     }
 
-    if (command == StateQuery::ExtensionFX60 && data_size >= 4)
+    if (command == StateQuery::ExtensionFX60)
     {
         uint32_t value = 0;
-        if (parse_reversed_ascii_hex(data, 4, value))
-        {
-            state_.fx60_valid = true;
-            state_.fx60_value10 = value;
-
-            logInfoP("FX60: power-like value=%.1f (raw 0x%04X)", value / 10.0f, static_cast<unsigned>(value));
-            return;
+        state_.fx60_valid = data_size == 4 && parse_reversed_ascii_hex(data,4,value) && value != 0xFFFF;
+        if (state_.fx60_valid) {
+            state_.fx60_raw = value;
+            // RevK Faikout.c uses consumption = raw * 10 (ten-watt units).
+            state_.fx60_power_w = value * 10U;
+            logInfoP("FX60 indoor power=%u W (raw=0x%04X)",state_.fx60_power_w,value);
         }
+        return;
     }
 
     constexpr size_t preview_max = 12;
@@ -3329,20 +3329,20 @@ void DaikinDriver::publishState()
         state_.fu04_cooling_wh != last_fu04_cooling_wh ||
         state_.fu04_heating_wh != last_fu04_heating_wh ||
         state_.fx60_valid != last_fx60_valid ||
-        state_.fx60_value10 != last_fx60_value10)
+        state_.fx60_raw != last_fx60_value10)
     {
         statusFeedback.updateDaikinExtensionTelemetry(
             state_.fu04_valid && state_.fu04_cooling_wh <= UINT32_MAX && state_.fu04_heating_wh <= UINT32_MAX,
             static_cast<uint32_t>(std::min<uint64_t>(state_.fu04_cooling_wh, UINT32_MAX)),
             static_cast<uint32_t>(std::min<uint64_t>(state_.fu04_heating_wh, UINT32_MAX)),
             state_.fx60_valid,
-            state_.fx60_value10);
+            state_.fx60_power_w * 10U); // existing common telemetry interface expects W x 10
 
         last_fu04_valid = state_.fu04_valid;
         last_fu04_cooling_wh = state_.fu04_cooling_wh;
         last_fu04_heating_wh = state_.fu04_heating_wh;
         last_fx60_valid = state_.fx60_valid;
-        last_fx60_value10 = state_.fx60_value10;
+        last_fx60_value10 = state_.fx60_raw;
     }
 }
 
