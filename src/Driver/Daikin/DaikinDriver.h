@@ -274,6 +274,7 @@ private:
     // Protocol support detection
     daikin::ProtocolVersion protocol_version_{daikin::ProtocolUndetected};
     struct {
+        bool f2_known{false}, fan_capability_known{false}, sensor_hardware_known{false};
         bool auto_limit_offset{false};
         bool special_features_known{false};
         bool powerful{false};

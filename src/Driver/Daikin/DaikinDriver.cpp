@@ -1230,6 +1230,7 @@ void DaikinDriver::startQueryCycle()
 bool DaikinDriver::isQuerySupported(std::string_view command) const
 {
     if ((command == "RM" || command == "RN") && !support_.swing) return false;
+    if ((command == "RK" || command == "RL") && support_.fan_capability_known && !support_.fan) return false;
     // Check if this query has been marked as failed
     auto it = std::find(failed_queries_.begin(), failed_queries_.end(), command);
     if (it != failed_queries_.end())
@@ -1620,6 +1621,10 @@ void DaikinDriver::sendClimateCommand()
 void DaikinDriver::sendSwingCommand()
 {
     if ((!pending_.activate_swing_mode && !humidity_pending_) || !d5_.valid) return;
+    if (pending_.activate_swing_mode && support_.f2_known && !support_.swing) {
+        pending_.activate_swing_mode = false;
+        if (!humidity_pending_) return;
+    }
     const bool v = pending_.climate.swing_v == daikin::Swing::Vertical;
     const bool h = pending_.climate.swing_h == daikin::Swing::Horizontal;
     PayloadBuffer payload = d5_.confirmed;
@@ -1698,8 +1703,9 @@ void DaikinDriver::sendSpecialModesCommand()
         if (!support_.powerful) pending_.activate_powerful = false;
         if (!support_.streamer) pending_.activate_streamer = false;
     }
+    const bool write_led = pending_.activate_led && support_.sensor_hardware_known;
     if (!(pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
-          pending_.activate_streamer || pending_.activate_sensor || pending_.activate_led)) return;
+          pending_.activate_streamer || pending_.activate_sensor || write_led)) return;
     PayloadBuffer payload = d6_.confirmed;
     auto update_bit = [&](size_t byte, uint8_t mask, bool on) {
         payload[byte] = (payload[byte] & ~mask) | (on ? mask : 0);
@@ -1709,14 +1715,15 @@ void DaikinDriver::sendSpecialModesCommand()
     if (pending_.activate_comfort) update_bit(0, 0x40, pending_.comfort);
     if (pending_.activate_streamer) update_bit(1, 0x80, pending_.climate.streamer);
     if (pending_.activate_sensor && support_.sensor_hardware) update_bit(3, 0x08, pending_.climate.sensor);
-    if (pending_.activate_led) {
+    if (write_led) {
         if (support_.sensor_hardware) update_bit(3, 0x04, pending_.climate.led);
         else payload[3] = (payload[3] & ~0x0C) |
             (pending_.led == daikin::LedState::On ? 0x04 : pending_.led == daikin::LedState::Dark ? 0x08 : 0x0C);
     }
     if (!sendCombined("D6", payload)) return;
     pending_.activate_powerful = pending_.activate_quiet = pending_.activate_comfort = false;
-    pending_.activate_streamer = pending_.activate_sensor = pending_.activate_led = false;
+    pending_.activate_streamer = pending_.activate_sensor = false;
+    if (write_led) pending_.activate_led = false;
 }
 
 void DaikinDriver::setComfort(bool on)
@@ -1924,6 +1931,7 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
     if (data_size != 4) return;
     stats_.frames_ok++;
 
+    support_.f2_known = true;
     // De-shield F2 capability bytes (S21 protocol uses 0x30 shield bits on byte 0 only)
     uint8_t b0 = data[0] & ~0x30; // Remove shield bits from byte 0 (bits 4,5 are shields)
     uint8_t b3 = data[3];         // Byte 3: keep all bits - bit1=Humidify, bit4=extended humidity
@@ -2182,7 +2190,7 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
     state_.sensorLed = support_.sensor_hardware && (data[3] & 0x04);
     if (support_.sensor_hardware) {
         state_.ledState = state_.sensorLed ? daikin::LedState::On : daikin::LedState::Off;
-    } else {
+    } else if (support_.sensor_hardware_known) {
         switch (data[3] & 0x0C) {
             case 0x0C: state_.ledState = daikin::LedState::Off; break;
             case 0x08: state_.ledState = daikin::LedState::Dark; break;
@@ -2190,6 +2198,7 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
             default: state_.ledState = daikin::LedState::Unknown; break;
         }
     }
+    if (!support_.sensor_hardware_known) state_.ledState = daikin::LedState::Unknown;
     if (state_.ledState != daikin::LedState::Unknown)
         state_.led = state_.ledState == daikin::LedState::On;
 
@@ -2473,10 +2482,12 @@ void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
             // Parse FK capabilities according to S21 protocol spec
             // byte1 bit 3 - "motion detector" AKA "Intelligent eye" availability
             bool sensor_hardware_available = (data[1] & 0x08) != 0;
+            support_.sensor_hardware_known = support_.fan_capability_known = true;
             support_.auto_limit_offset = (data[0] & 0x40) != 0;
             support_.sensor_hardware = sensor_hardware_available;
             support_.sensor = sensor_hardware_available;
             support_.fan = (data[2] & 0x04) != 0;
+            if (!support_.fan) support_.swing = support_.horizontal_swing = false;
             if (data[2] & 0x02) humidity_modes_ = 0; // simple Humidify has no level controls
             support_.demand = (data[3] & 0x01) != 0 && protocol_version_.major > 2;
 
