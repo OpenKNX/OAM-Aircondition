@@ -191,6 +191,8 @@ public:
 
     // Configure only after validating the model's reduced-demand range on hardware.
     bool configureDemandLimits(uint8_t minimum, uint8_t step);
+    bool configureTimerGranularity(uint16_t minutes, uint16_t maximum_minutes);
+    bool setTimers(uint16_t on_minutes, uint16_t off_minutes);
     bool configureVaneAngleScale(uint8_t divisor);
     bool setHumidityMode(daikin::HumidityMode mode);
     void setLedState(daikin::LedState state);
@@ -299,7 +301,7 @@ private:
         PayloadBuffer confirmed{};
         bool valid{false};
         CommandSupport write{CommandSupport::Unknown};
-    } d5_, d6_, d7_, dr_;
+    } d5_, d6_, d7_, dr_, d3_;
     uint8_t humidity_modes_{0}, requested_humidity_{0};
     bool humidity_pending_{false};
     uint8_t demand_minimum_{100}, demand_step_{1}, requested_demand_{100};
@@ -307,6 +309,11 @@ private:
     int requested_vertical_position_{-1};
     bool vertical_pending_{false};
     void sendVerticalPositionCommand();
+    void sendTimerCommand();
+    uint16_t timer_step_{0}, timer_max_{0};
+    uint16_t requested_on_minutes_{0}, requested_off_minutes_{0};
+    uint8_t timer_disabled_byte_{0};
+    bool timer_pending_{false};
     std::string_view outstanding_write_{};
     bool sendCombined(std::string_view command, const PayloadBuffer& payload);
     void sendSpecialModesCommand();

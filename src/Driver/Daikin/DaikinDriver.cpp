@@ -362,6 +362,7 @@ void DaikinDriver::loop()
             sendSpecialModesCommand();
         if (pending_.activate_econo || demand_pending_) sendEconoCommand();
         if (vertical_pending_) sendVerticalPositionCommand();
+        if (timer_pending_) sendTimerCommand();
     }
 
     updateQueryStateMachine(); // non-blocking state machine
@@ -1676,14 +1677,16 @@ void DaikinDriver::sendStreamerCommand()
 
 bool DaikinDriver::sendCombined(std::string_view command, const PayloadBuffer& payload)
 {
-    CombinedCommand& combined = command == "D5" ? d5_ : command == "D6" ? d6_ : command == "DR" ? dr_ : d7_;
+    CombinedCommand& combined = command == "D5" ? d5_ : command == "D6" ? d6_ : command == "DR" ? dr_ : command == "D3" ? d3_ : d7_;
     if (!serial_ || serial_->busy() || isInPostWriteSettle() || !combined.valid ||
         combined.write == CommandSupport::Unsupported) return false;
-    for (uint8_t b : payload) {
+    const size_t size = command == "D3" ? 3 : payload.size();
+    for (size_t i=0;i<size;i++) {
+        const uint8_t b = payload[i];
         if (b == 2 || b == 3 || b == 6 || b == 0x15 || b == 0x0A) return false;
     }
     outstanding_write_ = command;
-    serial_->send_frame(command, payload.data(), payload.size());
+    serial_->send_frame(command, payload.data(), size);
     combined.valid = false; // require fresh readback before another shared-field write
     last_send_time_ = millis();
     handleWriteCommandSent(command == "D5" ? LastWriteCommand::D5_Swing : LastWriteCommand::Other);
@@ -2058,11 +2061,45 @@ void DaikinDriver::handle_f4_response(uint8_t* data, size_t size)
     if (state_.serialError) ++state_.serialErrorSamples;
 }
 
-void DaikinDriver::handle_f3_response(uint8_t* data, size_t data_size)
+void DaikinDriver::handle_f3_response(uint8_t* data, size_t size)
 {
-    if (data_size != 4) return;
-    // F3 byte 3 is unknown. It must not overwrite confirmed Powerful state.
-    stats_.frames_ok++;
+    if (size != 4 || data[0] < '0' || data[0] > '3') return;
+    const uint8_t enabled = data[0] - '0';
+    for (size_t i=1;i<=2;i++) {
+        if (enabled & (1 << (i-1))) {
+            if (data[i] < 0x31 || data[i] > 0xC0) return;
+        } else if (data[i] != 0xFE && data[i] != 0x30) return;
+    }
+    for (size_t i=1;i<=2;i++) if (!(enabled & (1<<(i-1)))) timer_disabled_byte_ = data[i];
+    std::copy_n(data,4,d3_.confirmed.begin()); d3_.valid=true;
+    state_.timersValid=true; state_.onTimerEnabled=enabled&1; state_.offTimerEnabled=enabled&2;
+    state_.onTimerConfiguredMinutes=state_.onTimerEnabled ? (data[1]-0x30)*10 : 0;
+    state_.offTimerConfiguredMinutes=state_.offTimerEnabled ? (data[2]-0x30)*10 : 0;
+    // Byte 3 remains unknown: never infer Powerful or wall-clock expiry from it.
+}
+
+bool DaikinDriver::configureTimerGranularity(uint16_t minutes, uint16_t maximum)
+{
+    if (!minutes || minutes%10 || maximum>1440 || maximum<minutes || maximum%minutes) return false;
+    timer_step_=minutes; timer_max_=maximum; return true;
+}
+
+bool DaikinDriver::setTimers(uint16_t on, uint16_t off)
+{
+    if (!timer_step_ || on>timer_max_ || off>timer_max_ || on%timer_step_ || off%timer_step_ ||
+        ((!on || !off) && !timer_disabled_byte_)) return false;
+    requested_on_minutes_=on; requested_off_minutes_=off; timer_pending_=true;
+    sendTimerCommand(); return true;
+}
+
+void DaikinDriver::sendTimerCommand()
+{
+    if (!timer_pending_ || !d3_.valid) return;
+    PayloadBuffer payload=d3_.confirmed;
+    payload[0]='0'+(requested_on_minutes_?1:0)+(requested_off_minutes_?2:0);
+    payload[1]=requested_on_minutes_ ? 0x30+requested_on_minutes_/10 : timer_disabled_byte_;
+    payload[2]=requested_off_minutes_ ? 0x30+requested_off_minutes_/10 : timer_disabled_byte_;
+    if (sendCombined("D3",payload)) timer_pending_=false;
 }
 
 void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
@@ -2884,7 +2921,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
     if (!accept_response) return;
 
     if (!outstanding_write_.empty()) {
-        CombinedCommand& c = outstanding_write_ == "D5" ? d5_ : outstanding_write_ == "D6" ? d6_ : outstanding_write_ == "DR" ? dr_ : d7_;
+        CombinedCommand& c = outstanding_write_ == "D5" ? d5_ : outstanding_write_ == "D6" ? d6_ : outstanding_write_ == "DR" ? dr_ : outstanding_write_ == "D3" ? d3_ : d7_;
         if (result == daikin::DaikinSerial::Result::Ack) c.write = CommandSupport::Supported;
         if (result == daikin::DaikinSerial::Result::Nak) c.write = CommandSupport::Unsupported;
         if (result == daikin::DaikinSerial::Result::Ack || result == daikin::DaikinSerial::Result::Nak ||
