@@ -261,6 +261,9 @@ namespace daikin
         float outsideC{25.0f};
         float liquidC{25.0f};
 
+        bool serialErrorValid{false}, serialError{false};
+        uint32_t serialErrorSamples{0};
+
         // System status
         bool compressorOn{false}; // RG2: compressor state for action determination
 

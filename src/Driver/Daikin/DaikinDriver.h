@@ -157,6 +157,7 @@ public:
     virtual const std::string name() const override;
     virtual void showInformations() override;
     
+    const daikin::State& telemetry() const { return state_; }
     enum class FeatureAccess : uint8_t { Unknown, Unsupported, ReadOnly, Writable };
     FeatureAccess commandAccess(std::string_view read_command) const;
 
@@ -421,6 +422,7 @@ private:
     void checkOnlineTimeout();
     
     // Response handlers
+    void handle_f4_response(uint8_t* data, size_t data_size);
     void handle_f1_response(uint8_t* data, size_t data_size);
     void handle_f2_response(uint8_t* data, size_t data_size);
     void handle_f3_response(uint8_t* data, size_t data_size); 

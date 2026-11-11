@@ -162,6 +162,7 @@ void DaikinDriver::showInformations()
     logInfoP("--- Sensors ---");
     logInfoP("Humidity: %d%%", state_.humidity);
     logInfoP("Total Energy: %u Wh", state_.totalEnergyWh);
+    if (state_.serialErrorValid) logInfoP("S21 serial error (read-clears): %d, samples=%u", state_.serialError, state_.serialErrorSamples);
     logInfoP("Compressor Frequency: %d Hz", state_.compressorHz);
 
     // Protocol information
@@ -761,6 +762,7 @@ void DaikinDriver::initializeQueries()
     // F5 - Swing/Humidity (supported by all protocols)
     queries_.emplace_back(StateQuery::SwingOrHumidity, [this](uint8_t* data, size_t data_size) { handle_f5_response(data, data_size); });
 
+    queries_.emplace_back("F4", [this](uint8_t* data, size_t n) { handle_f4_response(data,n); });
     queries_.emplace_back(StateQuery::OnOffTimer, [this](uint8_t* data, size_t n) { handle_f3_response(data,n); });
     // F6 is read-only on some v0/v2 models. Probe it; discover support via NAK.
     queries_.emplace_back(StateQuery::SpecialModes, [this](uint8_t* data, size_t n) { handle_f6_response(data,n); });
@@ -1890,6 +1892,15 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
               support_.fan, support_.sensor, support_.streamer, support_.led);
     logDebugP("F2: bytes [0x%02X, -, -, 0x%02X] de-shielded [0x%02X, -, -, 0x%02X]",
               data[0], data[3], b0, b3_view);
+}
+
+void DaikinDriver::handle_f4_response(uint8_t* data, size_t size)
+{
+    if (size != 4) return;
+    // Read-clears at the unit: this is the latest sample, never a latched error.
+    state_.serialErrorValid = true;
+    state_.serialError = (data[2] & 0x20) != 0;
+    if (state_.serialError) ++state_.serialErrorSamples;
 }
 
 void DaikinDriver::handle_f3_response(uint8_t* data, size_t data_size)
