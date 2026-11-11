@@ -1029,7 +1029,7 @@ void DaikinDriver::updateQueryStateMachine()
         {
             // Dynamic grace period: extended for first F1 after write command (v0 stability)
             uint32_t grace_deadline = isFirstF1AfterWrite ? POST_WRITE_F1_TIMEOUT_MS : GRACE_PERIOD_MS;
-            if (now - state_start_time_ >= grace_deadline)
+            if (now - state_start_time_ >= grace_deadline && !serial_->busy())
             {
                 if (query_index_ < queries_.size())
                 {
@@ -1093,6 +1093,7 @@ void DaikinDriver::updateQueryStateMachine()
 
 bool DaikinDriver::canSendQuery() const
 {
+    if (!serial_ || serial_->busy()) return false;
     uint32_t now = millis();
     // Determine effective inter-query delay based on system load
     uint32_t effective_delay = high_load_detected_ ? INTER_QUERY_DELAY_HIGH_LOAD_MS : INTER_QUERY_DELAY_MS;
@@ -3062,41 +3063,10 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
 {
     uint32_t now = millis();
 
-    bool accept_response = false; // Accept responses if we're actively waiting OR within the late response window
-
-    if (query_state_ == QueryState::WaitingForAck || query_state_ == QueryState::WaitingForGrace)
-    {
-        accept_response = true;
-    }
-    else if (query_state_ == QueryState::Idle && last_send_time_ != 0 &&
-             (now - last_send_time_) < LATE_RX_WINDOW_MS)
-    {
-        accept_response = true; // Accept late responses in Idle state if within window
-        logDebugP("Accepting late response %lu ms after send", now - last_send_time_);
-    }
-    else if (query_state_ == QueryState::WaitingToSend && last_send_time_ != 0 &&
-             (now - last_send_time_) < LATE_ACCEPT_WINDOW_MS)
-    {
-        accept_response = true; // Accept very late responses even in WaitingToSend state
-        logDebugP("Accepting very late response %lu ms after send", now - last_send_time_);
-    }
-    else if (query_state_ == QueryState::PostWriteSettle && last_send_time_ != 0 && (now - last_send_time_) < LATE_RX_WINDOW_MS)
-    {
-        accept_response = true; // Accept responses during settle if within late window (v0 stability)
-        logDebugP("Accepting response during settle %lu ms after send", now - last_send_time_);
-    }
-    else if (data_size == 1 && data && data[0] == 0x06)
-    {                           // 0x06 is proper ACK
-        accept_response = true; // Always accept standalone ACKs regardless of timing (they prove communication works)
-        logDebugP("Accepting standalone ACK 0x%02X regardless of timing", data[0]);
-    }
-    if (!accept_response)
-    {
-        logDebugP("Received result but outside acceptance window (state: %d, time since send: %lu ms)",
-                  static_cast<int>(query_state_),
-                  last_send_time_ != 0 ? now - last_send_time_ : 0);
-        return;
-    }
+    const bool accept_response = query_state_ == QueryState::WaitingForAck ||
+                                 query_state_ == QueryState::WaitingForGrace ||
+                                 query_state_ == QueryState::PostWriteSettle;
+    if (!accept_response) return;
 
     // During post-write settle we may receive ACK/frames that belong to D-commands.
     // Keep the settle state active so the coalesced D1 flush can run after timeout.
@@ -3118,6 +3088,8 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             case daikin::DaikinSerial::Result::Error:
                 stats_.frames_bad_checksum++;
                 break;
+            case daikin::DaikinSerial::Result::Timeout:
+                break;
         }
         logDebugP("Handled write response during settle without advancing query state");
         return;
@@ -3136,7 +3108,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
         case daikin::DaikinSerial::Result::Ack:
             markOnline(millis()); // Mark device online on ACK
             stats_.acks++;
-            query.acked = true;
+            // An ACK alone does not satisfy a static read.
             query.naks = 0;
             // Wait for framed reply (if any) -> stay in WaitingForGrace
             query_state_ = QueryState::WaitingForGrace;
@@ -3166,29 +3138,6 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                         // F* commands expect G* responses (same tail)
                         std::string expected_response = "G" + expected_cmd.substr(1);
                         if (response_header == expected_response)
-                        {
-                            is_valid_response = true;
-                        }
-                        // Special case: F6 may reply as G6 (new) or G3 (old)
-                        else if (expected_cmd == "F6" && response_header == "G3")
-                        {
-                            is_valid_response = true;
-                        }
-                        // FU/FX extension pages can return alternate GU/GX page headers.
-                        // We accept the family prefix while requests are serialized.
-                        else if (expected_cmd.size() == 4 &&
-                                 response_header.size() == 4 &&
-                                 expected_cmd[1] == 'U' &&
-                                 response_header[0] == 'G' &&
-                                 response_header[1] == 'U')
-                        {
-                            is_valid_response = true;
-                        }
-                        else if (expected_cmd.size() == 4 &&
-                                 response_header.size() == 4 &&
-                                 expected_cmd[1] == 'X' &&
-                                 response_header[0] == 'G' &&
-                                 response_header[1] == 'X')
                         {
                             is_valid_response = true;
                         }
@@ -3222,6 +3171,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 {
                     if (payload_len > 0)
                     {
+                        query.acked = true;
                         query.response_data.assign(payload, payload + payload_len);
                         if (query.handler) query.handler(payload, payload_len);
                     }
@@ -3240,6 +3190,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                               static_cast<int>(query.command.size()), query.command.data(),
                               static_cast<int>(std::min(data_size, expected_cmd_len)), data);
                     stats_.frames_bad_format++;
+                    return; // unrelated frames must not advance the outstanding query
                 }
             }
             // Advance after frame

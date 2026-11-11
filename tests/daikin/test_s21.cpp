@@ -33,6 +33,39 @@ struct Transport {
     FakeHAL& hal() { return *static_cast<FakeHAL*>(serial.serial_hal_.get()); }
     void receive(std::initializer_list<uint8_t> bytes) { hal().rx.insert(hal().rx.end(),bytes); while(!hal().rx.empty()) serial.loop(); }
 };
+struct Feedback : AirConditionDriverStatusFeedback {
+    void driverStateChanged(AirConditionDriverState state, std::string error) override { }
+    AirConditionDriverState getDriverState() const override { return AirConditionDriverStateOk; }
+    void powerChanged(bool power) override { }
+    void modeChanged(AirConditionMode mode) override { }
+    void targetTemperatureChanged(float temperaturCelius, bool isFeedbackFromSettin) override { }
+    void fanSpeedChanged(int speed) override { }
+    void swingHorizontalChanged(bool swing) override { }
+    void swingVerticalChanged(bool swing) override { }
+    void swingHorizontalFixPositionChanged(int position) override { }
+    void swingVerticalFixPositionChanged(int position) override { }
+    void roomTemperatureChanged(float temperaturCelius) override { }
+    void outsideTemperaturChanged(float temperaturCelius) override { }
+    void deviceModeChanged(AirConditionDeviceMode mode) override { }
+    void maxPowerLevelChanged(uint8_t percentage) override { }
+    void airPurificationChanged(bool on) override { }
+    void updatePower(bool power) override { }
+    void updateMode(AirConditionMode mode) override { }
+    void updateTargetTemperature(float temperaturCelius) override { }
+    void updateFanSpeed(int speed) override { }
+    void updateSwingHorizontal(bool swing) override { }
+    void updateSwingVertical(bool swing) override { }
+    void updateCurrentTemperature(float temperaturCelius) override { }
+    void updateOutdoorTemperature(float temperaturCelius) override { }
+    void updateDeviceMode(AirConditionDeviceMode mode) override { }
+    void updateMaxPowerLevel(uint8_t percentage) override { }
+    void updateAirPurification(bool on) override { }
+    void updateOnlineStatus(bool online) override { }
+    void updateWifiLed(bool on) override { }
+    void updateHumidity(uint8_t humidity) override { }
+    void updateHumidityMode(uint8_t step) override { }
+    void updateTotalEnergyConsumption(uint32_t totalEnergyWh) override { }
+};
 void test_handshake() {
     Transport t;
     t.serial.send_frame("F1");
@@ -84,4 +117,17 @@ void test_no_unframed_fallback() {
         test_now+=1100; t.serial.loop();
     }
 }
-int main() { test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); std::cout << "S21 native tests passed\n"; }
+void test_correlation() {
+    Feedback feedback; DaikinDriver d(feedback); d.setup();
+    d.queries_.emplace_back("FU04"); d.query_index_=0;
+    d.query_state_=DaikinDriver::QueryState::WaitingForAck;
+    uint8_t wrong[]={'G','U','0','2','0'};
+    d.handle_serial_result(Result::Frame,wrong,sizeof(wrong));
+    assert(d.query_index_==0 && d.queries_[0].response_data.empty());
+    uint8_t right[]={'G','U','0','4','0'};
+    d.handle_serial_result(Result::Frame,right,sizeof(right));
+    assert(d.query_index_==1 && d.queries_[0].response_data.size()==1);
+    d.query_index_=0; d.query_state_=DaikinDriver::QueryState::Idle;
+    d.handle_serial_result(Result::Frame,right,sizeof(right)); assert(d.query_index_==0);
+}
+int main() { test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
