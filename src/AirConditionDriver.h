@@ -32,7 +32,7 @@ enum AirConditionDeviceMode
     // AirConditionDeviceModeComfort,
     // AirConditionDeviceModeSleep,
     // AirConditionDeviceModeFloor,
-    
+
     // Extended unified naming (aliases preserve existing numeric values where applicable)
     AirConditionDeviceModeNormal         = AirConditionDeviceModeStandard,
     AirConditionDeviceModeHighPerformance= AirConditionDeviceModeHiPower,
@@ -74,7 +74,10 @@ public:
     virtual void updateOnlineStatus(bool online) = 0;
     virtual void updateWifiLed(bool on) = 0;
     virtual void updateHumidity(uint8_t humidity) = 0;
-    virtual void updateHumidityMode(uint8_t step) = 0;     
+    virtual void updateHumidityMode(uint8_t step) = 0;
+    // Position 6 is the S21 automatic marker; verifiedMask is independent of read support.
+    virtual void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) {}
+
     virtual void updateTotalEnergyConsumption(uint32_t totalEnergyWh) = 0;
 
     // Optional vendor-specific extension telemetry.
@@ -88,23 +91,23 @@ public:
     }
 };
 
-class AirConditionDriver 
+class AirConditionDriver
 {
 public:
-    const int FAN_SPEED_AUTO = 0; 
+    const int FAN_SPEED_AUTO = 0;
 protected:
     // Reference to the status feedback interface
     AirConditionDriverStatusFeedback& statusFeedback;
     AirConditionDriver(AirConditionDriverStatusFeedback& statusFeedback);
 public:
     static std::string toHexString(const std::vector<uint8_t>& data);
-    static std::string toHexString(const uint8_t* data, size_t length); 
+    static std::string toHexString(const uint8_t* data, size_t length);
     static const char* getDriverStateString(AirConditionDriverState state);
     // Lifecycle methods
     virtual void setup() = 0;
     virtual void startCommunication(bool restart) = 0;
     virtual void requestAllData() = 0;
-   
+
     virtual void loop() = 0;
     virtual void processInputKo(GroupObject &ko) {}
     virtual bool processCommand(const std::string cmd, bool debugKo) { return false; }
@@ -112,13 +115,13 @@ public:
     // Information about the air condition device
     virtual const std::string name() const = 0;
     const std::string logPrefix() const;
-   
+
     virtual void showInformations() = 0;
-    virtual float getMinimumTargetTemperature() = 0; 
+    virtual float getMinimumTargetTemperature() = 0;
     virtual float getMaximumTargetTemperature() = 0;
-    virtual unsigned int getMaximumFanSpeed() = 0; 
-    virtual unsigned int getMaximumHorizontalFixPosition() = 0; 
-    virtual unsigned int getMaximumVerticalFixPosition() = 0; 
+    virtual unsigned int getMaximumFanSpeed() = 0;
+    virtual unsigned int getMaximumHorizontalFixPosition() = 0;
+    virtual unsigned int getMaximumVerticalFixPosition() = 0;
     virtual unsigned int getMaximumHumidityModeLevels() = 0;
     virtual bool supportExternalRoomTemperatureSensor() = 0;
 
@@ -132,6 +135,8 @@ public:
     virtual void setSwingVertical(bool swing) = 0;
     virtual void setSwingHorizontalFixPosition(unsigned int position) = 0;
     virtual void setSwingVerticalFixPosition(unsigned int position) = 0;
+    virtual bool setFixedVerticalPosition(uint8_t position) { return false; }
+
     virtual void setExternalSensorRoomTemperature(float temperaturCelius) = 0;
     virtual void setWifiLed(bool on) = 0;
     virtual void setDeviceMode(AirConditionDeviceMode mode) = 0;

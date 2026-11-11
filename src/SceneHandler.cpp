@@ -73,7 +73,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCASceneTemperature;
             params.fan = ParamAIR_SCASceneFan;
             params.swing = ParamAIR_SCASceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCAScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCAScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCAScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCAScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCASceneDeviceMode;
             params.airPurification = ParamAIR_SCASceneAirPurification;
@@ -84,7 +84,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCBSceneTemperature;
             params.fan = ParamAIR_SCBSceneFan;
             params.swing = ParamAIR_SCBSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCBScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCBScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCBScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCBScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCBSceneDeviceMode;
             params.airPurification = ParamAIR_SCBSceneAirPurification;
@@ -95,7 +95,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCCSceneTemperature;
             params.fan = ParamAIR_SCCSceneFan;
             params.swing = ParamAIR_SCCSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCCScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCCScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCCScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCCScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCCSceneDeviceMode;
             params.airPurification = ParamAIR_SCCSceneAirPurification;
@@ -106,7 +106,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCDSceneTemperature;
             params.fan = ParamAIR_SCDSceneFan;
             params.swing = ParamAIR_SCDSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCDScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCDScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCDScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCDScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCDSceneDeviceMode;
             params.airPurification = ParamAIR_SCDSceneAirPurification;
@@ -117,7 +117,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCESceneTemperature;
             params.fan = ParamAIR_SCESceneFan;
             params.swing = ParamAIR_SCESceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCEScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCEScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCEScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCEScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCESceneDeviceMode;
             params.airPurification = ParamAIR_SCESceneAirPurification;
@@ -128,7 +128,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCFSceneTemperature;
             params.fan = ParamAIR_SCFSceneFan;
             params.swing = ParamAIR_SCFSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCFScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCFScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCFScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCFScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCFSceneDeviceMode;
             params.airPurification = ParamAIR_SCFSceneAirPurification;
@@ -139,7 +139,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCGSceneTemperature;
             params.fan = ParamAIR_SCGSceneFan;
             params.swing = ParamAIR_SCGSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCGScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCGScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCGScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCGScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCGSceneDeviceMode;
             params.airPurification = ParamAIR_SCGSceneAirPurification;
@@ -150,7 +150,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCHSceneTemperature;
             params.fan = ParamAIR_SCHSceneFan;  
             params.swing = ParamAIR_SCHSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCHScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCHScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCHScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCHScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCHSceneDeviceMode;
             params.airPurification = ParamAIR_SCHSceneAirPurification;
@@ -161,7 +161,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCISceneTemperature;
             params.fan = ParamAIR_SCISceneFan;
             params.swing = ParamAIR_SCISceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCIScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCIScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCIScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCIScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCISceneDeviceMode;
             params.airPurification = ParamAIR_SCISceneAirPurification;
@@ -172,7 +172,7 @@ SceneParameters SceneHandler::getSceneParameters(int index)
             params.temperature = ParamAIR_SCJSceneTemperature;
             params.fan = ParamAIR_SCJSceneFan;
             params.swing = ParamAIR_SCJSceneSwing;
-            params.position = supportsScenePositionAndPowerLimit ? ParamAIR_SCJScenePosition : 255;
+            params.position = ParamAIR_DeviceType == PT_AIRDeviceType::Daikin ? ParamAIR_SCJScenePositionDaikin : supportsScenePositionAndPowerLimit ? ParamAIR_SCJScenePosition : 255;
             params.powerLimit = supportsScenePositionAndPowerLimit ? ParamAIR_SCJScenePowerLimit : 255;
             params.deviceMode = ParamAIR_SCJSceneDeviceMode;
             params.airPurification = ParamAIR_SCJSceneAirPurification;

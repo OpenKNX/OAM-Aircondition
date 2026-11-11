@@ -591,6 +591,12 @@ bool DaikinDriver::setClimateVariant(daikin::ClimateVariant variant,daikin::Humi
     return true;
 }
 
+bool DaikinDriver::setFixedVerticalPosition(uint8_t position)
+{
+    if (!serial_ || !dr_.read_supported || position > 6) return false;
+    return setVerticalPositionCode(position == 6 ? '?' : char('0' + position));
+}
+
 bool DaikinDriver::setVerticalPositionCode(char position)
 {
     if(position!='?' && (position<'0' || position>'5')) return false;
@@ -1981,7 +1987,9 @@ void DaikinDriver::handle_fr_response(uint8_t* data, size_t size)
     confirmCombined("DR",data);
     std::copy_n(data, 4, dr_.confirmed.begin());
     dr_.valid = true;
+    state_.verticalPositionCodeValid = true;
     state_.verticalPositionValid = data[0] != '?';
+    state_.verticalPosition = data[0] == '?' ? 6 : data[0] - '0';
     if (state_.verticalPositionValid) {
         state_.verticalPosition = data[0] - '0';
         if (requested_vertical_position_ > 0 && state_.verticalPosition == requested_vertical_position_ &&
@@ -2979,6 +2987,7 @@ void DaikinDriver::publishState()
         statusFeedback.updateDaikinExtensionTelemetry(state_.fu04_valid && state_.fu04_cooling_wh<=UINT32_MAX && state_.fu04_heating_wh<=UINT32_MAX,
             uint32_t(std::min<uint64_t>(state_.fu04_cooling_wh,UINT32_MAX)),uint32_t(std::min<uint64_t>(state_.fu04_heating_wh,UINT32_MAX)),state_.fx60_valid,state_.fx60_power_w*10U);
     state_.action = calculateCurrentAction(); state_.actionValid=state_.action!=daikin::Action::Unknown;
+    statusFeedback.updateVerticalPositionStatus(state_.verticalPositionCodeValid, state_.verticalPosition, getMaximumVerticalFixPosition(), verified_vertical_positions_);
     published_ = state_; publication_initialized_=true;
     seed_kos_pending_=false; gate_publish_until_full_sample_=false;
 }
@@ -3011,7 +3020,7 @@ void DaikinDriver::invalidatePage(std::string_view c)
     if(c=="RL") state_.fanRpmValid=false;
     if(c=="RM") state_.vaneAngleSetpointValid=state_.vaneAngleSetpointDegreesValid=false;
     if(c=="RN") state_.vaneAngleValid=state_.vaneAngleDegreesValid=false;
-    if(c=="FR") state_.verticalPositionValid=false;
+    if(c=="FR") state_.verticalPositionValid=state_.verticalPositionCodeValid=false;
     if(c=="FB") state_.timerLampValid=false;
     if(c=="FM") state_.totalEnergyValid=false;
     if(c=="FG") state_.irCounterValid=false;
@@ -3041,7 +3050,7 @@ void DaikinDriver::invalidateTelemetry()
     state_.indoorHeatExchangerValid=state_.humidityModeValid=state_.unitStateValid=state_.systemStateValid=false;
     state_.vaneAngleValid=state_.vaneAngleSetpointValid=state_.vaneAngleDegreesValid=state_.vaneAngleSetpointDegreesValid=false;
     state_.fanRpmValid=state_.fanRpmSetpointValid=state_.timerLampValid=state_.serialErrorValid=false;
-    state_.timersValid=state_.verticalPositionValid=state_.targetOffsetValid=state_.climateVariantValid=false;
+    state_.timersValid=state_.verticalPositionValid=state_.verticalPositionCodeValid=state_.targetOffsetValid=state_.climateVariantValid=false;
     state_.fu04_valid=state_.fx60_valid=state_.totalEnergyValid=false;
     state_.irCounterValid=state_.pullValid=state_.rmRawValid=state_.rtRawValid=false;
     state_.independentPowerValid=state_.independentModeValid=state_.coarseTargetValid=false;

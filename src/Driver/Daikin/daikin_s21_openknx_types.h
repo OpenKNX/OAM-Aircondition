@@ -315,7 +315,7 @@ namespace daikin
         bool independentModeValid{false}, coarseTargetValid{false};
         uint8_t independentMode{0};
         int16_t coarseTargetC{0};
-        bool verticalPositionValid{false}, verticalPositionVerified{false};
+        bool verticalPositionValid{false}, verticalPositionVerified{false}, verticalPositionCodeValid{false};
         uint8_t verticalPosition{0};
         bool timerLampValid{false}, timerLamp{false};
         bool serialErrorValid{false}, serialError{false};

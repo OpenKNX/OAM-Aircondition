@@ -481,6 +481,17 @@
                 </TypeRestriction>
               </ParameterType>
 
+              <ParameterType Id="%AID%_PT-AIRSceneVerticalPositionDaikin" Name="AIRSceneVerticalPositionDaikin">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Position 0" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Position 1" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Position 2" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Position 3" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Position 4" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Position 5" Value="5" Id="%ENID%" />
+                </TypeRestriction>
+              </ParameterType>
             </ParameterTypes>
             <Parameters>
               <!-- Base Settings -->
@@ -697,6 +708,11 @@
               <ComObject Id="%AID%_O-%TT%00064" Number="64" Name="HumidityModePercent" Text="Luftfeuchtigkeitsmodus" FunctionText="AC: Ausgang, Status, Prozent" ObjectSize="1 Byte" DatapointType="DPST-5-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
                <!-- TotalEnergy -->
               <ComObject Id="%AID%_O-%TT%00065" Number="65" Name="TotalEnergy" Text="Gesamtenergieverbrauch" FunctionText="AC: Ausgang, Status, kWh" ObjectSize="4 Bytes" DatapointType="DPST-13-013" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00066" Number="66" Name="VerticalPositionCode" Text="Lamellenposition Code (0-5, 6=Automatik)" FunctionText="AC: Lamellenposition Code (0-5, 6=Automatik)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00067" Number="67" Name="VerticalPositionCodeState" Text="Lamellenposition Code Status" FunctionText="AC: Lamellenposition Code Status" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00068" Number="68" Name="VerticalPositionMaximum" Text="Lamellenposition adressierbares Maximum" FunctionText="AC: Lamellenposition adressierbares Maximum" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00069" Number="69" Name="VerticalPositionVerified" Text="Lamellenpositionen geprüft (Bit 0-5)" FunctionText="AC: Lamellenpositionen geprüft (Bit 0-5)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00070" Number="70" Name="VerticalPositionValid" Text="Lamellenposition gültig" FunctionText="AC: Lamellenposition gültig" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
             </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -817,6 +833,11 @@
               <!-- TotalEnergy -->
               <ComObjectRef Id="%AID%_O-%TT%00065_R-%TT%0006501" RefId="%AID%_O-%TT%00065" />
 
+              <ComObjectRef Id="%AID%_O-%TT%00066_R-%TT%0006601" RefId="%AID%_O-%TT%00066" />
+              <ComObjectRef Id="%AID%_O-%TT%00067_R-%TT%0006701" RefId="%AID%_O-%TT%00067" />
+              <ComObjectRef Id="%AID%_O-%TT%00068_R-%TT%0006801" RefId="%AID%_O-%TT%00068" />
+              <ComObjectRef Id="%AID%_O-%TT%00069_R-%TT%0006901" RefId="%AID%_O-%TT%00069" />
+              <ComObjectRef Id="%AID%_O-%TT%00070_R-%TT%0007001" RefId="%AID%_O-%TT%00070" />
             </ComObjectRefs>
           </Static>
           <Dynamic>
@@ -1008,8 +1029,8 @@
                         </when>
                       </choose>
                       <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
-                        <when test="2 3 4">
-                          <!-- Midea, Mitsubishi, Toshiba -->
+                        <when test="1 2 3 4">
+                          <!-- Daikin, Midea, Mitsubishi, Toshiba -->
 
                           <!-- Lamelle Vertikale Position -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00024_R-%TT%0002401" />
@@ -1147,6 +1168,11 @@
                           <ComObjectRefRef RefId="%AID%_O-%TT%00064_R-%TT%0006401" />
                           <!-- TotalEnergy -->
                           <ComObjectRefRef RefId="%AID%_O-%TT%00065_R-%TT%0006501" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00066_R-%TT%0006601" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00067_R-%TT%0006701" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00068_R-%TT%0006801" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00069_R-%TT%0006901" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00070_R-%TT%0007001" />
                         </when>
                       </choose>
                     </ParameterBlock>

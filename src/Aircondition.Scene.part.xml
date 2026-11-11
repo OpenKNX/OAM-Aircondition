@@ -75,7 +75,7 @@
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+14%" Offset="3" BitOffset="0" Name="SC%SN%SceneSwingDaikin" ParameterType="%AID%_PT-AIRSceneSwingDaikin" Text="Lamellenbewegung" Value="255" /> 
 
                                 <!-- Szene Function Veritcal Position -->
-                                <!-- <Parameter Id="%AID%_UP-%TT%00%PPP+??%" Offset="4" BitOffset="0" Name="SC%SN%ScenePosition" ParameterType="%AID%_PT-AIRSceneHorizontalPositionDaikin" Text="Vertikale Lamellenstellung" Value="255" /> -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+17%" Offset="4" BitOffset="0" Name="SC%SN%ScenePositionDaikin" ParameterType="%AID%_PT-AIRSceneVerticalPositionDaikin" Text="Vertikale Lamellenstellung" Value="255" />
                                 <!-- 4 Bits free  -->
 
                                 <!-- Szene Leistungsbegrenzung -->
@@ -123,6 +123,7 @@
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+2%_R-%TT%00%PPP+2%01" RefId="%AID%_UP-%TT%00%PPP+2%" />
 
                             <!-- *** Daikin *** -->
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" RefId="%AID%_UP-%TT%00%PPP+17%" />
                             <!-- Szene Function Operation Mode -->
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+11%_R-%TT%00%PPP+11%01" RefId="%AID%_UP-%TT%00%PPP+11%" />
                             <!-- Szene Function Temperature -->
@@ -194,6 +195,7 @@
                                         <!-- Device Type -->
                                         <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                                             <when test="1"><!-- Daikin -->
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" IndentLevel="2" HelpContext="%DOC%" />
                                                 <!-- Betriebsmodus -->
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+11%_R-%TT%00%PPP+11%01" IndentLevel="2" HelpContext="%DOC%" />
                                                 <!-- Solltemperatur -->

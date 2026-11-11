@@ -595,12 +595,16 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 }
             }
             break;
+            case AIR_KoVerticalPositionCode:
+                _airConditionDriver->setFixedVerticalPosition(uint8_t(ko.value(DPT_Value_1_Ucount)));
+                break;
             case AIR_KoLouverVerticalSwing:
                 logInfoP("Set vertical swing to %s", ko.value(DPT_Switch) ? "on" : "off");
                 _airConditionDriver->setSwingVertical(ko.value(DPT_Switch));
                 break;
             case AIR_KoLouverVerticalPosition:
             {
+                if (!_airConditionDriver->getMaximumVerticalFixPosition()) return;
                 float verticalPositionPercent = ko.value(DPT_Scaling);
                 unsigned int verticalPosition = round((float)_airConditionDriver->getMaximumVerticalFixPosition() * verticalPositionPercent / 100.f);
                 if (verticalPosition > _airConditionDriver->getMaximumVerticalFixPosition())
@@ -865,6 +869,7 @@ void AirconditionModule::swingVerticalChanged(bool swing)
 
 void AirconditionModule::swingHorizontalFixPositionChanged(int position)
 {
+    if (!_airConditionDriver || !_airConditionDriver->getMaximumHorizontalFixPosition() || position < 0 || unsigned(position) > _airConditionDriver->getMaximumHorizontalFixPosition()) return;
     unsigned int currentHorizontalPositionPercent = position * 100 / _airConditionDriver->getMaximumHorizontalFixPosition();
     logInfoP("AirCondition report horizontal fix position changed to %u (%u%%)", position, currentHorizontalPositionPercent);
     // To Do: Horizontal position KO
@@ -873,6 +878,7 @@ void AirconditionModule::swingHorizontalFixPositionChanged(int position)
 
 void AirconditionModule::swingVerticalFixPositionChanged(int position)
 {
+    if (!_airConditionDriver || !_airConditionDriver->getMaximumVerticalFixPosition() || position < 0 || unsigned(position) > _airConditionDriver->getMaximumVerticalFixPosition()) return;
     unsigned int currentVertialPositionPercent = position * 100 / _airConditionDriver->getMaximumVerticalFixPosition();
     logInfoP("AirCondition report vertical fix position changed to %u (%u%%)", position, currentVertialPositionPercent);
     KoAIR_LouverVerticalPositionState.valueCompare((uint8_t)currentVertialPositionPercent, DPT_Scaling);
@@ -1086,4 +1092,12 @@ void AirconditionModule::updateDaikinExtensionTelemetry(bool fu04Valid,
     // TODO: Map FU04/FX60 extension telemetry to dedicated KOs once DPT/object definitions are finalized.
     logDebugP("Daikin extension telemetry updated (FU04 valid=%d, FX60 valid=%d)",
               fu04Valid ? 1 : 0, fx60Valid ? 1 : 0);
+}
+
+void AirconditionModule::updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask)
+{
+    KoAIR_VerticalPositionValid.valueCompare(valid, DPT_Bool);
+    KoAIR_VerticalPositionMaximum.valueCompare(maximum, DPT_Value_1_Ucount);
+    KoAIR_VerticalPositionVerified.valueCompare(verifiedMask, DPT_Value_1_Ucount);
+    if (valid) KoAIR_VerticalPositionCodeState.valueCompare(position, DPT_Value_1_Ucount);
 }
