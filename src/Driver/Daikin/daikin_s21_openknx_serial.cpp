@@ -71,14 +71,6 @@ void DaikinSerial::loop() {
     //Serial.printf("[RX] 0x%02X state=%d\n", b, (int)comm_state);
     rx_any_since_tx_ = true;
 
-    // Detect STX inline even when in legacy mode - switch back to framed immediately
-    if (b == STX && protocol_mode_ == ProtocolMode::UnframedSum) {
-      protocol_mode_ = ProtocolMode::FramedSum;
-      consecutive_timeouts_ = 0;
-      // Serial.println("[S21] Detected STX while in UnframedSum -> switching to FramedSum mode");
-      // Continue processing this STX byte in the new framed mode
-    }
-
     switch (comm_state) {
       case CommState::Idle:
         // Ignore noise until we transmit something (but STX detection above still applies)
@@ -160,54 +152,14 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
   for (char c : cmd) body.push_back(static_cast<uint8_t>(c));
   if (payload && payload_size) for (size_t i = 0; i < payload_size; ++i) body.push_back(payload[i]);
 
-  if (protocol_mode_ == ProtocolMode::FramedSum) {
-    uint8_t checksum = calculate_checksum(body.data(), body.size());
-    std::vector<uint8_t> framed;
-    framed.reserve(body.size() + 3); // STX + body + SUM + ETX
-    framed.push_back(STX);
-    for (uint8_t b : body) framed.push_back(b);
-    framed.push_back(checksum);
-    framed.push_back(ETX);
-    
-    // Create TX log with hex dump and JSON format
-    // std::string hex_dump;
-    // std::string cmd_str(cmd);
-    // for (auto v : framed) {
-    //   char hex_byte[3];
-    //   sprintf(hex_byte, "%02X", v);
-    //   hex_dump += hex_byte;
-    // }
-    //Serial.printf("[S21-TX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"%s\":\"\"}\n", hex_dump.c_str(), cmd_str.c_str());
-    
-    // Calculate airtime for non-blocking approach
-    const uint32_t frame_bytes = framed.size();
-    tx_airtime_ms_ = frame_bytes * ms_per_byte_2400_8e2;
-    last_tx_start_ms_ = millis();
-    
-    serial_hal_->write(framed.data(), framed.size());
-    // Do NOT flush() - avoid blocking ~150ms for transmission
-  } else { // UnframedSum
-    uint8_t sum = 0; for (auto b : body) sum = uint8_t(sum + b);
-    body.push_back(sum);
-    
-    // Create TX log for legacy mode too
-    // std::string hex_dump;
-    // std::string cmd_str(cmd);
-    // for (auto v : body) {
-    //   char hex_byte[3];
-    //   sprintf(hex_byte, "%02X", v);
-    //   hex_dump += hex_byte;
-    // }
-    //Serial.printf("[S21-TX] {\"protocol\":\"S21\",\"dump\":\"%s\",\"%s\":\"\"}\n", hex_dump.c_str(), cmd_str.c_str());
-    
-    // Calculate airtime for non-blocking approach                
-    const uint32_t frame_bytes = body.size();
-    tx_airtime_ms_ = frame_bytes * ms_per_byte_2400_8e2;
-    last_tx_start_ms_ = millis();
-    
-    serial_hal_->write(body.data(), body.size());
-    // Do NOT flush() - avoid blocking ~150ms for transmission
-  }
+  const uint8_t checksum = calculate_checksum(body.data(), body.size());
+  std::vector<uint8_t> framed{STX};
+  framed.insert(framed.end(), body.begin(), body.end());
+  framed.push_back(checksum);
+  framed.push_back(ETX);
+  tx_airtime_ms_ = framed.size() * ms_per_byte_2400_8e2;
+  last_tx_start_ms_ = millis();
+  serial_hal_->write(framed.data(), framed.size());
   rx_any_since_tx_ = false;
 
   comm_state = CommState::WaitingAck;
@@ -251,7 +203,6 @@ void DaikinSerial::rx_timeout_handler() {
   comm_state = CommState::Idle;
   response.clear();
   timeout_active = false;
-  maybe_switch_mode_on_timeout();
   if (result_callback) result_callback(Result::Timeout, nullptr, 0);
 }
 
@@ -317,69 +268,14 @@ void DaikinSerial::finalize_frame() {
 
   // Deliver frame payload (command + payload) to upper layer
   if (result_callback) result_callback(Result::Frame, payload.data(), payload.size());
-  // Successful frame reception in framed mode resets timeout counter
-  if (protocol_mode_ == ProtocolMode::FramedSum) consecutive_timeouts_ = 0;
+
 }
 
-void DaikinSerial::maybe_switch_mode_on_timeout() {
-  if (protocol_mode_ == ProtocolMode::FramedSum) {
-    if (!rx_any_since_tx_) {
-      consecutive_timeouts_++;
-      //Serial.printf("FramedSum timeout without RX (%u/6)\n", consecutive_timeouts_);
-      
-
-      
-      if (consecutive_timeouts_ >= 6) {
-        //Serial.printf("[S21] No inbound data after 6 framed attempts -> switching to UnframedSum fallback");
-        protocol_mode_ = ProtocolMode::UnframedSum;
-        consecutive_timeouts_ = 0;
-      }
-    } else {
-      // We got SOME RX data - reset timeout counter to stay in current mode longer
-      consecutive_timeouts_ = 0;
-      //Serial.printf("[S21] RX activity detected - resetting timeout counter");
-    }
-  } else { // UnframedSum
-    if (!rx_any_since_tx_) {
-      consecutive_timeouts_++;
-      //Serial.printf("UnframedSum timeout without RX (%u/4)\n", consecutive_timeouts_);
-      
-      // Nach 4 stillen Legacy-Versuchen: wieder Framed probieren
-      if (consecutive_timeouts_ >= 4) {
-        protocol_mode_ = ProtocolMode::FramedSum;
-        consecutive_timeouts_ = 0;
-        //Serial.println("[S21] Legacy silent after 4 attempts -> probing FramedSum again");
-        
-        // Optional: RX-Buffer flushen für sauberen Neustart
-        serial_hal_->clearRxBuffer();
-      }
-    } else {
-      consecutive_timeouts_ = 0;
-      // STX detection is now handled inline in the RX loop for immediate response
-    }
-  }
-}
-
-void DaikinSerial::force_legacy_fallback(const char* reason) {
-  if (protocol_mode_ == ProtocolMode::UnframedSum) return; // already legacy
-  uint32_t now = millis();
-  if (now - last_force_fallback_ms_ < 5000) return; // rate limit
-  //Serial.printf("FORCE legacy fallback requested%s%s\n", reason?": ":"", reason?reason:"");
-  protocol_mode_ = ProtocolMode::UnframedSum;
-  consecutive_timeouts_ = 0;
-  last_force_fallback_ms_ = now;
-}
-
-void DaikinSerial::force_framed_mode(const char* reason) {
-  if (protocol_mode_ == ProtocolMode::FramedSum) return; // already framed
-  uint32_t now = millis();
-  if (now - last_force_fallback_ms_ < 5000) return; // rate limit (same as legacy)
-  //Serial.printf("FORCE framed mode requested%s%s\n", reason?": ":"", reason?reason:"");
-  protocol_mode_ = ProtocolMode::FramedSum;
-  consecutive_timeouts_ = 0;
-  last_force_fallback_ms_ = now;
-  
-  // Flush RX buffer for clean restart
-  serial_hal_->clearRxBuffer();
+void DaikinSerial::force_framed_mode(const char*) {
+  // Recovery always uses the documented STX/ETX transport on every S21 version.
+  comm_state = CommState::Idle;
+  response.clear();
+  timeout_active = false;
+  if (serial_hal_) serial_hal_->clearRxBuffer();
 }
 } // namespace daikin

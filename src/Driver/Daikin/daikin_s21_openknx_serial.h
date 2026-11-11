@@ -51,7 +51,6 @@ class DaikinSerial {
   void loop();
 
   void send_frame(std::string_view cmd, const uint8_t* payload = nullptr, size_t payload_size = 0);
-  void force_legacy_fallback(const char* reason = nullptr); // Force immediate switch to legacy unframed + sum mode (used if first cycle entirely silent)
   void force_framed_mode(const char* reason = nullptr); // Force immediate switch back to framed mode (for driver-level recovery)
 
 
@@ -80,11 +79,6 @@ protected:
     ReceivingFrame // After ACK (or immediately if no ACK) collecting a framed reply
   };
 
-  enum class ProtocolMode : uint8_t {
-    FramedSum,     // STX/ETX + SUM checksum (no escaping)
-    UnframedSum    // Legacy fallback: raw command+payload+SUM checksum, expect simple ACK or raw bytes
-  };
-
   void ack_timeout_handler();
   void set_busy_timeout(uint32_t delay_ms);
   void busy_timeout_handler();
@@ -92,7 +86,6 @@ protected:
   
   uint8_t calculate_checksum(const uint8_t* data, size_t size); // SUM checksum
   void start_rx_timeout(uint32_t dur_ms, TimeoutType type);
-  void maybe_switch_mode_on_timeout();
 
   void finalize_frame();
 
@@ -110,10 +103,7 @@ protected:
   bool timeout_active{false};
   TimeoutType timeout_type{TimeoutType::None};
   // Adaptive fallback tracking
-  ProtocolMode protocol_mode_{ProtocolMode::FramedSum};
-  uint16_t consecutive_timeouts_{0};
   bool rx_any_since_tx_{false};
-  uint32_t last_force_fallback_ms_{0};
   uint32_t last_rx_timestamp_ms{0};
   
   // Non-blocking TX timing

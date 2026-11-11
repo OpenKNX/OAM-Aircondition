@@ -76,4 +76,12 @@ void test_recovery() {
     for(int i=0;i<80;i++) t.receive({'A'});
     assert(t.results.back()==Result::Error && !t.serial.busy());
 }
-int main() { test_handshake(); test_checksums(); test_recovery(); std::cout << "S21 native tests passed\n"; }
+void test_no_unframed_fallback() {
+    Transport t;
+    for(int i=0;i<12;i++) {
+        t.hal().tx.clear(); t.serial.send_frame("F8");
+        assert(t.hal().tx.front()==2 && t.hal().tx.back()==3);
+        test_now+=1100; t.serial.loop();
+    }
+}
+int main() { test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); std::cout << "S21 native tests passed\n"; }
