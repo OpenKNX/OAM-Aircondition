@@ -139,6 +139,9 @@ void DaikinSerial::send_frame(std::string_view cmd, const uint8_t* payload, size
     return;
   }
   expecting_reply_ = cmd[0] != 'D';
+  expected_response_ = cmd == "VS000M" ? "VS" : std::string(cmd);
+  if (cmd[0] == 'F') expected_response_[0] = 'G';
+  if (cmd[0] == 'R') expected_response_[0] = 'S';
   response.clear();
   if (cmd.size() + payload_size > MAX_COMMAND_SIZE + EXTENDED_PAYLOAD_SIZE) {
     Serial.printf("[ERROR] Tx: Command '%.*s' too large\n", (int)cmd.size(), cmd.data());
@@ -265,6 +268,15 @@ void DaikinSerial::finalize_frame() {
 
   // Complete the read handshake only after validating the full frame.
   serial_hal_->write(&ACK, 1); // queued UART TX; never flush/block the task loop
+
+  // A valid but unrelated reply is acknowledged, then ignored while the original
+  // transaction remains active. Do not let a stale frame consume a newer query.
+  if (payload.size() <= expected_response_.size() ||
+      !std::equal(expected_response_.begin(), expected_response_.end(), payload.begin())) {
+    comm_state = CommState::ReceivingFrame;
+    start_rx_timeout(rx_timeout_period_ms, TimeoutType::Rx);
+    return;
+  }
 
   // Deliver frame payload (command + payload) to upper layer
   if (result_callback) result_callback(Result::Frame, payload.data(), payload.size());

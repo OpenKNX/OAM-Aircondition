@@ -95,6 +95,7 @@ protected:
   CommState comm_state{};
   std::vector<uint8_t> response{MAX_RESPONSE_SIZE};
   
+  std::string expected_response_;
   bool expecting_reply_{true};
 
   // Timer management
