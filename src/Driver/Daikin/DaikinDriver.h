@@ -181,6 +181,8 @@ public:
     virtual void setMaxPowerLevel(uint8_t percentage) override;
     virtual void setAirPurification(bool on) override;
 
+    // Configure only after validating the model's reduced-demand range on hardware.
+    bool configureDemandLimits(uint8_t minimum, uint8_t step);
     void setComfort(bool on);
     void setIntelligentEye(bool on);
     void updatePower(bool power);
@@ -255,6 +257,7 @@ private:
     // Protocol support detection
     daikin::ProtocolVersion protocol_version_{daikin::ProtocolUndetected};
     struct {
+        bool demand{false};
         bool fan_mode_query{false};
         bool inside_temperature_query{false};
         bool outside_temperature_query{false};
@@ -278,6 +281,8 @@ private:
         bool valid{false};
         CommandSupport write{CommandSupport::Unknown};
     } d5_, d6_, d7_;
+    uint8_t demand_minimum_{100}, demand_step_{1}, requested_demand_{100};
+    bool demand_pending_{false};
     std::string_view outstanding_write_{};
     bool sendCombined(std::string_view command, const PayloadBuffer& payload);
     void sendSpecialModesCommand();

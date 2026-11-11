@@ -151,4 +151,16 @@ void test_econo() {
     assert(tx[1]=='D' && tx[2]=='7' && tx[3]==0x44 && tx[4]=='2' && tx[5]=='A' && tx[6]=='G');
     assert(!d.d7_.valid); // cannot reuse stale readback on the next change
 }
-int main() { test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_demand() {
+    Feedback f; DaikinDriver d(f); d.setup(); d.support_.demand=true;
+    uint8_t g7[]={0x30,'2','A','G'}; d.handle_f7_response(g7,4);
+    assert(d.state_.demand_percentage==100);
+    d.setMaxPowerLevel(75); assert(!d.demand_pending_);
+    assert(!d.configureDemandLimits(40,0)); assert(d.configureDemandLimits(40,5));
+    d.setMaxPowerLevel(75);
+    auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
+    assert(tx[3]==0x49 && tx[4]=='2' && tx[5]=='A' && tx[6]=='G');
+    g7[0]=0x49; d.handle_f7_response(g7,4); assert(d.state_.demand_percentage==75);
+    d.setMaxPowerLevel(101); assert(!d.demand_pending_);
+}
+int main() { test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

@@ -341,7 +341,7 @@ void DaikinDriver::loop()
         if (pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
             pending_.activate_sensor || pending_.activate_led || pending_.activate_streamer)
             sendSpecialModesCommand();
-        if (pending_.activate_econo) sendEconoCommand();
+        if (pending_.activate_econo || demand_pending_) sendEconoCommand();
     }
 
     updateQueryStateMachine(); // non-blocking state machine
@@ -647,8 +647,22 @@ void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
 
 void DaikinDriver::setMaxPowerLevel(uint8_t percentage)
 {
-    // S21 protocol doesn't support power level limiting
-    logInfoP("Power level limiting not supported by S21 protocol (requested: %u%%)", percentage);
+    if (!support_.demand || percentage > 100 || percentage < demand_minimum_ ||
+        (100 - percentage) % demand_step_ != 0) {
+        logInfoP("Demand percentage not verified for this model: %u", percentage);
+        return;
+    }
+    requested_demand_ = percentage;
+    demand_pending_ = true;
+    sendEconoCommand();
+}
+
+bool DaikinDriver::configureDemandLimits(uint8_t minimum, uint8_t step)
+{
+    if (minimum > 100 || step == 0 || step > 100 || (100 - minimum) % step) return false;
+    demand_minimum_ = minimum;
+    demand_step_ = step;
+    return true;
 }
 
 void DaikinDriver::setAirPurification(bool on)
@@ -1622,10 +1636,14 @@ void DaikinDriver::sendPowerfulCommand()
 
 void DaikinDriver::sendEconoCommand()
 {
-    if (!pending_.activate_econo || !d7_.valid) return;
+    if ((!pending_.activate_econo && !demand_pending_) || !d7_.valid) return;
     PayloadBuffer payload = d7_.confirmed;
-    payload[1] = pending_.climate.econo ? '2' : '0';
-    if (sendCombined("D7", payload)) pending_.activate_econo = false;
+    if (pending_.activate_econo) payload[1] = pending_.climate.econo ? '2' : '0';
+    if (demand_pending_) payload[0] = 0x30 + (100 - requested_demand_);
+    if (sendCombined("D7", payload)) {
+        pending_.activate_econo = false;
+        demand_pending_ = false;
+    }
 }
 
 void DaikinDriver::sendQuietCommand()
@@ -2096,21 +2114,9 @@ void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
     d7_.valid = true;
     stats_.frames_ok++;
 
-    // Demand encoding per Faikout S21 wiki:
-    // byte0 uses ASCII '0'..'9' where:
-    // '0' => 100%, '1' => 90%, ... '9' => 10%
-    // (value 100% is also commonly seen on units without demand control support).
-    if (data[0] >= '0' && data[0] <= '9')
-    {
-        const uint8_t demand_step = static_cast<uint8_t>(data[0] - '0');
-        state_.demand_percentage = static_cast<uint8_t>(100 - (demand_step * 10));
-    }
-    else
-    {
-        logDebugP("F7: unsupported demand byte 0x%02X, keeping previous demand=%u%%",
-                  data[0], state_.demand_percentage);
-    }
-    state_.econo = (data[1] & 0x02) != 0; // econo: payload[1] & 0x02 (as per S21 wiki)
+    if (data[0] >= 0x30 && data[0] <= 0x30 + 100)
+        state_.demand_percentage = 100 - (data[0] - 0x30);
+    if (data[1] == '0' || data[1] == '2') state_.econo = data[1] == '2';
 
     logInfoP("F7: demand=%d%%, econo=%d (raw: %c %02X)",
              state_.demand_percentage, state_.econo, data[0], data[1]);
@@ -2497,6 +2503,7 @@ void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
             // byte1 bit 3 - "motion detector" AKA "Intelligent eye" availability
             bool sensor_hardware_available = (data[1] & 0x08) != 0;
             support_.sensor_hardware = sensor_hardware_available;
+            support_.demand = (data[3] & 0x01) != 0 && protocol_version_.major > 2;
 
             logInfoP("FK capabilities: sensor_hardware=%d (byte1=0x%02X, bit3=%d)",
                      sensor_hardware_available, data[1], (data[1] & 0x08) ? 1 : 0);
