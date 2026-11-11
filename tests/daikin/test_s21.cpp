@@ -236,4 +236,14 @@ void test_capability_bits() {
     d.handle_fu_fx_response("FU00",gu.data(),gu.size());
     assert(d.support_.powerful && d.support_.econo && d.support_.streamer);
 }
-int main() { test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_special_decoders() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t g6[]={0xF2,0xB0,0x30,0x34}; d.handle_f6_response(g6,4);
+    assert(d.state_.powerful && d.state_.comfort && d.state_.quiet && d.state_.streamer);
+    for (size_t n=0;n<4;n++) d.handle_f6_response(g6,n);
+    g6[0]=2; d.handle_f6_response(g6,4); assert(d.d6_.confirmed[0]==0xF2);
+    uint8_t g7[]={0x94,'2','A','G'}; d.handle_f7_response(g7,4);
+    assert(d.state_.demand_percentage==0 && d.state_.econo);
+    g7[0]=0xFF; d.handle_f7_response(g7,4); assert(d.d7_.confirmed[0]==0x94);
+}
+int main() { test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

@@ -1912,21 +1912,22 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
 {
-    if (data_size < 4)
+    if (data_size != 4)
     {
         logErrorP("F6 response too short: %zu bytes", data_size);
         return;
     }
+    for (size_t i=0; i<4; ++i) if ((data[i] & 0x30) != 0x30) return;
     stats_.frames_ok++;
 
     std::copy_n(data, 4, d6_.confirmed.begin());
     d6_.valid = true;
     support_.f6_special_modes = true; // Mark F6 as supported since we got a successful response
 
-    state_.powerful = (data[0] & 0x02) != 0; // payload[0] & 0x02 = powerful
+    state_.powerful = (!support_.special_features_known || support_.powerful) && (data[0] & 0x02) != 0; // payload[0] & 0x02 = powerful
     state_.comfort = (data[0] & 0x40) != 0;  // payload[0] & 0x40 = comfort
     state_.quiet = (data[0] & 0x80) != 0;    // payload[0] & 0x80 = quiet
-    state_.streamer = (data[1] & 0x80) != 0; // payload[1] & 0x80 = streamer
+    state_.streamer = (!support_.special_features_known || support_.streamer) && (data[1] & 0x80) != 0; // payload[1] & 0x80 = streamer
 
     // Only set sensor state if hardware is available (from FK detection)
     if (support_.sensor_hardware)
@@ -1960,18 +1961,19 @@ void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
 {
-    if (data_size < 4)
+    if (data_size != 4)
     {
         logErrorP("F7 response too short: %zu bytes", data_size);
         return;
     }
+    if (data[0] < 0x30 || data[0] > 0x94 || (data[1] != '0' && data[1] != '2')) return;
     std::copy_n(data, 4, d7_.confirmed.begin());
     d7_.valid = true;
     stats_.frames_ok++;
 
     if (data[0] >= 0x30 && data[0] <= 0x30 + 100)
         state_.demand_percentage = 100 - (data[0] - 0x30);
-    if (data[1] == '0' || data[1] == '2') state_.econo = data[1] == '2';
+    if (data[1] == '0' || data[1] == '2') state_.econo = (!support_.special_features_known || support_.econo) && data[1] == '2';
 
     logInfoP("F7: demand=%d%%, econo=%d (raw: %c %02X)",
              state_.demand_percentage, state_.econo, data[0], data[1]);
@@ -2416,6 +2418,9 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
 
     if (command == StateQuery::ExtensionFU00 && data_size == 32)
     {
+        if ((data[0] != '0' && data[0] != '3') || (data[1] != '0' && data[1] != '3') ||
+            (data[5] != '0' && data[5] != '3')) return;
+        support_.special_features_known = true;
         support_.powerful = data[0] == 0x33;
         support_.econo = data[1] == 0x33;
         support_.streamer = data[5] == 0x33;
