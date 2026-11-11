@@ -825,6 +825,13 @@ void DaikinDriver::initializeQueries()
         }
     }
 
+    if (major >= 3) {
+        queries_.emplace_back("FY10", nullptr, true); // identity only; meaning unknown
+        queries_.emplace_back("FY20", nullptr, true);
+    }
+    if (major >= 2)
+        queries_.emplace_back("VS000M", [this](uint8_t* data, size_t n) { handle_firmware_response(data,n); }, true);
+
     // v3.20+ extension fields (FU** / FX**) from S21 protocol wiki
     if (major > 3 || (major == 3 && minor >= 20))
     {
@@ -1959,6 +1966,14 @@ void DaikinDriver::handle_vane_angle(bool requested, uint8_t* data, size_t size)
     }
 }
 
+void DaikinDriver::handle_firmware_response(uint8_t* data, size_t size)
+{
+    if (size != 14) return;
+    for (size_t i=0;i<8;i++) if (data[i]<0x20 || data[i]>0x7E) return;
+    firmware_version_.assign(data,data+8);
+    std::reverse(firmware_version_.begin(),firmware_version_.end());
+}
+
 void DaikinDriver::handle_fan_rpm(bool requested, uint8_t* data, size_t size)
 {
     bool& valid = requested ? state_.fanRpmSetpointValid : state_.fanRpmValid;
@@ -2949,14 +2964,14 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 // Special case: F6 may reply as G6 (new) or G3 (old)
 
                 bool is_valid_response = false;
-                size_t expected_cmd_len = query.command.size();
+                size_t expected_cmd_len = query.command == "VS000M" ? 2 : query.command.size();
                 uint8_t* payload = nullptr;
                 size_t payload_len = 0;
 
                 if (data_size >= expected_cmd_len)
                 {
                     std::string response_header(data, data + expected_cmd_len);
-                    std::string expected_cmd(query.command);
+                    std::string expected_cmd(query.command == "VS000M" ? "VS" : query.command);
 
                     if (expected_cmd[0] == 'F')
                     {

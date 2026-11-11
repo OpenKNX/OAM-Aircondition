@@ -157,6 +157,7 @@ public:
     virtual const std::string name() const override;
     virtual void showInformations() override;
     
+    const std::string& firmwareVersion() const { return firmware_version_; }
     std::vector<uint8_t> diagnosticResponse(std::string_view command) const;
     const daikin::State& telemetry() const { return state_; }
     enum class FeatureAccess : uint8_t { Unknown, Unsupported, ReadOnly, Writable };
@@ -307,6 +308,9 @@ private:
     std::string_view outstanding_write_{};
     bool sendCombined(std::string_view command, const PayloadBuffer& payload);
     void sendSpecialModesCommand();
+
+    std::string firmware_version_;
+    void handle_firmware_response(uint8_t* data, size_t size);
 
     // Serial communication
     std::unique_ptr<daikin::DaikinSerial> serial_;
