@@ -1,0 +1,8 @@
+# Synthetic protocol fixtures from RevK S21 Protocol; model names are reference examples, NOT tested hardware.
+# reference_model major minor F8_payload_hex_or_NAK FY00_payload_hex_or_NAK
+CDK-HVE-unversioned 0 255 NAK NAK
+FTXS-L 0 0 30000000 NAK
+FTXZ-N 1 0 30310000 NAK
+ATX20K2VTB 2 0 30320000 NAK
+FTXF-D 3 20 30323030 30323330
+FTXM-R 3 40 30323030 30343330

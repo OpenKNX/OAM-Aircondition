@@ -7,6 +7,8 @@
 #include <cassert>
 #include <iostream>
 #include <deque>
+#include <fstream>
+#include <sstream>
 #define private public
 #define protected public
 #include "DaikinDriver.h"
@@ -479,4 +481,37 @@ void test_unknown_sensor_led_gate() {
     uint8_t gk[]={0x30,0x30,0x34,0x30}; d.handle_fk_response(gk,4); d.sendLedCommand();
     assert(hal.tx[2]=='6' && hal.tx[6]==0x3C);
 }
-int main() { test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_compatibility_fixtures() {
+    std::ifstream fixtures("tests/daikin/compatibility.tsv"); assert(fixtures);
+    std::string line; size_t rows=0;
+    while (std::getline(fixtures,line)) {
+        if (line.empty() || line[0]=='#') continue;
+        std::istringstream row(line); std::string model,f8,fy; unsigned major,minor;
+        row>>model>>major>>minor>>f8>>fy; assert(row);
+        Feedback f; DaikinDriver d(f); d.setup(); d.initializeProtocolDetection();
+        auto exchange=[&](std::string_view cmd,const std::string& hex){
+            d.query_state_=DaikinDriver::QueryState::WaitingForAck;
+            d.serial_->send_frame(cmd);
+            auto& hal=*static_cast<FakeHAL*>(d.serial_->serial_hal_.get());
+            if(hex=="NAK") hal.rx.push_back(0x15);
+            else {
+                std::vector<uint8_t> body; for(char c:cmd) body.push_back(c); body[0]='G';
+                for(size_t i=0;i<hex.size();i+=2) body.push_back(std::stoul(hex.substr(i,2),nullptr,16));
+                uint8_t checksum=d.serial_->calculate_checksum(body.data(),body.size());
+                hal.rx.push_back(6); hal.rx.push_back(2);
+                hal.rx.insert(hal.rx.end(),body.begin(),body.end()); hal.rx.push_back(checksum); hal.rx.push_back(3);
+            }
+            while(!hal.rx.empty()) d.serial_->loop();
+        };
+        exchange("F8",f8); exchange("FY00",fy);
+        assert(d.protocol_version_==(daikin::ProtocolVersion{uint8_t(major),uint8_t(minor)}));
+        d.initializeQueries();
+        auto has=[&](std::string_view cmd){return std::any_of(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==cmd;});};
+        assert(has("F3") && has("F4") && has("F5") && has("RI") && has("RK") && has("RL"));
+        assert(has("FK")== (major>=2));
+        assert(has("FX60")== (major>=3 && minor>=20));
+        rows++;
+    }
+    assert(rows==6);
+}
+int main() { test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
