@@ -746,19 +746,22 @@ void DaikinDriver::initializeQueries()
     // F5 - Swing/Humidity (supported by all protocols)
     queries_.emplace_back(StateQuery::SwingOrHumidity, [this](uint8_t* data, size_t data_size) { handle_f5_response(data, data_size); });
 
+    queries_.emplace_back(StateQuery::OnOffTimer, [this](uint8_t* data, size_t n) { handle_f3_response(data,n); });
+    // F6 is read-only on some v0/v2 models. Probe it; discover support via NAK.
+    queries_.emplace_back(StateQuery::SpecialModes, [this](uint8_t* data, size_t n) { handle_f6_response(data,n); });
+
     // Protocol version-specific queries
     uint8_t major = protocol_version_.major;
     uint8_t minor = protocol_version_.minor;
 
     if (major >= 1)
     { // New protocol v1.0+
-        // F3 is timer state, never a generic substitute for F6 special modes.
-        queries_.emplace_back(StateQuery::SpecialModes, [this](uint8_t* data, size_t size) { handle_f6_response(data, size); });
+            queries_.emplace_back(StateQuery::InsideOutsideTemperatures, [this](uint8_t* data, size_t data_size) { handle_f9_response(data, data_size); });
+
 
         if (major >= 2)
         { // Protocol v2.0+
             queries_.emplace_back(StateQuery::DemandAndEcono, [this](uint8_t* data, size_t data_size) { handle_f7_response(data, data_size); });
-            queries_.emplace_back(StateQuery::InsideOutsideTemperatures, [this](uint8_t* data, size_t data_size) { handle_f9_response(data, data_size); });
             queries_.emplace_back(StateQuery::ModelCode, [this](uint8_t* data, size_t data_size) { handle_fc_response(data, data_size); });
             queries_.emplace_back(StateQuery::IRCounter, [this](uint8_t* data, size_t data_size) { handle_fg_response(data, data_size); });
             queries_.emplace_back(StateQuery::PowerConsumption, [this](uint8_t* data, size_t data_size) { handle_fm_response(data, data_size); });
@@ -770,7 +773,7 @@ void DaikinDriver::initializeQueries()
             queries_.emplace_back(StateQuery::CapabilityS, [this](uint8_t* data, size_t data_size) { handle_fs_response(data, data_size); }, true);
             queries_.emplace_back(StateQuery::CapabilityT, [this](uint8_t* data, size_t data_size) { handle_ft_response(data, data_size); }, true);
             // FK is optional - only add for newer versions - static (read once)
-            if (major >= 3)
+            if (major >= 2)
             {
                 queries_.emplace_back(StateQuery::CapabilityK, [this](uint8_t* data, size_t data_size) { handle_fk_response(data, data_size); }, true);
             }
@@ -825,13 +828,11 @@ void DaikinDriver::initializeQueries()
     queries_.emplace_back(EnvironmentQuery::FanMode, [this](uint8_t* data, size_t data_size) { handle_rg_response(data, data_size); });
     queries_.emplace_back(EnvironmentQuery::OutsideTemperature, [this](uint8_t* data, size_t data_size) { handle_ra_response(data, data_size); });
 
-    if (major >= 1)
-    { // New protocol environment queries
+    { // Sensor query support is learned from runtime NAKs
         queries_.emplace_back(EnvironmentQuery::CompressorFrequency, [this](uint8_t* data, size_t data_size) { handle_rd_response(data, data_size); });
         queries_.emplace_back(EnvironmentQuery::IndoorHumidity, [this](uint8_t* data, size_t data_size) { handle_re_response(data, data_size); });
     }
-    if (major >= 2)
-    { // Advanced environment queries for v2.0+
+    { // Rg is also documented on v0 / unversioned units
         queries_.emplace_back(EnvironmentQuery::CompressorOnOff, [this](uint8_t* data, size_t data_size) { handle_rg2_response(data, data_size); });
         if (major >= 3)
         { // Very advanced queries for v3.0+
@@ -1981,58 +1982,19 @@ void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
 {
-    if (data_size >= 4)
-    {
-        stats_.frames_ok++;
-
-        // Parse F8 response according to S21 wiki:
-        // v0: "G8 '0' 0x00 0x00 0x00"
-        // v2: "G8 '0' '2' 0x00 0x00"
-        // v3: "G8 '0' '2' 0x00 0x00" (same as v2, need FY00 to distinguish)
-        // v3.1+: "G8 0200" (different format)
-
-        logInfoP("F8: Received G8 response [%02X %02X %02X %02X]", data[0], data[1], data[2], data[3]);
-
-        // Check if it's ASCII format ('0', '2') or binary format
-        if (data[0] == '0' && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00)
-        {
-            // Protocol v0.0 detected, but run FY00 to sanity-check
-            protocol_version_ = {0, 0};
-            logInfoP("F8: Protocol v0.0 detected - will sanity-check with FY00");
-        }
-        else if (data[0] == '0' && data[1] == '2' && data[2] == 0x00 && data[3] == 0x00)
-        {
-            // Protocol v2+ detected - need FY00 to distinguish v2.0 vs v3.x
-            logInfoP("F8: Protocol v2+ detected (G8 '0' '2') - sending FY00 to distinguish v2 vs v3");
-            // Don't set protocol_version_ yet - wait for FY00 response
-        }
-        else if ((data[0] == 0x02 && data[1] == 0x00) ||
-                 (data[0] == '0' && data[1] == '2' && data[2] == '0' && data[3] == '0'))
-        {
-            // Protocol v3.1+ style "G8 0200" (binary or ASCII 0x30 0x32 0x30 0x30)
-            logInfoP("F8: Protocol v3.1+ style detected (G8 0200 / 30323030) - sending FY00 for exact version");
-            // Don't set protocol_version_ yet - wait for FY00 response
-        }
-        else
-        {
-            // Unknown F8 format - assume v2+ and let FY00 determine
-            logInfoP("F8: Unknown G8 format [%02X %02X %02X %02X] - assuming v2+ and trying FY00",
-                     data[0], data[1], data[2], data[3]);
-        }
-        state_.online = true; // Mark AC as online since it responded to F8
-
-        return;
+    if (data_size != 4) return;
+    unsigned value = 0, multiplier = 1;
+    bool padding = false;
+    for (size_t i=0; i<4; ++i) {
+        if (data[i] == 0) { padding = true; continue; }
+        if (padding || data[i] < '0' || data[i] > '9') return;
+        value += (data[i] - '0') * multiplier;
+        multiplier *= 10;
     }
-    else if (data_size >= 1)
-    {
-        stats_.frames_ok++; // Count any F8 response
-        logInfoP("F8: Short response (%zu bytes) - assuming basic protocol", data_size);
-        // Fallback for units that give short responses
-        protocol_version_ = {1, 0}; // Assume basic new protocol
-        old_protocol_detected_ = false;
-        state_.online = true;
-        return;
-    }
+    if (value != 0 && value != 10 && value != 20) return;
+    protocol_version_ = {static_cast<uint8_t>(value / 10), 0};
+    old_protocol_detected_ = value == 0;
+    stats_.frames_ok++;
 }
 
 void DaikinDriver::handle_f9_response(uint8_t* data, size_t data_size)
@@ -2155,52 +2117,14 @@ void DaikinDriver::handle_fm_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_fy00_response(uint8_t* data, size_t data_size)
 {
-    if (data_size >= 4)
-    {
-        // Multi-byte GY00 response - parse exact protocol version
-        // According to S21 wiki: "GY00 0030" = v3.00, "GY00 0230" = v3.20, etc.
-        // Format: GY00 followed by version as ASCII: major=position2, minor=position1*10+position3
-
-        // Parse protocol version from GY00 payload using wiki format
-        const uint8_t d0 = data[0], d1 = data[1], d2 = data[2], d3 = data[3];
-        const auto toN = [](uint8_t c) { return (c >= '0' && c <= '9') ? (c - '0') : -1; };
-        int n0 = toN(d0), n1 = toN(d1), n2 = toN(d2), n3 = toN(d3);
-
-        if (n0 >= 0 && n1 >= 0 && n2 >= 0 && n3 >= 0)
-        {
-            // Wiki format: major=n2, minor=n1*10+n3
-            uint8_t major = uint8_t(n2);
-            uint8_t minor = uint8_t(n1 * 10 + n3);
-
-            protocol_version_ = {major, minor};
-            old_protocol_detected_ = false;
-            logInfoP("FY00: Protocol version %d.%02d parsed from GY00 response [%c%c%c%c] (raw: %02X %02X %02X %02X)",
-                     major, minor, d0, d1, d2, d3, d0, d1, d2, d3);
-        }
-        else
-        {
-            // Fall back to v3.0 if parsing fails
-            protocol_version_ = {3, 0};
-            old_protocol_detected_ = false;
-            logErrorP("FY00: Failed to parse version from [%02X %02X %02X %02X], defaulting to v3.0",
-                      data[0], data[1], data[2], data[3]);
-        }
-
-        stats_.frames_ok++;
-    }
-    else if (data_size > 1)
-    {
-        // Short multi-byte response - indicates v3+ but can't parse exact version
-        protocol_version_ = {3, 0}; // Default v3.0
-        old_protocol_detected_ = false;
-        logInfoP("FY00: New protocol detected (short response), defaulting to v3.0");
-        stats_.frames_ok++;
-    }
-
-    // Handle NAK case for FY00 according to wiki:
-    // If we get here without setting protocol_version_, and F8 indicated v2+, then it's v2.0
-    // (because v2.0 units NAK FY00, but v3+ units respond with GY00)
-    // Note: If F8 indicated v0.0, NAK/timeout on FY00 confirms it's really v0.0
+    if (data_size != 4) return;
+    for (size_t i=0; i<4; ++i) if (data[i] < '0' || data[i] > '9') return;
+    const uint8_t major = (data[3]-'0')*10 + data[2]-'0';
+    const uint8_t minor = (data[1]-'0')*10 + data[0]-'0';
+    if (major < 3) return;
+    protocol_version_ = {major, minor};
+    old_protocol_detected_ = false;
+    stats_.frames_ok++;
 }
 
 void DaikinDriver::handle_fn_response(uint8_t* data, size_t data_size)
@@ -3006,9 +2930,12 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             {
                 if (protocol_version_ == daikin::ProtocolUndetected)
                 {
-                    // FY00 NAK with unknown protocol = v2.0 (per wiki: "v2 protocol units respond with NAK")
-                    protocol_version_ = {2, 0};
-                    old_protocol_detected_ = false;
+                    // Both version probes NAK on documented unversioned units.
+                    const auto f8 = std::find_if(queries_.begin(), queries_.end(), [](const DaikinQueryState& q) { return q.command == "F8"; });
+                    if (f8 != queries_.end() && f8->naks) {
+                        protocol_version_ = daikin::ProtocolUnknown;
+                        old_protocol_detected_ = true;
+                    }
                 }
                 else if (protocol_version_.major == 0 && protocol_version_.minor == 0)
                 {

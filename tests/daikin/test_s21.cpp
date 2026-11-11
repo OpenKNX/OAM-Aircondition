@@ -246,4 +246,23 @@ void test_special_decoders() {
     assert(d.state_.demand_percentage==0 && d.state_.econo);
     g7[0]=0xFF; d.handle_f7_response(g7,4); assert(d.d7_.confirmed[0]==0x94);
 }
-int main() { test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_versions() {
+    Feedback f; DaikinDriver d(f); d.setup();
+    uint8_t g8[]={'0','2',0,0}; d.handle_f8_response(g8,4); assert(d.protocol_version_.major==2);
+    uint8_t g1[]={'0','1',0,0}; d.handle_f8_response(g1,4); assert(d.protocol_version_.major==1);
+    for (uint8_t minor : {20,40}) {
+        uint8_t gy[]={'0',uint8_t('0'+minor/10),'3','0'};
+        d.handle_fy00_response(gy,4); assert(d.protocol_version_==(daikin::ProtocolVersion{3,minor}));
+    }
+    for (uint8_t major : {0,2,3}) {
+        d.protocol_version_={major,40}; d.initializeQueries();
+        auto has=[&](std::string_view cmd){ return std::any_of(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==cmd;}); };
+        assert(has("F3") && has("F5") && has("RH") && has("Rg"));
+        assert(has("FK")==(major>=2));
+    }
+    d.protocol_version_=daikin::ProtocolUndetected; d.initializeProtocolDetection();
+    d.query_state_=DaikinDriver::QueryState::WaitingForAck; d.handle_serial_result(Result::Nak,nullptr,0);
+    d.query_state_=DaikinDriver::QueryState::WaitingForAck; d.handle_serial_result(Result::Nak,nullptr,0);
+    assert(d.protocol_version_==daikin::ProtocolUnknown);
+}
+int main() { test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
