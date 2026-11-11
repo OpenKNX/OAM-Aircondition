@@ -3269,7 +3269,7 @@ void DaikinDriver::publishState()
         last_humidity = state_.humidity;
     }
     uint8_t current_humidity_mode = static_cast<uint8_t>(state_.humidityMode);
-    if (current_humidity_mode != last_humidity_mode)
+    if (state_.humidityModeValid && current_humidity_mode != last_humidity_mode)
     {
         statusFeedback.updateHumidityMode(current_humidity_mode);
         last_humidity_mode = current_humidity_mode;

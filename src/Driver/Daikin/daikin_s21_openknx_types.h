@@ -313,7 +313,7 @@ namespace daikin
         // Sensors and telemetry
         uint8_t humidity{50};
         uint8_t demand{0};
-        uint8_t demand_percentage{0}; // demand percentage (0-100)
+        uint8_t demand_percentage{100}; // demand percentage (0-100)
 
         bool totalEnergyValid{false};
         uint32_t totalEnergyWh{0}; // Total energy consumption in Watt-hours (from FM command)
