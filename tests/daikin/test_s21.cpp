@@ -214,4 +214,11 @@ void test_humidity() {
     d.state_.mode=daikin::Mode::Dry; assert(!d.setHumidityMode(daikin::HumidityMode::Low));
     d.humidity_modes_=0; assert(!d.setHumidityMode(daikin::HumidityMode::High));
 }
-int main() { test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_no_f3_special_fallback() {
+    Feedback f; DaikinDriver d(f); d.setup(); d.state_.powerful=true;
+    uint8_t timers[]={'0',0xFE,0xFE,0}; d.handle_f3_response(timers,4);
+    assert(d.state_.powerful);
+    d.queries_.emplace_back("F6"); d.queries_[0].bad=true;
+    d.checkF6ToF3Fallback(); assert(d.queries_[0].command=="F6");
+}
+int main() { test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

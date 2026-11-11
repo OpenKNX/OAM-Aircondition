@@ -752,31 +752,8 @@ void DaikinDriver::initializeQueries()
 
     if (major >= 1)
     { // New protocol v1.0+
-        // F6/F3 conditional logic:
-        // Try F6 first, but if it's marked as bad, use F3 as fallback
-
-        // First, try to find if F6 query exists and is marked bad
-        bool f6_is_bad = false;
-        for (const auto& query : queries_)
-        {
-            if (query.command == StateQuery::SpecialModes && query.bad)
-            {
-                f6_is_bad = true;
-                break;
-            }
-        }
-
-        if (!f6_is_bad && !support_.f6_special_modes)
-        {
-            // F6 not yet proven bad, add it first
-            queries_.emplace_back(StateQuery::SpecialModes, [this](uint8_t* data, size_t data_size) { handle_f6_response(data, data_size); });
-        }
-        else
-        {
-            // F6 is bad or unsupported, use F3 fallback
-            queries_.emplace_back(StateQuery::OnOffTimer, [this](uint8_t* data, size_t data_size) { handle_f3_response(data, data_size); });
-            logInfoP("S21: Using F3 fallback for special modes (F6 unsupported)");
-        }
+        // F3 is timer state, never a generic substitute for F6 special modes.
+        queries_.emplace_back(StateQuery::SpecialModes, [this](uint8_t* data, size_t size) { handle_f6_response(data, size); });
 
         if (major >= 2)
         { // Protocol v2.0+
@@ -1896,27 +1873,9 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
 
 void DaikinDriver::handle_f3_response(uint8_t* data, size_t data_size)
 {
-    if (data_size < 4)
-    {
-        logErrorP("F3 response too short: %zu bytes", data_size);
-        return;
-    }
+    if (data_size != 4) return;
+    // F3 byte 3 is unknown. It must not overwrite confirmed Powerful state.
     stats_.frames_ok++;
-
-    // F3 response: Alternative special modes query (Faikin fallback for units that don't support F6)
-    // Based on Faikin: F3 reports powerful state in byte 3 but lacks other modes
-    // Faikin comment: "F3 does not report powerful state, so we give F6 a preference"
-    // But for units that don't support F6 at all, F3 provides basic special mode info
-
-    logDebugP("F3: Alternative special modes [%02X %02X %02X %02X]",
-              data[0], data[1], data[2], data[3]);
-
-    // byte 3 contains powerful mode (bit 1 = 0x02)
-    state_.powerful = (data[3] & 0x02) != 0;
-
-    // F3 doesn't provide other special modes, so keep previous values for:
-    // comfort, quiet, streamer, sensor, led (they remain unchanged)
-    logDebugP("F3: powerful=%d (other special modes unchanged)", state_.powerful);
 }
 
 void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
@@ -3626,25 +3585,10 @@ void DaikinDriver::resetQueryNakTracking()
 // === F6 to F3 Fallback Logic ===
 void DaikinDriver::checkF6ToF3Fallback()
 {
-    // Look for F6 query that's marked as bad and replace it with F3
-    for (auto it = queries_.begin(); it != queries_.end(); ++it)
-    {
-        if (it->command == StateQuery::SpecialModes && it->bad)
-        {
-            // F6 is bad, replace with F3 fallback
-            logInfoP("S21: F6 marked as bad, switching to F3 fallback for special modes");
-
-            // Erase the bad F6 query
-            it = queries_.erase(it);
-
-            // Insert F3 at the same position
-            queries_.insert(it, DaikinQueryState(StateQuery::OnOffTimer,
-                                                 [this](uint8_t* data, size_t data_size) { handle_f3_response(data, data_size); }));
-
-            support_.f6_special_modes = false; // Mark F6 as unsupported
-            break;
-        }
-    }
+    // No verified model currently establishes F3 byte 3 as Powerful status.
+    // Keep the unsupported F6 entry in place so callback references stay valid.
+    support_.f6_special_modes = false;
+    d6_.valid = false;
 }
 
 // === Online/Offline Detection ===
