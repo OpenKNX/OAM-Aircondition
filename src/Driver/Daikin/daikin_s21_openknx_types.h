@@ -312,14 +312,15 @@ namespace daikin
         uint8_t demand{0};
         uint8_t demand_percentage{0}; // demand percentage (0-100)
 
+        bool totalEnergyValid{false};
         uint32_t totalEnergyWh{0}; // Total energy consumption in Watt-hours (from FM command)
         uint8_t compressorHz{0};
         uint16_t irCounter{0};
 
         // v3.20+/v3.40+ extension pages (FU/FX):
         bool fu04_valid{false};
-        uint32_t fu04_cooling_wh{0}; // value is Wh (FU04 value * 100 Wh)
-        uint32_t fu04_heating_wh{0}; // value is Wh (FU04 value * 100 Wh)
+        uint64_t fu04_cooling_wh{0}; // value is Wh (FU04 value * 100 Wh)
+        uint64_t fu04_heating_wh{0}; // value is Wh (FU04 value * 100 Wh)
 
         bool fx60_valid{false};
         uint32_t fx60_value10{0}; // value is unit-dependent *10 scaling from reversed ASCII hex

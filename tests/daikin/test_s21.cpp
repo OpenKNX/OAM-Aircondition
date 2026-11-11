@@ -377,4 +377,15 @@ void test_model_name() {
     assert(d.modelName()==model);
     std::fill_n(gu.begin(),22,' '); d.handle_fu_fx_response("FU05",gu.data(),32); assert(d.modelName().empty());
 }
-int main() { test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_energy_counters() {
+    Feedback f; DaikinDriver d(f); std::string gu="44200000B3B20000FFFFFFFFFFFFFFFF";
+    d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&gu[0]),32);
+    assert(d.telemetry().fu04_valid && d.telemetry().fu04_cooling_wh==58000 && d.telemetry().fu04_heating_wh==1106700);
+    gu.replace(0,8,"EFFFFFFF"); d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&gu[0]),32);
+    assert(d.telemetry().fu04_cooling_wh==429496729400ULL);
+    gu.replace(0,8,"FFFFFFFF"); d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&gu[0]),32); assert(!d.telemetry().fu04_valid);
+    gu.replace(0,8,"10000000"); d.handle_fu_fx_response("FU04",reinterpret_cast<uint8_t*>(&gu[0]),32); assert(d.telemetry().fu04_cooling_wh==100);
+    uint8_t gm[]={'F','F','F','F'}; d.handle_fm_response(gm,4); assert(d.telemetry().totalEnergyWh==6553500);
+    gm[0]='0'; gm[1]=gm[2]=gm[3]='0'; d.handle_fm_response(gm,4); assert(d.telemetry().totalEnergyWh==0);
+}
+int main() { test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

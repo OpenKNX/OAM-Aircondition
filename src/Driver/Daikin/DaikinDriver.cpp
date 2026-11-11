@@ -2277,43 +2277,17 @@ void DaikinDriver::handle_fg_response(uint8_t* data, size_t data_size)
     }
 }
 
-void DaikinDriver::handle_fm_response(uint8_t* data, size_t data_size)
+void DaikinDriver::handle_fm_response(uint8_t* data, size_t size)
 {
-    if (data_size < 1)
-    {
-        logErrorP("FM response empty");
-        return;
+    state_.totalEnergyValid = false;
+    if (size != 4) return;
+    uint32_t raw=0;
+    for (size_t i=0;i<4;i++) {
+        int nibble=s21_hex_nibble(data[i]); if (nibble<0) return;
+        raw |= uint32_t(nibble) << (4*i);
     }
-    if (data_size == 1)
-    { // Single-byte response is always ACK
-        uint8_t response = data[0];
-        logDebugP("FM: Single-byte ACK received (0x%02X) - no power consumption data", response);
-        return;
-    }
-    // FM response contains power consumption
-    if (data_size >= 4)
-    {
-        stats_.frames_ok++; // Count actual power consumption data response
-
-        // FM response: 4 digit ASCII encoded hex number in reverse order
-        // Indicates total energy consumption in 100Wh units
-        // Convert from ASCII hex chars to actual hex value, accounting for reverse order
-        auto hex = [](uint8_t c) {
-            if (c >= '0' && c <= '9') return c - '0';
-            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-            return 0;
-        };
-
-        // Reverse order: data[3] data[2] data[1] data[0] -> actual hex value
-        uint16_t hex_value = (hex(data[3]) << 12) | (hex(data[2]) << 8) | (hex(data[1]) << 4) | hex(data[0]);
-
-        // Convert to total energy consumption in Wh (multiply by 100)
-        state_.totalEnergyWh = hex_value * 100;
-
-        logInfoP("FM: total_energy=%u Wh (hex=0x%04X, raw=%c%c%c%c)",
-                 state_.totalEnergyWh, hex_value, data[0], data[1], data[2], data[3]);
-    }
+    state_.totalEnergyWh = raw * 100U; // system-wide outdoor energy, not FU04 indoor lifetime
+    state_.totalEnergyValid = true;
 }
 
 void DaikinDriver::handle_fy00_response(uint8_t* data, size_t data_size)
@@ -2578,25 +2552,17 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
         return; // no other offsets have established absolute temperature semantics
     }
 
-    if (command == StateQuery::ExtensionFU04 && data_size >= 16)
+    if (command == StateQuery::ExtensionFU04)
     {
-        uint32_t cool_raw = 0;
-        uint32_t heat_raw = 0;
-        const bool cool_ok = parse_reversed_ascii_hex(data, 8, cool_raw);
-        const bool heat_ok = parse_reversed_ascii_hex(data + 8, 8, heat_raw);
-        if (cool_ok && heat_ok)
-        {
-            // FU04 uses 100 Wh steps per wiki. Convert to absolute Wh.
-            const uint32_t cool_wh = cool_raw * 100U;
-            const uint32_t heat_wh = heat_raw * 100U;
-            state_.fu04_valid = true;
-            state_.fu04_cooling_wh = cool_wh;
-            state_.fu04_heating_wh = heat_wh;
-
-            logInfoP("FU04: cooling=%.1fkWh heating=%.1fkWh (raw=%u/%u in 100Wh steps)",
-                     cool_wh / 1000.0f, heat_wh / 1000.0f, cool_raw, heat_raw);
-            return;
+        uint32_t cool = 0, heat = 0;
+        state_.fu04_valid = data_size == 32 && parse_reversed_ascii_hex(data,8,cool) &&
+                            parse_reversed_ascii_hex(data+8,8,heat) && cool != UINT32_MAX && heat != UINT32_MAX;
+        if (state_.fu04_valid) {
+            state_.fu04_cooling_wh = uint64_t(cool) * 100ULL;
+            state_.fu04_heating_wh = uint64_t(heat) * 100ULL;
+            logInfoP("FU04 indoor lifetime cooling=%llu Wh heating=%llu Wh", state_.fu04_cooling_wh, state_.fu04_heating_wh);
         }
+        return;
     }
 
     if (command == StateQuery::ExtensionFX60 && data_size >= 4)
@@ -3196,8 +3162,8 @@ void DaikinDriver::publishState()
     static uint32_t last_total_energy = 0;
     static bool last_online = false;
     static bool last_fu04_valid = false;
-    static uint32_t last_fu04_cooling_wh = 0;
-    static uint32_t last_fu04_heating_wh = 0;
+    static uint64_t last_fu04_cooling_wh = 0;
+    static uint64_t last_fu04_heating_wh = 0;
     static bool last_fx60_valid = false;
     static uint32_t last_fx60_value10 = 0;
 
@@ -3366,9 +3332,9 @@ void DaikinDriver::publishState()
         state_.fx60_value10 != last_fx60_value10)
     {
         statusFeedback.updateDaikinExtensionTelemetry(
-            state_.fu04_valid,
-            state_.fu04_cooling_wh,
-            state_.fu04_heating_wh,
+            state_.fu04_valid && state_.fu04_cooling_wh <= UINT32_MAX && state_.fu04_heating_wh <= UINT32_MAX,
+            static_cast<uint32_t>(std::min<uint64_t>(state_.fu04_cooling_wh, UINT32_MAX)),
+            static_cast<uint32_t>(std::min<uint64_t>(state_.fu04_heating_wh, UINT32_MAX)),
             state_.fx60_valid,
             state_.fx60_value10);
 
