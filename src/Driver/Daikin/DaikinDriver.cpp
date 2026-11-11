@@ -340,7 +340,7 @@ void DaikinDriver::loop()
     serial_->loop(); // Process serial communication (non-blocking)
     if (!serial_->busy() && !isInPostWriteSettle()) {
         if (pending_.activate_climate) sendClimateCommand();
-        if (pending_.activate_swing_mode) sendSwingCommand();
+        if (pending_.activate_swing_mode || humidity_pending_) sendSwingCommand();
         if (pending_.activate_powerful || pending_.activate_quiet || pending_.activate_comfort ||
             pending_.activate_sensor || pending_.activate_led || pending_.activate_streamer)
             sendSpecialModesCommand();
@@ -402,7 +402,7 @@ unsigned int DaikinDriver::getMaximumVerticalFixPosition()
 
 unsigned int DaikinDriver::getMaximumHumidityModeLevels()
 {
-    return 5;
+    return humidity_modes_ ? 5 : 0;
 }
 
 bool DaikinDriver::supportExternalRoomTemperatureSensor()
@@ -585,6 +585,27 @@ void DaikinDriver::setExternalSensorRoomTemperature(float)
 void DaikinDriver::setWifiLed(bool on)
 {
     setLedState(on ? daikin::LedState::On : daikin::LedState::Off);
+}
+
+bool DaikinDriver::setHumidityMode(daikin::HumidityMode mode)
+{
+    using H = daikin::HumidityMode;
+    const bool heat = state_.mode == daikin::Mode::Heat;
+    const bool cool = state_.mode == daikin::Mode::Cool;
+    const bool dry = state_.mode == daikin::Mode::Dry;
+    const uint8_t mask = heat ? 4 : cool ? 2 : dry ? 16 : 0;
+    if (!(humidity_modes_ & mask) || mode == H::Unknown || (dry && mode == H::Low)) return false;
+    switch (mode) {
+        case H::Off: requested_humidity_ = '0'; break;
+        case H::Low: requested_humidity_ = heat ? 0x38 : 0x3A; break;
+        case H::Standard: requested_humidity_ = heat ? 0x39 : 0x3B; break;
+        case H::High: requested_humidity_ = heat ? 0x3A : 0x3C; break;
+        case H::Continuous: requested_humidity_ = 0xFF; break;
+        default: return false;
+    }
+    humidity_pending_ = true;
+    sendSwingCommand();
+    return true;
 }
 
 void DaikinDriver::setLedState(daikin::LedState led)
@@ -1537,14 +1558,17 @@ void DaikinDriver::sendClimateCommand()
 
 void DaikinDriver::sendSwingCommand()
 {
-    if (!pending_.activate_swing_mode || !d5_.valid) return;
+    if ((!pending_.activate_swing_mode && !humidity_pending_) || !d5_.valid) return;
     const bool v = pending_.climate.swing_v == daikin::Swing::Vertical;
     const bool h = pending_.climate.swing_h == daikin::Swing::Horizontal;
     PayloadBuffer payload = d5_.confirmed;
-    payload[0] = v && h ? '7' : v ? '1' : h ? '2' : '0';
-    payload[1] = v || h ? '?' : '0';
+    if (pending_.activate_swing_mode) {
+        payload[0] = v && h ? '7' : v ? '1' : h ? '2' : '0';
+        payload[1] = v || h ? '?' : '0';
+    }
+    if (humidity_pending_) payload[2] = requested_humidity_;
     // Humidity and the unknown fourth byte belong to the same state register.
-    if (sendCombined("D5", payload)) pending_.activate_swing_mode = false;
+    if (sendCombined("D5", payload)) { pending_.activate_swing_mode = false; humidity_pending_ = false; }
 }
 
 void DaikinDriver::sendPowerfulCommand()
@@ -1846,6 +1870,7 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
     // Extract humidity capabilities correctly from byte 3
     bool hasHumidifyMode = (b3 & 0x02) != 0;   // bit 1 - Humidify operation mode available
     bool hasExtraHumdModes = (b3 & 0x10) != 0; // bit 4 - humidity settings in additional modes
+    humidity_modes_ = hasHumidifyMode ? (hasExtraHumdModes ? 0xB7 : 0xA5) : (hasExtraHumdModes ? 0x92 : 0);
     uint8_t b3_view = b3 & 0x7F;               // cosmetic: mask always-1 bit7 for cleaner logs
 
     // Humidity capability matrix (from S21 wiki):
@@ -1926,35 +1951,19 @@ void DaikinDriver::handle_f5_response(uint8_t* data, size_t data_size)
         state_.swing = swing;
     }
 
-    // Decode humidity mode from byte 2 (3rd byte in G5 response)
-    if (data_size >= 3)
-    {
-        uint8_t humidity_byte = data[2];
-        switch (humidity_byte)
-        {
-            case 0x00: // Off (field observation)
-            case 0x30: // ASCII '0' - Off (some v0 units report ASCII)
-                state_.humidityMode = daikin::HumidityMode::Off;
-                break;
-            case 0x3A: // Low (field observation)
-                state_.humidityMode = daikin::HumidityMode::Low;
-                break;
-            case 0x3B: // Standard (field observation)
-                state_.humidityMode = daikin::HumidityMode::Standard;
-                break;
-            case 0x3C: // High (field observation)
-                state_.humidityMode = daikin::HumidityMode::High;
-                break;
-            case 0xFF: // Continuous (field observation)
-                state_.humidityMode = daikin::HumidityMode::Continuous;
-                break;
-            default:
-                logInfoP("F5: Unknown humidity mode byte 0x%02X, defaulting to Off", humidity_byte);
-                state_.humidityMode = daikin::HumidityMode::Off;
-                break;
-        }
-        logInfoP("F5: humidityMode=%d (byte=0x%02X)", static_cast<int>(state_.humidityMode), humidity_byte);
-    }
+    state_.humidityRaw = data[2];
+    state_.humidityMode = daikin::HumidityMode::Unknown;
+    const bool heating = state_.mode == daikin::Mode::Heat || state_.autoBias == daikin::AutoBias::Heating;
+    const bool cooling = state_.mode == daikin::Mode::Cool || state_.mode == daikin::Mode::Dry ||
+                         state_.autoBias == daikin::AutoBias::Cooling;
+    if (data[2] == '0') state_.humidityMode = daikin::HumidityMode::Off;
+    else if (data[2] == 0xFF && (heating || cooling)) state_.humidityMode = daikin::HumidityMode::Continuous;
+    else if (heating && data[2] >= 0x38 && data[2] <= 0x3A)
+        state_.humidityMode = data[2] == 0x38 ? daikin::HumidityMode::Low : data[2] == 0x39 ? daikin::HumidityMode::Standard : daikin::HumidityMode::High;
+    else if (cooling && data[2] >= 0x3A && data[2] <= 0x3C)
+        state_.humidityMode = data[2] == 0x3A ? daikin::HumidityMode::Low : data[2] == 0x3B ? daikin::HumidityMode::Standard : daikin::HumidityMode::High;
+    state_.humidityModeValid = state_.humidityMode != daikin::HumidityMode::Unknown;
+
 }
 
 void DaikinDriver::handle_f6_response(uint8_t* data, size_t data_size)

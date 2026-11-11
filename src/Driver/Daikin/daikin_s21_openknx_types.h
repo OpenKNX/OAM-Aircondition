@@ -113,6 +113,7 @@ namespace daikin
      */
     enum class HumidityMode : uint8_t
     {
+        Unknown = 0xFE,
         Off = 0x00,
         Low = 0x3A,
         Standard = 0x3B,
@@ -266,7 +267,9 @@ namespace daikin
         // Fan and swing
         DaikinFanMode fan{DaikinFanMode::Auto};
         Swing swing{Swing::Off};
-        HumidityMode humidityMode{HumidityMode::Off}; // F5 byte 2: humidity setting
+        uint8_t humidityRaw{0};
+        bool humidityModeValid{false};
+        HumidityMode humidityMode{HumidityMode::Unknown}; // F5 byte 2: humidity setting
         uint16_t fanRpm{0};
         uint16_t fanRpmSetpoint{0};
         int16_t swingVerticalAngle{0};

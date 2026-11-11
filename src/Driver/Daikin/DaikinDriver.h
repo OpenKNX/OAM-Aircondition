@@ -183,6 +183,7 @@ public:
 
     // Configure only after validating the model's reduced-demand range on hardware.
     bool configureDemandLimits(uint8_t minimum, uint8_t step);
+    bool setHumidityMode(daikin::HumidityMode mode);
     void setLedState(daikin::LedState state);
     void setComfort(bool on);
     void setIntelligentEye(bool on);
@@ -286,6 +287,8 @@ private:
         bool valid{false};
         CommandSupport write{CommandSupport::Unknown};
     } d5_, d6_, d7_;
+    uint8_t humidity_modes_{0}, requested_humidity_{0};
+    bool humidity_pending_{false};
     uint8_t demand_minimum_{100}, demand_step_{1}, requested_demand_{100};
     bool demand_pending_{false};
     std::string_view outstanding_write_{};

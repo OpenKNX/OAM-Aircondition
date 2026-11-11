@@ -201,4 +201,17 @@ void test_swing_preserves_humidity() {
     auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
     assert(tx[2]=='5' && tx[3]=='1' && tx[4]=='?' && tx[5]==0x3C && tx[6]==0x80);
 }
-int main() { test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_humidity() {
+    Feedback f; DaikinDriver d(f); d.setup(); d.humidity_modes_=0xB7;
+    uint8_t g5[]={'1','?',0x3A,0x80};
+    d.state_.mode=daikin::Mode::Heat; d.handle_f5_response(g5,4);
+    assert(d.state_.humidityMode==daikin::HumidityMode::High);
+    d.state_.mode=daikin::Mode::Cool; d.handle_f5_response(g5,4);
+    assert(d.state_.humidityMode==daikin::HumidityMode::Low);
+    assert(d.setHumidityMode(daikin::HumidityMode::High));
+    auto& tx=static_cast<FakeHAL*>(d.serial_->serial_hal_.get())->tx;
+    assert(tx[3]=='1' && tx[4]=='?' && tx[5]==0x3C && tx[6]==0x80);
+    d.state_.mode=daikin::Mode::Dry; assert(!d.setHumidityMode(daikin::HumidityMode::Low));
+    d.humidity_modes_=0; assert(!d.setHumidityMode(daikin::HumidityMode::High));
+}
+int main() { test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
