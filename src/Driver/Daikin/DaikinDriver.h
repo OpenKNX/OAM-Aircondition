@@ -128,7 +128,7 @@ public:
 /**
  * DaikinDriver - Complete S21 protocol implementation
  * 
- * This driver provides full Daikin S21 protocol support including:
+ * S21 protocol support varies by model; optional controls use runtime discovery.
  * - Temperature control (18-32°C with 0.5°C accuracy)
  * - Mode control (Auto, Cool, Heat, Dry, Fan)
  * - Fan speed control (Auto + 5 levels)
@@ -136,7 +136,7 @@ public:
  * - Advanced features (Powerful, Econo, Quiet)
  * - LED control
  * - Air purification (Streamer)
- * - External sensor support
+ * - Intelligent Eye control (not external temperature injection)
  * - Telemetry (humidity, power consumption, temperatures)
  */
 class DaikinDriver : public AirConditionDriver

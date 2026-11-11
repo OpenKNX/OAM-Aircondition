@@ -1,0 +1,23 @@
+name: Daikin S21 native regression
+on:
+  push:
+    paths:
+      - 'src/Driver/Daikin/**'
+      - 'src/AirConditionDriver.*'
+      - 'tests/daikin/**'
+      - '.github/workflows/daikin-native.yml'
+  pull_request:
+    paths:
+      - 'src/Driver/Daikin/**'
+      - 'src/AirConditionDriver.*'
+      - 'tests/daikin/**'
+      - '.github/workflows/daikin-native.yml'
+permissions:
+  contents: read
+jobs:
+  s21:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile production S21 code and run sanitized fixtures
+        run: sh tests/daikin/run.sh

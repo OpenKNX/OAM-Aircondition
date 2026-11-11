@@ -13,7 +13,7 @@ Feedback zu weiteren funktionierenden Geräten folgender Hersteller gerne [KNX-U
 ## Daikin
   - S21-Protokoll mit automatischer Protokoll-/Feature-Erkennung (inkl. v3.30 Kernfunktionen)
   - Unterstützung für viele Modelle mit S21-Schnittstelle (HA-Anschluss), abhängig von Gerätefähigkeiten/Firmware
-  - Features: Grundsteuerung, Spezialmodi (Powerful, Econo, Quiet, Comfort, Streamer), Intelligent Eye Sensor, Humidity-Mode-Rückmeldung, Swing-Modi
+  - Features: Grundsteuerung, modellabhängige Spezialmodi (Powerful, Econo, Quiet, Comfort, Streamer), Intelligent Eye, Humidity-Mode-Rückmeldung, Swing-Modi
   - Getestet mit verschiedenen FTXM/FTXF Serien
 
 ## Mitsubishi (Mitsubishi Electric)
@@ -66,13 +66,13 @@ Feedback zu weiteren funktionierenden Geräten folgender Hersteller gerne [KNX-U
 - **Intelligent Eye Sensor**: Automatische Temperaturanpassung basierend auf Anwesenheitserkennung
 - **Humidity Mode Rückmeldung**: 5 Stufen (Off, Low, Standard, High, Continuous)
 - **Swing Modi**: Vertikal, Horizontal, Both
-- **Lamellenposition**: Über S21 aktuell nur Swing Ein/Aus (keine feste Position)
+- **Lamellenposition**: Vertikale DR/FR-Positionen werden erst nach ACK und passender Rückmeldung freigegeben; feste horizontale Positionen sind nicht dokumentiert.
 - **Umfassende Sensorik**: Innen-/Außentemperatur, Luftfeuchtigkeit, Kompressorfrequenz
 - **Energy Monitoring**: Stromverbrauch-Tracking
 - **Erweiterte Diagnostik**: Query-basierte Feature-Erkennung und Fallback-Mechanismen je nach Gerät
 
 Hinweis: Nicht jedes Daikin-Gerät unterstützt jeden S21-Befehl. Nicht verfügbare Features werden automatisch erkannt und entsprechend übersprungen.
-Hinweis: Leistungsbegrenzung (Power Limit in %) wird aktuell nicht aktiv an Daikin-Geräte geschrieben.
+Hinweis: D7-Leistungsbegrenzung setzt erkannte Geräteunterstützung und einen am konkreten Modell geprüften Prozentbereich voraus. Reduzierte Werte sind ohne diese Freigabe deaktiviert.
 
 
 ## Anwenderdokumentation
