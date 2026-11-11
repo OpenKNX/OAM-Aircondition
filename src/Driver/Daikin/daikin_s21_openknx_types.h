@@ -249,6 +249,8 @@ namespace daikin
      */
     struct State
     {
+        bool heatMinimumValid{false}, autoLimitOffsetValid{false};
+        float heatMinimumC{18}, autoLimitOffsetC{0}; // offset is not an absolute setpoint
         // Basic state
         bool online{false};
         bool power{false};

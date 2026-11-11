@@ -362,4 +362,12 @@ void test_identification() {
     d.protocol_version_={3,20}; d.initializeQueries();
     for(auto cmd : {"FY10","FY20","VS000M"}) assert(std::any_of(d.queries_.begin(),d.queries_.end(),[&](const DaikinQueryState& q){return q.command==cmd && q.is_static;}));
 }
-int main() { test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_temperature_limits() {
+    Feedback f; DaikinDriver d(f); d.setup(); std::array<uint8_t,32> gu; gu.fill(0xFF); gu[2]=0x30; gu[1]=0xA4;
+    d.support_.auto_limit_offset=true; d.handle_fu_fx_response("FU02",gu.data(),32);
+    d.state_.mode=daikin::Mode::Heat; assert(d.getMinimumTargetTemperature()==10 && d.telemetry().autoLimitOffsetC==2);
+    d.query_state_=DaikinDriver::QueryState::PostWriteSettle; d.setTargetTemperature(5); assert(d.pending_.climate.targetC==10);
+    d.state_.mode=daikin::Mode::Cool; assert(d.getMinimumTargetTemperature()==18);
+    gu[2]=0xFF; d.handle_fu_fx_response("FU02",gu.data(),32); assert(!d.telemetry().heatMinimumValid);
+}
+int main() { test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

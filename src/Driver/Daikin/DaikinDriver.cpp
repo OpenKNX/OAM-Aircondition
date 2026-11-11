@@ -410,7 +410,10 @@ DaikinDriver::FeatureAccess DaikinDriver::commandAccess(std::string_view read_co
 // === Capability Queries ===
 float DaikinDriver::getMinimumTargetTemperature()
 {
-    return 18.0f; // S21 protocol minimum temperature
+    const auto mode = climate_dirty_ & DirtyMode ? pending_.climate.mode : state_.mode;
+    if (mode == daikin::Mode::Heat && state_.heatMinimumValid && state_.heatMinimumC <= getMaximumTargetTemperature())
+        return state_.heatMinimumC;
+    return 18.0f; // conservative fallback where no absolute limit is documented
 }
 
 float DaikinDriver::getMaximumTargetTemperature()
@@ -1464,7 +1467,7 @@ void DaikinDriver::sendClimateCommand()
     // ALWAYS use pending_ values as single source of truth
     const auto power_to_send = pending_.climate.power;
     const auto mode_to_send = pending_.climate.mode;
-    const auto temp_to_send = pending_.climate.targetC;
+    const auto temp_to_send = std::clamp(pending_.climate.targetC, getMinimumTargetTemperature(), getMaximumTargetTemperature());
     const auto fan_to_send = pending_.climate.fan_mode;
 
     // Byte 0: Power ('0'/'1' ASCII, not 0x00/0x01)
@@ -2476,6 +2479,7 @@ void DaikinDriver::handle_fk_response(uint8_t* data, size_t data_size)
             // Parse FK capabilities according to S21 protocol spec
             // byte1 bit 3 - "motion detector" AKA "Intelligent eye" availability
             bool sensor_hardware_available = (data[1] & 0x08) != 0;
+            support_.auto_limit_offset = (data[0] & 0x40) != 0;
             support_.sensor_hardware = sensor_hardware_available;
             support_.sensor = sensor_hardware_available;
             support_.fan = (data[2] & 0x04) != 0;
@@ -2544,11 +2548,13 @@ void DaikinDriver::handle_fu_fx_response(std::string_view command, uint8_t* data
         return;
     }
 
-    if (command == StateQuery::ExtensionFU02 && data_size >= 3)
+    if (command == StateQuery::ExtensionFU02)
     {
-        logInfoP("FU02: limits/status bytes [%02X %02X %02X]",
-                 data[0], data[1], data[2]);
-        return;
+        state_.heatMinimumValid = data_size == 32 && data[2] >= 0x30 && data[2] <= 0x6F;
+        state_.autoLimitOffsetValid = data_size == 32 && support_.auto_limit_offset && data[1] >= 0xA0 && data[1] <= 0xB0;
+        if (state_.heatMinimumValid) state_.heatMinimumC = 10.0f + (data[2] - 0x30) / 2.0f;
+        if (state_.autoLimitOffsetValid) state_.autoLimitOffsetC = (data[1] - 0xA0) / 2.0f;
+        return; // no other offsets have established absolute temperature semantics
     }
 
     if (command == StateQuery::ExtensionFU04 && data_size >= 16)

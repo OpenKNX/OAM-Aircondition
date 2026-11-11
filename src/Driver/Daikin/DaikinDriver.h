@@ -271,6 +271,7 @@ private:
     // Protocol support detection
     daikin::ProtocolVersion protocol_version_{daikin::ProtocolUndetected};
     struct {
+        bool auto_limit_offset{false};
         bool special_features_known{false};
         bool powerful{false};
         bool econo{false};
