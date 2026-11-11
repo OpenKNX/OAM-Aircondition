@@ -5,10 +5,10 @@ Usage: python3 tests/ets/check_compatibility.py expanded.debug.xml generated.h
 The baseline freezes old product identities, wire types, parameter values/storage,
 references and all existing generated addresses. It does not certify an ETS import.
 """
+import argparse
 import gzip
 import json
 import re
-import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -20,7 +20,7 @@ def contract(xml, header):
     app = next(root.iter(NS + 'ApplicationProgram'))
     app_id = app.attrib['Id']
     def norm(value):
-        return re.sub(r'M-00FA_BG-AE\.2F36\.2F[0-9A-F]{2}-', '%BAGGAGE%', value.replace(app_id, '%AID%'))
+        return re.sub(r'M-00FA_BG-AE\.2F3[56]\.2F[0-9A-F]{2}-', '%BAGGAGE%', value.replace(app_id, '%AID%'))
     def attrs(e):
         return {k: norm(v) for k, v in e.attrib.items() if not k.startswith('{')}
     parents = {child: parent for parent in root.iter() for child in parent}
@@ -85,4 +85,18 @@ def check(current, baseline):
     print(f"ETS compatibility contract passed: {len(baseline['objects'])} objects, {len(baseline['parameters'])} parameters and {len(baseline['defines'])} header definitions preserved")
 
 if __name__ == '__main__':
-    check(contract(*sys.argv[1:]), json.loads(gzip.decompress(BASE.read_bytes())))
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('xml'); parser.add_argument('header')
+    parser.add_argument('--variant', choices=('release','beta','dev'), default='release')
+    args=parser.parse_args()
+    baseline=json.loads(gzip.decompress(BASE.read_bytes()))
+    # Pre-extension wrappers use identical object/parameter definitions. Only
+    # their existing application identity, version history and name differ.
+    if args.variant=='beta':
+        baseline['defines']['MAIN_FirmwareName']='"Klimaanlagen KNX Adapter (Beta)"'
+    elif args.variant=='dev':
+        baseline['applicationNumber']='44597'
+        baseline['version']=15; baseline['replaces']=list(range(14,-1,-1))
+        baseline['defines']['MAIN_ApplicationNumber']='53'
+        baseline['defines']['MAIN_FirmwareName']='"Klimaanlagen KNX Adapter (Dev)"'
+    check(contract(args.xml,args.header), baseline)
