@@ -259,7 +259,8 @@ void DaikinDriver::startCommunication(bool restart)
         failed_queries_.clear();
         protocol_version_ = daikin::ProtocolUndetected;
         support_ = {};
-        d5_ = {}; d6_ = {}; d7_ = {};
+        d5_ = {}; d6_ = {}; d7_ = {}; dr_ = {};
+        vertical_pending_ = false;
         outstanding_write_ = {};
         humidity_modes_ = 0;
         humidity_pending_ = demand_pending_ = false;
@@ -350,6 +351,7 @@ void DaikinDriver::loop()
             pending_.activate_sensor || pending_.activate_led || pending_.activate_streamer)
             sendSpecialModesCommand();
         if (pending_.activate_econo || demand_pending_) sendEconoCommand();
+        if (vertical_pending_) sendVerticalPositionCommand();
     }
 
     updateQueryStateMachine(); // non-blocking state machine
@@ -381,7 +383,7 @@ void DaikinDriver::loop()
 
 DaikinDriver::FeatureAccess DaikinDriver::commandAccess(std::string_view read_command) const
 {
-    const CombinedCommand* combined = read_command == "F5" ? &d5_ : read_command == "F6" ? &d6_ : read_command == "F7" ? &d7_ : nullptr;
+    const CombinedCommand* combined = read_command == "F5" ? &d5_ : read_command == "F6" ? &d6_ : read_command == "F7" ? &d7_ : read_command == "FR" ? &dr_ : nullptr;
     auto query = std::find_if(queries_.begin(), queries_.end(), [&](const DaikinQueryState& q) { return q.command == read_command; });
     if (query == queries_.end()) return FeatureAccess::Unknown;
     if (query->bad) return FeatureAccess::Unsupported;
@@ -408,12 +410,13 @@ unsigned int DaikinDriver::getMaximumFanSpeed()
 
 unsigned int DaikinDriver::getMaximumHorizontalFixPosition()
 {
-    return 0; // S21 protocol doesn't support fixed positions, only swing on/off
+    return 0; // Horizontal fixed positions have no established S21 command.
 }
 
 unsigned int DaikinDriver::getMaximumVerticalFixPosition()
 {
-    return 0; // S21 protocol doesn't support fixed positions, only swing on/off
+    return state_.verticalPositionVerified ? 5 : 0;
+
 }
 
 unsigned int DaikinDriver::getMaximumHumidityModeLevels()
@@ -587,10 +590,18 @@ void DaikinDriver::setSwingHorizontalFixPosition(unsigned int position)
 
 void DaikinDriver::setSwingVerticalFixPosition(unsigned int position)
 {
-    // S21 protocol doesn't support fixed positions. For Scene compatibility we accept the
-    // request but treat it as a no-op (the driver only supports swing on/off). Log the request
-    // so integrators can see that fixed positions are ignored.
-    logInfoP("Fixed vertical positions not supported by S21 protocol (requested: %u) - accepted as no-op", position);
+    if (position > 5 || dr_.write == CommandSupport::Unsupported) return;
+    requested_vertical_position_ = position;
+    vertical_pending_ = true;
+    sendVerticalPositionCommand();
+}
+
+void DaikinDriver::sendVerticalPositionCommand()
+{
+    if (!vertical_pending_ || !dr_.valid) return;
+    PayloadBuffer payload = dr_.confirmed;
+    payload[0] = '0' + requested_vertical_position_;
+    if (sendCombined("DR", payload)) vertical_pending_ = false;
 }
 
 void DaikinDriver::setExternalSensorRoomTemperature(float)
@@ -779,6 +790,7 @@ void DaikinDriver::initializeQueries()
 
         if (major >= 2)
         { // Protocol v2.0+
+            queries_.emplace_back("FR", [this](uint8_t* data, size_t n) { handle_fr_response(data,n); });
             queries_.emplace_back(StateQuery::DemandAndEcono, [this](uint8_t* data, size_t data_size) { handle_f7_response(data, data_size); });
             queries_.emplace_back(StateQuery::ModelCode, [this](uint8_t* data, size_t data_size) { handle_fc_response(data, data_size); });
             queries_.emplace_back(StateQuery::IRCounter, [this](uint8_t* data, size_t data_size) { handle_fg_response(data, data_size); });
@@ -1620,7 +1632,7 @@ void DaikinDriver::sendStreamerCommand()
 
 bool DaikinDriver::sendCombined(std::string_view command, const PayloadBuffer& payload)
 {
-    CombinedCommand& combined = command == "D5" ? d5_ : command == "D6" ? d6_ : d7_;
+    CombinedCommand& combined = command == "D5" ? d5_ : command == "D6" ? d6_ : command == "DR" ? dr_ : d7_;
     if (!serial_ || serial_->busy() || isInPostWriteSettle() || !combined.valid ||
         combined.write == CommandSupport::Unsupported) return false;
     for (uint8_t b : payload) {
@@ -1893,6 +1905,19 @@ void DaikinDriver::handle_f2_response(uint8_t* data, size_t data_size)
               support_.fan, support_.sensor, support_.streamer, support_.led);
     logDebugP("F2: bytes [0x%02X, -, -, 0x%02X] de-shielded [0x%02X, -, -, 0x%02X]",
               data[0], data[3], b0, b3_view);
+}
+
+void DaikinDriver::handle_fr_response(uint8_t* data, size_t size)
+{
+    if (size != 4 || ((data[0] < '0' || data[0] > '5') && data[0] != '?')) return;
+    std::copy_n(data, 4, dr_.confirmed.begin());
+    dr_.valid = true;
+    state_.verticalPositionValid = data[0] != '?';
+    if (state_.verticalPositionValid) {
+        state_.verticalPosition = data[0] - '0';
+        if (requested_vertical_position_ > 0 && state_.verticalPosition == requested_vertical_position_ &&
+            dr_.write == CommandSupport::Supported) state_.verticalPositionVerified = true;
+    }
 }
 
 void DaikinDriver::handle_fb_response(uint8_t* data, size_t size)
@@ -2763,7 +2788,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
     if (!accept_response) return;
 
     if (!outstanding_write_.empty()) {
-        CombinedCommand& c = outstanding_write_ == "D5" ? d5_ : outstanding_write_ == "D6" ? d6_ : d7_;
+        CombinedCommand& c = outstanding_write_ == "D5" ? d5_ : outstanding_write_ == "D6" ? d6_ : outstanding_write_ == "DR" ? dr_ : d7_;
         if (result == daikin::DaikinSerial::Result::Ack) c.write = CommandSupport::Supported;
         if (result == daikin::DaikinSerial::Result::Nak) c.write = CommandSupport::Unsupported;
         if (result == daikin::DaikinSerial::Result::Ack || result == daikin::DaikinSerial::Result::Nak ||

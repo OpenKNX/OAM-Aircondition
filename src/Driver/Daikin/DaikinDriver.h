@@ -294,11 +294,14 @@ private:
         PayloadBuffer confirmed{};
         bool valid{false};
         CommandSupport write{CommandSupport::Unknown};
-    } d5_, d6_, d7_;
+    } d5_, d6_, d7_, dr_;
     uint8_t humidity_modes_{0}, requested_humidity_{0};
     bool humidity_pending_{false};
     uint8_t demand_minimum_{100}, demand_step_{1}, requested_demand_{100};
     bool demand_pending_{false};
+    int requested_vertical_position_{-1};
+    bool vertical_pending_{false};
+    void sendVerticalPositionCommand();
     std::string_view outstanding_write_{};
     bool sendCombined(std::string_view command, const PayloadBuffer& payload);
     void sendSpecialModesCommand();
@@ -422,6 +425,7 @@ private:
     void checkOnlineTimeout();
     
     // Response handlers
+    void handle_fr_response(uint8_t* data, size_t data_size);
     void handle_fb_response(uint8_t* data, size_t data_size);
     void handle_f4_response(uint8_t* data, size_t data_size);
     void handle_f1_response(uint8_t* data, size_t data_size);
