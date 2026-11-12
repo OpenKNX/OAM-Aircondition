@@ -2849,8 +2849,16 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             result==daikin::DaikinSerial::Result::Timeout?DiagnosticStatus::Timeout:DiagnosticStatus::Error;
         if(result==daikin::DaikinSerial::Result::Frame) {
             const auto header=daikin::s21::responseHeader(diagnostic_result_.command);
-            if(data_size<header.size() || !std::equal(header.begin(),header.end(),data) || !daikin::s21::validResponse(diagnostic_result_.command,data+header.size(),data_size-header.size())) diagnostic_result_.status=DiagnosticStatus::Error;
-            else diagnostic_result_.payload.assign(data+header.size(),data+data_size);
+            if (data_size < header.size() || !std::equal(header.begin(), header.end(), data))
+            {
+                diagnostic_result_.status = DiagnosticStatus::Error;
+            }
+            else
+            {
+                diagnostic_result_.payload.assign(data + header.size(), data + data_size);
+                if (!daikin::s21::validResponse(diagnostic_result_.command, diagnostic_result_.payload.data(), diagnostic_result_.payload.size()))
+                    diagnostic_result_.status = DiagnosticStatus::Error;
+            }
         }
         diagnostic_active_=false;
         if(diagnostic_ack_only_) handleWriteCommandSent(LastWriteCommand::Other);

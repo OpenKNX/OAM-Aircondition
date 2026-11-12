@@ -233,3 +233,8 @@ recovery; startup without a response remains Starting until detection fails.
 Timer-indicator writes modify only FB byte 0 and preserve the other three bytes
 from the confirmed GB response. Those fields are model-dependent and are not
 reset to invented defaults. Success still requires a subsequent matching readback.
+
+Local raw diagnostics retain the payload of a correctly addressed frame even if
+its field encoding is not recognised. Such replies keep Error status and never
+update typed telemetry; `s21 result` can show the bytes for model investigation
+instead of reporting a misleading empty response.
