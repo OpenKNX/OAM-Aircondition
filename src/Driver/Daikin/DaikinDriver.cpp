@@ -572,7 +572,8 @@ bool DaikinDriver::setTimerLamp(bool on)
 void DaikinDriver::sendTimerLampCommand()
 {
     if (!timer_lamp_pending_ || !fb_.valid) return;
-    const PayloadBuffer payload={uint8_t(requested_timer_lamp_?'1':'0'),'0','0','0'};
+    PayloadBuffer payload = fb_.confirmed;
+    payload[0] = requested_timer_lamp_ ? '1' : '0';
     if (sendCombined("FB",payload)) timer_lamp_pending_=false;
 }
 

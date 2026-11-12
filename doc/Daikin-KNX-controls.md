@@ -229,3 +229,7 @@ Connection state is compared with the module's reported state, independently of
 the telemetry online flag. A healthy connection therefore clears the module's
 60-second recovery timer. Actual loss of traffic still reports Error and permits
 recovery; startup without a response remains Starting until detection fails.
+
+Timer-indicator writes modify only FB byte 0 and preserve the other three bytes
+from the confirmed GB response. Those fields are model-dependent and are not
+reset to invented defaults. Success still requires a subsequent matching readback.
