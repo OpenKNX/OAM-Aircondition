@@ -459,6 +459,13 @@ private:
     bool d1_awaiting_ack_{false};
     uint32_t climate_confirmation_started_{0};
     void rejectClimateWrite();
+    void confirmClimateFields(uint8_t fields);
+    void selectConfirmationQuery();
+    void advanceQuery();
+    size_t confirmation_resume_{SIZE_MAX};
+    uint32_t last_confirmation_poll_{0};
+    uint8_t confirmation_cursor_{0};
+    bool climate_readback_seen_{false};
     void invalidateTelemetry();
     void invalidatePage(std::string_view command);
     WriteOutcome climate_outcome_{WriteOutcome::None};   // Dedupe identical D1 commands

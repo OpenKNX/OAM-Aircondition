@@ -327,6 +327,7 @@ void DaikinDriver::startCommunication(bool restart)
     if (comm_start_time_ == 0) comm_start_time_ = 1; // avoid 0 sentinel
 
     query_state_=QueryState::Idle;
+    confirmation_resume_=SIZE_MAX;
     // Start communication with smart protocol detection
     last_query_cycle_ = 0; // Force immediate cycle start
 
@@ -390,7 +391,10 @@ void DaikinDriver::loop()
 
     if (!serial_->busy() && (query_state_==QueryState::Idle || query_state_==QueryState::WaitingToSend)) serviceDiagnostic();
     if (!diagnostic_active_) updateQueryStateMachine(); // non-blocking state machine
-    if (climate_confirmation_started_ && millis()-climate_confirmation_started_>30000) {climate_outcome_=WriteOutcome::Timeout;rejectClimateWrite();}
+    if (sent_climate_dirty_ && millis()-climate_confirmation_started_>30000) {
+        climate_outcome_=climate_readback_seen_?WriteOutcome::Mismatch:WriteOutcome::Timeout;
+        rejectClimateWrite();
+    }
     for(auto* c:{&d3_,&d5_,&d6_,&d7_,&dr_,&fb_}) if(c->awaiting_readback && millis()-c->sent_ms>30000) {c->awaiting_readback=false;c->outcome=WriteOutcome::Timeout;if(c==&d3_ || c==&fb_) publishTimerStatus();}
     if(version_changed_ && !serial_->busy() && !diagnostic_active_) {version_changed_=false;startCommunication(true);}
 
@@ -1067,7 +1071,7 @@ void DaikinDriver::initializeProtocolDetection()
 
 void DaikinDriver::initializeQueries()
 {
-    queries_.clear();query_index_=0;protocol_detection_phase_=false;
+    queries_.clear();query_index_=0;confirmation_resume_=SIZE_MAX;protocol_detection_phase_=false;
     auto add=[&](std::string_view cmd,DaikinQueryState::handler_fn handler=nullptr,bool once=false,uint32_t interval=0){
         queries_.emplace_back(cmd,handler,once);queries_.back().interval_ms=interval;
     };
@@ -1135,6 +1139,13 @@ void DaikinDriver::updateQueryStateMachine()
 {
     uint32_t now = millis();
 
+    // Readbacks of pending writes must not wait behind the full telemetry cycle.
+    if (query_state_ == QueryState::Idle && !protocol_detection_phase_ &&
+        (sent_climate_dirty_ || d3_.awaiting_readback || d5_.awaiting_readback ||
+         d6_.awaiting_readback || d7_.awaiting_readback || dr_.awaiting_readback || fb_.awaiting_readback) &&
+        now-last_confirmation_poll_ >= 1000)
+        query_state_ = QueryState::WaitingToSend;
+
     // Check if we need extended timeout for first F1 after write command
     auto isFirstF1AfterWrite = post_write_first_f1_pending_ && query_index_ < queries_.size() && queries_[query_index_].command == StateQuery::Basic; // F1
 
@@ -1148,6 +1159,8 @@ void DaikinDriver::updateQueryStateMachine()
             // Check if enough time has passed since last send
             if (canSendQuery())
             {
+                selectConfirmationQuery();
+                isFirstF1AfterWrite = post_write_first_f1_pending_ && query_index_ < queries_.size() && queries_[query_index_].command == StateQuery::Basic;
                 // Find next supported query (skip bad queries)
                 // Non-blocking: limit search iterations to prevent blocking
                 constexpr int MAX_QUERY_SEARCH_ITERATIONS = 10;
@@ -1603,6 +1616,7 @@ void DaikinDriver::sendClimateCommand()
     sent_climate_generation_ = climate_generation_;
     d1_awaiting_ack_ = true;
     climate_confirmation_started_ = millis();
+    climate_readback_seen_ = false;
     climate_outcome_=WriteOutcome::AwaitingAck;
     if (!serial_->send_frame(cmd, payload.data(), 4)) {pending_.activate_climate=climate_dirty_!=0;return;}
 
@@ -1940,13 +1954,10 @@ void DaikinDriver::handle_f1_response(uint8_t* data, size_t data_size)
     if (std::abs(state_.targetC - pending_.climate.targetC) < 0.1f) climate_dirty_ &= ~DirtyTemperature;
     if (!support_.fan_mode_query && state_.fan == pending_.climate.fan_mode) climate_dirty_ &= ~DirtyFan;
 
-    // A fresh post-write readback is authoritative. Do not replay a rejected or
-    // remotely superseded request on a later unrelated property change.
-    const uint8_t pending_fan=sent_climate_dirty_ & DirtyFan;
-    if(pending_fan && pending_.climate.fan_mode==daikin::DaikinFanMode::Silent && data[3]=='A') sent_climate_dirty_ &= ~DirtyFan;
-    if (sent_climate_dirty_) {climate_outcome_=climate_dirty_ & sent_climate_dirty_ ? WriteOutcome::Mismatch : WriteOutcome::Confirmed;rejectClimateWrite();}
-
-    if(pending_fan && (climate_dirty_ & DirtyFan)) {sent_climate_dirty_|=DirtyFan;climate_outcome_=WriteOutcome::AwaitingReadback;}
+    // G1 can alias Quiet to Auto. Only RG may confirm that fan request.
+    const bool quiet_alias = pending_.climate.fan_mode==daikin::DaikinFanMode::Silent && data[3]=='A';
+    confirmClimateFields(DirtyPower | DirtyMode | DirtyTemperature |
+        (!support_.fan_mode_query && !quiet_alias ? DirtyFan : 0));
 
     // Mark F1 sample as seen for publish gating
     sample_seen_mask_ |= SEEN_F1;
@@ -2653,10 +2664,7 @@ void DaikinDriver::handle_rg_response(uint8_t* data, size_t data_size)
     state_.fanValid = true;
     state_.fan = daikin_to_fan_mode(raw);
     if (state_.fan == pending_.climate.fan_mode) climate_dirty_ &= ~DirtyFan;
-    if((sent_climate_dirty_ & DirtyFan) && climate_generation_[3]==sent_climate_generation_[3]) {
-        climate_outcome_=(climate_dirty_ & DirtyFan)?WriteOutcome::Mismatch:WriteOutcome::Confirmed;
-        rejectClimateWrite();
-    }
+    confirmClimateFields(DirtyFan);
     logDebugP("RG: fan_mode decoded from raw 0x%02X ('%c') -> %d",
               raw, (raw >= 32 && raw < 127) ? static_cast<char>(raw) : '?', static_cast<int>(state_.fan));
 
@@ -2998,7 +3006,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 {
                     if (!s21_valid_response(query.command,payload,payload_len)) {
                         stats_.frames_bad_format++;
-                        query_index_++; query_state_=QueryState::WaitingToSend; state_start_time_=now;
+                        advanceQuery(); query_state_=QueryState::WaitingToSend; state_start_time_=now;
                         return;
                     }
                     markOnline(now);
@@ -3029,7 +3037,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 }
             }
             // Advance after frame
-            query_index_++;
+            advanceQuery();
             query_state_ = QueryState::WaitingToSend;
             state_start_time_ = millis();
             break;
@@ -3080,7 +3088,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 }
             }
 
-            query_index_++;
+            advanceQuery();
             query_state_ = QueryState::WaitingToSend;
             state_start_time_ = millis();
             break;
@@ -3100,7 +3108,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 // logInfoP("S21: Timeout waiting for %.*s", static_cast<int>(query.command.size()), query.command.data());
             }
             // Silence is transport failure, not evidence of an unsupported command.
-            query_index_++;
+            advanceQuery();
             query_state_ = QueryState::WaitingToSend;
             state_start_time_ = millis();
             break;
@@ -3108,7 +3116,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             logErrorP("S21: Error on %.*s (checksum mismatch or comm error)",
                       static_cast<int>(query.command.size()), query.command.data());
             stats_.frames_bad_checksum++;
-            query_index_++;
+            advanceQuery();
             query_state_ = QueryState::WaitingToSend;
             state_start_time_ = millis();
             break;
@@ -3208,6 +3216,51 @@ void DaikinDriver::publishState()
     publishTimerStatus();
     published_ = state_; publication_initialized_=true;
     seed_kos_pending_=false; gate_publish_until_full_sample_=false;
+}
+
+void DaikinDriver::confirmClimateFields(uint8_t fields)
+{
+    if (!sent_climate_dirty_ || d1_awaiting_ack_) return;
+    climate_readback_seen_ = true;
+    for (size_t i=0;i<4;i++) {
+        const uint8_t bit=1U<<i;
+        if ((fields & bit) && (!(climate_dirty_ & bit) || climate_generation_[i]!=sent_climate_generation_[i]))
+            sent_climate_dirty_ &= ~bit;
+    }
+    if (!sent_climate_dirty_) {
+        climate_outcome_=WriteOutcome::Confirmed;
+        climate_confirmation_started_=0;
+    }
+    // A stale first readback is not a rejection. Keep observing for up to 30 s,
+    // without resending the write, and publish only actual AC samples.
+}
+
+void DaikinDriver::selectConfirmationQuery()
+{
+    if (protocol_detection_phase_ || confirmation_resume_!=SIZE_MAX || millis()-last_confirmation_poll_<1000) return;
+    const std::array<std::string_view,8> commands={"F1","RG","F3","F5","F6","F7","FR","FB"};
+    for (size_t count=0;count<commands.size();count++) {
+        const auto slot=confirmation_cursor_++ % commands.size();
+        const auto cmd=commands[slot];
+        const auto* combined=combinedFor(cmd);
+        const bool needed=cmd=="F1" ? (sent_climate_dirty_ & (DirtyPower|DirtyMode|DirtyTemperature|(!support_.fan_mode_query?DirtyFan:0)))!=0 :
+            cmd=="RG" ? (sent_climate_dirty_ & DirtyFan)!=0 : combined && combined->awaiting_readback;
+        if (!needed) continue;
+        for (size_t i=0;i<queries_.size();i++) if (queries_[i].command==cmd && !queries_[i].bad && isQuerySupported(cmd)) {
+            confirmation_resume_=query_index_==i?i+1:query_index_;
+            query_index_=i;
+            last_confirmation_poll_=millis();
+            return;
+        }
+    }
+}
+
+void DaikinDriver::advanceQuery()
+{
+    if (confirmation_resume_!=SIZE_MAX) {
+        query_index_=confirmation_resume_;
+        confirmation_resume_=SIZE_MAX;
+    } else ++query_index_;
 }
 
 void DaikinDriver::rejectClimateWrite()
