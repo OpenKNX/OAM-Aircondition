@@ -221,6 +221,9 @@ acceptance remain pending.
 
 ## Driver connection lifecycle
 
+Fan command diagnostics print the floating-point KNX percentage rounded to a
+whole percent; the fan-step conversion and wire encoding are unchanged.
+
 The module leaves Starting/Error when valid S21 traffic establishes communication.
 Connection state is compared with the module's reported state, independently of
 the telemetry online flag. A healthy connection therefore clears the module's
