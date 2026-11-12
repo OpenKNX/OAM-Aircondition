@@ -61,7 +61,7 @@ inline bool validResponse(std::string_view c,const uint8_t* d,size_t n) {
         if(d[0]<'0' || d[0]>'3') return false;
         for(size_t i=1;i<3;i++) {
             if((d[0]-'0')&(1<<(i-1))) { if(d[i]<0x31 || d[i]>0xC0) return false; }
-            else if(d[i]!=0x30 && d[i]!=0xFE) return false;
+            else if(d[i]!=0xFE && (d[i]<0x30 || d[i]>0xC0)) return false;
         }
     }
     if(c=="F5" || c=="RF") return std::string_view{"0127"}.find(char(d[0]))!=std::string_view::npos && (d[1]=='0' || d[1]==(c=="F5"?'?':'F'));

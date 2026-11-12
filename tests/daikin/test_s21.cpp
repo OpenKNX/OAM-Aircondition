@@ -835,11 +835,35 @@ void test_diagnostic_retains_unrecognised_payload()
     driver.setup();
     assert(driver.queueDiagnosticCommand("F3"));
     driver.serviceDiagnostic();
-    uint8_t reply[] = {'G', '3', '0', '3', '3', '1'};
+    uint8_t reply[] = {'G', '3', '0', 0xC1, '3', '1'};
     driver.handle_serial_result(Result::Frame, reply, sizeof(reply));
     assert(driver.diagnosticResult().status == DaikinDriver::DiagnosticStatus::Error);
-    assert((driver.diagnosticResult().payload == std::vector<uint8_t>{'0', '3', '3', '1'}));
+    assert((driver.diagnosticResult().payload == std::vector<uint8_t>{'0', 0xC1, '3', '1'}));
     assert(!driver.telemetry().timersValid);
+}
+
+void test_disabled_timer_retains_delay()
+{
+    Feedback feedback;
+    DaikinDriver driver(feedback);
+    driver.setup();
+    // Captured from this indoor unit: disabled timers retain an old delay.
+    uint8_t reply[] = {'0', '2', '0', '0'};
+    assert(daikin::s21::validResponse("F3", reply, sizeof(reply)));
+    driver.handle_f3_response(reply, sizeof(reply));
+    assert(feedback.timers.timersValid);
+    assert(!feedback.timers.onEnabled && !feedback.timers.offEnabled);
+    assert(feedback.timers.onMinutes == 0 && feedback.timers.offMinutes == 0);
+    assert(driver.timer_disabled_bytes_[0] == '2');
+    driver.configureTimerGranularity(10, 1440);
+    auto& hal = *static_cast<FakeHAL*>(driver.serial_->serial_hal_.get());
+    assert(driver.setTimerDuration(AirConditionTimer::Off, 60));
+    assert(hal.tx[3] == '2' && hal.tx[4] == '2' && hal.tx[5] == '6');
+    // The disabled On axis keeps its observed byte, not an invented sentinel.
+    reply[1] = 0xC1;
+    assert(!daikin::s21::validResponse("F3", reply, sizeof(reply)));
+    reply[0] = '1'; reply[1] = '0';
+    assert(!daikin::s21::validResponse("F3", reply, sizeof(reply)));
 }
 
 void test_driver_online_lifecycle()
@@ -879,4 +903,4 @@ void test_driver_online_lifecycle()
     assert(feedback.getDriverState() == AirConditionDriverStateOk);
 }
 
-int main() { test_diagnostic_retains_unrecognised_payload(); test_timer_lamp_preserves_unknown_fields(); test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+int main() { test_disabled_timer_retains_delay(); test_diagnostic_retains_unrecognised_payload(); test_timer_lamp_preserves_unknown_fields(); test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

@@ -238,3 +238,9 @@ Local raw diagnostics retain the payload of a correctly addressed frame even if
 its field encoding is not recognised. Such replies keep Error status and never
 update typed telemetry; `s21 result` can show the bytes for model investigation
 instead of reporting a misleading empty response.
+
+F3 timer enable bits are authoritative. A disabled axis may retain a valid
+encoded delay (observed reply `30 32 30 30`) rather than returning only `30` or
+`FE`. Such replies are accepted without reporting an active timer. Writes to the
+other axis preserve the observed disabled-axis encoding. Out-of-range delays
+and enabled axes with zero/disabled encodings are still rejected.

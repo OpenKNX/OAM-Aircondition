@@ -2129,7 +2129,7 @@ void DaikinDriver::handle_f3_response(uint8_t* data, size_t size)
     for (size_t i=1;i<=2;i++) {
         if (enabled & (1 << (i-1))) {
             if (data[i] < 0x31 || data[i] > 0xC0) return;
-        } else if (data[i] != 0xFE && data[i] != 0x30) return;
+        } else if (data[i] != 0xFE && (data[i] < 0x30 || data[i] > 0xC0)) return;
     }
     for (size_t i=1;i<=2;i++) if (!(enabled & (1<<(i-1)))) timer_disabled_bytes_[i-1] = data[i];
     confirmCombined("D3",data);
