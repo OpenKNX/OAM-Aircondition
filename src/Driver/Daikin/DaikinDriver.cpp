@@ -3268,11 +3268,18 @@ void DaikinDriver::invalidateTelemetry()
 
 void DaikinDriver::updateOnlineStatus()
 {
-    const bool was_online = state_.online;
+    // markOnline()/invalidateTelemetry() already update state_.online. Compare
+    // against the module's state, otherwise its Starting/Error state never clears.
     state_.online = online_;
-    if (was_online != state_.online)
-        statusFeedback.driverStateChanged(state_.online ? AirConditionDriverStateOk : AirConditionDriverStateError,
-                                          state_.online ? "" : "Communication lost");
+    const auto reported = statusFeedback.getDriverState();
+    if (online_ && reported != AirConditionDriverStateOk)
+    {
+        statusFeedback.driverStateChanged(AirConditionDriverStateOk, "");
+    }
+    else if (!online_ && reported == AirConditionDriverStateOk)
+    {
+        statusFeedback.driverStateChanged(AirConditionDriverStateError, "Communication lost");
+    }
 }
 
 // === Conversion Utilities ===

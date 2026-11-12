@@ -51,8 +51,10 @@ struct Feedback : AirConditionDriverStatusFeedback {
     unsigned humidity_mode_updates{0};
     bool positionValid{false}; uint8_t positionCode{0}, positionMax{0}, positionMask{0};
     void updateVerticalPositionStatus(bool valid,uint8_t code,uint8_t maximum,uint8_t mask) override {positionValid=valid;positionCode=code;positionMax=maximum;positionMask=mask;}
-    void driverStateChanged(AirConditionDriverState state, std::string error) override { }
-    AirConditionDriverState getDriverState() const override { return AirConditionDriverStateOk; }
+    AirConditionDriverState driverState{AirConditionDriverStateNotStarted};
+    unsigned driverStateUpdates{0};
+    void driverStateChanged(AirConditionDriverState state, std::string error) override { driverState=state; ++driverStateUpdates; }
+    AirConditionDriverState getDriverState() const override { return driverState; }
     void powerChanged(bool power) override { }
     void modeChanged(AirConditionMode mode) override { }
     void targetTemperatureChanged(float temperaturCelius, bool isFeedbackFromSettin) override { }
@@ -808,4 +810,41 @@ void test_timer_lamp_optional_reply() {
     assert(!t.serial.busy() && t.results.back()==Result::Frame && t.hal().tx.back()==6);
     assert(t.serial.send_frame("FB"));t.receive({6});t.serial.rx_timeout_handler();assert(t.results.back()==Result::Timeout); // normal FB reads still require GB
 }
-int main() { test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_driver_online_lifecycle()
+{
+    test_now = 100;
+    Feedback feedback;
+    DaikinDriver driver(feedback);
+    driver.setup();
+    driver.startCommunication(false);
+    assert(feedback.getDriverState() == AirConditionDriverStateStarting);
+    driver.updateOnlineStatus();
+    assert(feedback.getDriverState() == AirConditionDriverStateStarting);
+    driver.markOnline(test_now);
+    driver.updateOnlineStatus();
+    assert(feedback.getDriverState() == AirConditionDriverStateOk);
+    const auto notifications = feedback.driverStateUpdates;
+    // Keep receiving for more than the module's 60-second retry interval.
+    for (unsigned i = 0; i < 70; ++i)
+    {
+        test_now += 1000;
+        driver.markOnline(test_now);
+        driver.updateOnlineStatus();
+        assert(feedback.getDriverState() == AirConditionDriverStateOk);
+    }
+    assert(feedback.driverStateUpdates == notifications);
+    test_now += driver.timing_.offline_ms + 1;
+    driver.checkOnlineTimeout();
+    driver.updateOnlineStatus();
+    assert(feedback.getDriverState() == AirConditionDriverStateError);
+    driver.markOnline(test_now);
+    driver.updateOnlineStatus();
+    assert(feedback.getDriverState() == AirConditionDriverStateOk);
+    driver.startCommunication(true);
+    assert(feedback.getDriverState() == AirConditionDriverStateStarting);
+    driver.markOnline(++test_now);
+    driver.updateOnlineStatus();
+    assert(feedback.getDriverState() == AirConditionDriverStateOk);
+}
+
+int main() { test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

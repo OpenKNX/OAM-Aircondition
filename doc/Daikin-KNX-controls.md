@@ -218,3 +218,11 @@ ETS project migration cannot be run here because ETS/converter/XSD support is no
 installed. Native ASan/UBSan regressions and ESP32 TP/IP plus RP2040 firmware builds
 validate the implementation. No device was flashed or commanded; hardware and ETS
 acceptance remain pending.
+
+## Driver connection lifecycle
+
+The module leaves Starting/Error when valid S21 traffic establishes communication.
+Connection state is compared with the module's reported state, independently of
+the telemetry online flag. A healthy connection therefore clears the module's
+60-second recovery timer. Actual loss of traffic still reports Error and permits
+recovery; startup without a response remains Starting until detection fails.
