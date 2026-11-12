@@ -16,7 +16,7 @@ const std::string AirconditionModule::name()
 
 const std::string AirconditionModule::version()
 {
-    return std::to_string(MAIN_ApplicationVersion);
+    return openknx.info.humanFirmwareVersion(true);
 }
 
 void AirconditionModule::setup()
