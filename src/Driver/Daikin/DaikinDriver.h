@@ -324,7 +324,7 @@ private:
         PayloadBuffer confirmed{};
         bool valid{false};
         CommandSupport write{CommandSupport::Unknown};
-        bool read_supported{false}, awaiting_readback{false}, rejected_valid{false};
+        bool read_supported{false}, awaiting_readback{false}, rejected_valid{false}, readback_seen{false};
         PayloadBuffer requested{}, mask{}, verified_mask{}, rejected{};
         uint32_t last_rejection_ms{0}, sent_ms{0};
         WriteOutcome outcome{WriteOutcome::None};

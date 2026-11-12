@@ -395,7 +395,7 @@ void DaikinDriver::loop()
         climate_outcome_=climate_readback_seen_?WriteOutcome::Mismatch:WriteOutcome::Timeout;
         rejectClimateWrite();
     }
-    for(auto* c:{&d3_,&d5_,&d6_,&d7_,&dr_,&fb_}) if(c->awaiting_readback && millis()-c->sent_ms>30000) {c->awaiting_readback=false;c->outcome=WriteOutcome::Timeout;if(c==&d3_ || c==&fb_) publishTimerStatus();}
+    for(auto* c:{&d3_,&d5_,&d6_,&d7_,&dr_,&fb_}) if(c->awaiting_readback && millis()-c->sent_ms>30000) {c->awaiting_readback=false;c->outcome=c->readback_seen?WriteOutcome::Mismatch:WriteOutcome::Timeout;if(c==&d3_ || c==&fb_) publishTimerStatus();}
     if(version_changed_ && !serial_->busy() && !diagnostic_active_) {version_changed_=false;startCommunication(true);}
 
     // Check online timeout (independent of query state machine)
@@ -464,6 +464,10 @@ void DaikinDriver::confirmCombined(std::string_view c,const uint8_t* data)
     auto* p=combinedFor(c);if(!p) return;p->read_supported=true;
     if(!p->awaiting_readback) return;
     bool matches=true;for(size_t i=0;i<4;i++) if((data[i]&p->mask[i])!=(p->requested[i]&p->mask[i])) matches=false;
+    p->readback_seen=true;
+    // Some timer lamps apply asynchronously. Observe the full confirmation
+    // window; an ACK or a single unchanged GB must not certify a working write.
+    if (c=="FB" && !matches) {p->outcome=WriteOutcome::AwaitingReadback;return;}
     p->awaiting_readback=false;
     p->outcome=matches?WriteOutcome::Confirmed:WriteOutcome::Mismatch;
     if(matches) {
@@ -1728,7 +1732,7 @@ bool DaikinDriver::sendCombined(std::string_view command,const PayloadBuffer& pa
     }
     bool changed=false;for(auto m:p->mask) changed|=m!=0;
     if(!changed) return true; // already confirmed; do not manufacture write capability
-    p->requested=payload;p->outcome=WriteOutcome::AwaitingAck;p->sent_ms=millis();p->awaiting_readback=false;
+    p->requested=payload;p->outcome=WriteOutcome::AwaitingAck;p->sent_ms=millis();p->awaiting_readback=false;p->readback_seen=false;
     outstanding_write_=command;
     if(!serial_->send_frame(command,payload.data(),size,command=="FB")) {p->outcome=WriteOutcome::Error;outstanding_write_={};return false;}
     p->valid=false;last_send_time_=millis();
@@ -2917,6 +2921,11 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             case daikin::DaikinSerial::Result::Frame:
                 markOnline(now);
                 stats_.frames_ok++;
+                // FB writes may return GB immediately after ACK (or without
+                // ACK). Consume it here instead of discarding it during settle.
+                if (fb_.awaiting_readback && data_size==6 && data[0]=='G' && data[1]=='B' &&
+                    daikin::s21::validResponse("FB",data+2,data_size-2))
+                    handle_fb_response(data+2,data_size-2);
                 break;
             case daikin::DaikinSerial::Result::Nak:
                 stats_.frames_nak++;
