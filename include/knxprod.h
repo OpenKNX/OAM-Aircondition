@@ -19,14 +19,14 @@
 #define MAIN_FirmwareName "Klimaanlagen KNX Adapter"
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 54
-#define MAIN_ApplicationVersion 12
+#define MAIN_ApplicationVersion 13
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9298
 #define MAIN_MaxKoNumber 528
 #define MAIN_OrderNumber "MGKnxAIR"
-#define BASE_ModuleVersion 24
-#define NET_ModuleVersion 6
+#define BASE_ModuleVersion 25
+#define NET_ModuleVersion 8
 #define UCT_ModuleVersion 5
 #define SENS_ModuleVersion 75
 #define LOG_ModuleVersion 67
@@ -266,7 +266,7 @@
 #define ParamNET_StaticIP                            ((bool)(knx.paramByte(NET_StaticIP) & NET_StaticIPMask))
 // mDNS
 #define ParamNET_mDNS                                ((bool)(knx.paramByte(NET_mDNS) & NET_mDNSMask))
-// Webserver (BETA)
+// Weberver
 #define ParamNET_HTTP                                ((bool)(knx.paramByte(NET_HTTP) & NET_HTTPMask))
 // NTP-Client
 #define ParamNET_NTP                                 ((bool)(knx.paramByte(NET_NTP) & NET_NTPMask))
@@ -5473,19 +5473,6 @@
 #define KoFCB_CHKO8                               (knx.getGroupObject(FCB_KoCalcNumber(FCB_KoCHKO8)))
 // 
 #define KoFCB_CHKO9                               (knx.getGroupObject(FCB_KoCalcNumber(FCB_KoCHKO9)))
-
-
-
-// Header generation for Module 'BASE_KommentarModule'
-
-#define BASE_KommentarModuleCount 0
-#define BASE_KommentarModuleModuleParamSize 0
-#define BASE_KommentarModuleSubmodulesParamSize 0
-#define BASE_KommentarModuleParamSize 0
-#define BASE_KommentarModuleParamOffset 9298
-#define BASE_KommentarModuleCalcIndex(index, m1) (index + BASE_KommentarModuleParamOffset + _channelIndex * BASE_KommentarModuleCount * BASE_KommentarModuleParamSize + m1 * BASE_KommentarModuleParamSize)
-
-
 
 
 // enumeration types

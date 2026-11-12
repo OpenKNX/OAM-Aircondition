@@ -10,5 +10,7 @@ release*/*
 src/*.baggages
 compile_commands.json
 include/versions.h
+include/buildtime.h
+include/webassets.h
 data/
 managed_components/

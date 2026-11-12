@@ -91,7 +91,7 @@ TP ohne WLAN:
 
 WLAN:
 - AZDelivery ESP32 Board Dev Kit C V4  
-  *Hinweis: Diese Board unterstützt keine Web-Console und keinen Webserver, da der Speicher nicht ausreicht, daher ist die Einstellungen in der ETS für den Webserver wirkungslos* 
+  *Webserver und Web-Console sind für die ESP32-Netzwerk-Builds aktiviert. Der Webserver wird über die ETS-Einstellung freigegeben.*
 
 - Adafruit_Feather_ESP32_V2
 

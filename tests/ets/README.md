@@ -25,6 +25,13 @@ products retain application number 0x35, advance 1.0 to 1.1 and replace 1.0;
 the preceding 0.15-to-1.0 rollover respected the 4-bit minor version.
 Release/beta retain application number 0x36 and advance 0.11 to 0.12.
 
+The subsequent OFM-Network 0.8 / OGM-Common 1.9 update advances release/beta
+to 0.13 and development to 1.2. The strict 0.11 baseline check intentionally
+reports upstream changes: latitude/longitude suffixes, the HTTP parameter/ref
+identity and default, and removal of the unused comment module. Existing
+communication objects and parameter storage offsets remain unchanged; this
+does not establish lossless ETS application replacement across that update.
+
 Run `PYTHONDONTWRITEBYTECODE=1 python3 tests/ets/test_compatibility.py` for the
 eight positive/negative regression checks of the guard itself.
 
