@@ -1,11 +1,14 @@
-﻿### Gerätemodus
+### Gerätemodus
 
 Optionen für Daikin:
 
 - **Standard**: Normaler Betriebsmodus
 - **Hi-Power**: Entspricht Daikin "Powerful"-Modus für maximale Leistung
-- **ECO**: Entspricht Daikin "Econo"-Modus für energiesparenden Betrieb
-- **Leise**: Entspricht Daikin "Quiet"-Modus für reduzierten Außengeräuschpegel
+- **ECO**: Daikin "Econo", nur wenn das Gerät diese Funktion meldet. Bei ausgeschlossener oder noch unbekannter Verfügbarkeit wird der Auftrag ohne Änderung anderer Optionen abgewiesen.
+- **Leise 1**: Daikin "Quiet". S21 bietet dafür genau einen Ein/Aus-Zustand.
+- **Leise 2**: Kompatibilitätsalias für Leise 1, keine zweite Geräuschstufe. Die Rückmeldung erfolgt als Leise 1; Leise-2-Status bleibt 0.
+
+Die unabhängigen Optionen melden ihre Verfügbarkeit im Bitmaskenobjekt „Optionen abfragbar“ (Econo: Bit 1). Lesbarkeit und Verfügbarkeit bestätigen noch keinen erfolgreichen Schreibzugriff.
 
 Optionen für Toshiba:
 

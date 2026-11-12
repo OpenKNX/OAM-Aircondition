@@ -164,8 +164,9 @@ void DaikinDriver::showInformations()
     // Advanced features
     logInfoP("--- Advanced Features ---");
     logInfoP("Powerful: %s", state_.powerful ? "On" : "Off");
-    logInfoP("Econo: %s", state_.econo ? "On" : "Off");
-    logInfoP("Quiet: %s", state_.quiet ? "On" : "Off");
+    logInfoP("Econo: %s", support_.special_features_known && !support_.econo ?
+        "Unavailable (FU00 capability excludes Econo)" : !state_.demandValid ? "Unknown" : state_.econo ? "On" : "Off");
+    logInfoP("Quiet: %s (one S21 level; legacy Quiet 2 aliases Quiet 1)", state_.specialModesValid ? (state_.quiet ? "On" : "Off") : "Unknown");
     logInfoP("Comfort: %s", state_.comfort ? "On" : "Off");
     logInfoP("Sensor: %s", state_.sensor ? "On" : "Off"); // Intelligent Eye/Presence sensor
     const char* ledStr = state_.ledState == daikin::LedState::On ? "On" :
@@ -962,7 +963,11 @@ bool DaikinDriver::setUnitLed(AirConditionUnitLed state)
 bool DaikinDriver::setOptionalControl(AirConditionOptionalControl control, bool on)
 {
     const auto value=static_cast<uint8_t>(control);
-    if (!serial_ || value>5 || !(optionalControlState().available & (1U<<value))) return false;
+    if (!serial_ || value>5) return false;
+    if (!(optionalControlState().available & (1U<<value))) {
+        logInfoP("Optional control %u unavailable or not discovered; request ignored", value);
+        return false;
+    }
     using C=AirConditionOptionalControl;
     // Turning one option off only clears that option. Enabling one of the three
     // mutually exclusive power presets explicitly queues the required clears.
@@ -1000,6 +1005,14 @@ void DaikinDriver::setLedState(daikin::LedState led)
 void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
 {
     if (!serial_) return;
+    // Reject before queuing clears: unsupported Econo must not silently disable
+    // an active Powerful/Quiet setting through the legacy preset selector.
+    if (mode==AirConditionDeviceModeEco && !(optionalControlState().available & 2)) {
+        logInfoP("Econo preset unavailable or not discovered; request ignored");
+        return;
+    }
+    if (mode==AirConditionDeviceModeSilent2)
+        logInfoP("Quiet 2 aliases Quiet 1 on S21; feedback uses Quiet 1");
     pending_.climate.powerful = mode == AirConditionDeviceModeHiPower;
     pending_.climate.quiet = mode == AirConditionDeviceModeSilent1 || mode == AirConditionDeviceModeSilent2;
     pending_.climate.econo = mode == AirConditionDeviceModeEco;
