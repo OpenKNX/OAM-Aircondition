@@ -244,3 +244,8 @@ encoded delay (observed reply `30 32 30 30`) rather than returning only `30` or
 `FE`. Such replies are accepted without reporting an active timer. Writes to the
 other axis preserve the observed disabled-axis encoding. Out-of-range delays
 and enabled axes with zero/disabled encodings are still rejected.
+
+The local status console displays Unknown for uninitialised LED/humidity state,
+Unavailable for humidity control excluded by F2, and distinguishes LED Dark
+from Off. Default booleans or uninterpreted humidity fields are not presented
+as confirmed optional settings.

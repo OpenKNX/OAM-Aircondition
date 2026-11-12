@@ -157,6 +157,8 @@ void DaikinDriver::showInformations()
         case daikin::HumidityMode::Continuous: humidityModeStr = "Continuous"; break;
         default: humidityModeStr = "Unknown"; break;
     }
+    if (!state_.humidityModeValid) humidityModeStr = "Unknown";
+    else if (support_.f2_known && getMaximumHumidityModeLevels() == 0) humidityModeStr = "Unavailable";
     logInfoP("Humidity Mode: %s", humidityModeStr);
 
     // Advanced features
@@ -166,7 +168,10 @@ void DaikinDriver::showInformations()
     logInfoP("Quiet: %s", state_.quiet ? "On" : "Off");
     logInfoP("Comfort: %s", state_.comfort ? "On" : "Off");
     logInfoP("Sensor: %s", state_.sensor ? "On" : "Off"); // Intelligent Eye/Presence sensor
-    logInfoP("LED: %s", state_.led ? "On" : "Off");
+    const char* ledStr = state_.ledState == daikin::LedState::On ? "On" :
+        state_.ledState == daikin::LedState::Dark ? "Dark" :
+        state_.ledState == daikin::LedState::Off ? "Off" : "Unknown";
+    logInfoP("LED: %s", ledStr);
     logInfoP("Streamer: %s", state_.streamer ? "On" : "Off");
 
     // Sensor data
