@@ -284,7 +284,7 @@ namespace daikin
         bool heatMinimumValid{false}, autoLimitOffsetValid{false};
         float heatMinimumC{18}, autoLimitOffsetC{0}; // offset is not an absolute setpoint
         bool basicValid{false}, targetTemperatureValid{false}, fanValid{false}, swingValid{false};
-        bool specialModesValid{false}, demandValid{false}, compressorOnValid{false}, compressorHzValid{false};
+        bool specialModesValid{false}, demandValid{false}, demandPercentageValid{false}, compressorOnValid{false}, compressorHzValid{false};
         bool unitStateValid{false}, systemStateValid{false}, actionValid{false};
         bool targetOffsetValid{false};
         float targetOffsetC{NAN};

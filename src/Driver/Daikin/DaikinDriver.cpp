@@ -465,6 +465,9 @@ void DaikinDriver::confirmCombined(std::string_view c,const uint8_t* data)
     auto* p=combinedFor(c);if(!p) return;p->read_supported=true;
     if(!p->awaiting_readback) return;
     bool matches=true;for(size_t i=0;i<4;i++) if((data[i]&p->mask[i])!=(p->requested[i]&p->mask[i])) matches=false;
+    // Faikout deliberately excludes G7 demand byte '1' (99%): some units
+    // return it spuriously. It must not verify a requested demand write.
+    if (c=="D7" && p->mask[0] && data[0]=='1') matches=false;
     p->readback_seen=true;
     // Some timer lamps apply asynchronously. Observe the full confirmation
     // window; an ACK or a single unchanged GB must not certify a working write.
@@ -2376,12 +2379,15 @@ void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
     state_.demandValid = true;
     stats_.frames_ok++;
 
-    if (data[0] >= 0x30 && data[0] <= 0x30 + 100)
+    state_.demandPercentageValid=data[0]!='1';
+    if (state_.demandPercentageValid)
         state_.demand_percentage = 100 - (data[0] - 0x30);
     if (data[1] == '0' || data[1] == '2') state_.econo = (!support_.special_features_known || support_.econo) && data[1] == '2';
 
-    logInfoP("F7: demand=%d%%, econo=%d (raw: %c %02X)",
-             state_.demand_percentage, state_.econo, data[0], data[1]);
+    if (state_.demandPercentageValid)
+        logInfoP("F7: demand=%d%%, econo=%d (raw: %c %02X)", state_.demand_percentage, state_.econo, data[0], data[1]);
+    else
+        logInfoP("F7: demand unavailable (ambiguous 99%% sentinel), econo=%d", state_.econo);
 }
 
 void DaikinDriver::handle_f8_response(uint8_t* data, size_t data_size)
@@ -3176,7 +3182,7 @@ void DaikinDriver::publishState()
             statusFeedback.updateDeviceMode(state_.specialModesValid && state_.powerful ? AirConditionDeviceModeHiPower : state_.specialModesValid && state_.quiet ? AirConditionDeviceModeSilent1 : state_.demandValid && state_.econo ? AirConditionDeviceModeEco : AirConditionDeviceModeStandard);
         if (state_.specialModesValid && (seed || !p.specialModesValid || state_.streamer != p.streamer)) statusFeedback.updateAirPurification(state_.streamer);
     }
-    if (state_.demandValid && (seed || !p.demandValid || state_.demand_percentage != p.demand_percentage)) statusFeedback.updateMaxPowerLevel(state_.demand_percentage);
+    if (state_.demandPercentageValid && (seed || !p.demandPercentageValid || state_.demand_percentage != p.demand_percentage)) statusFeedback.updateMaxPowerLevel(state_.demand_percentage);
     if (state_.ledState != daikin::LedState::Unknown && (seed || p.ledState != state_.ledState)) statusFeedback.updateWifiLed(state_.led);
     if (state_.humidityValid && (seed || !p.humidityValid || state_.humidity != p.humidity)) statusFeedback.updateHumidity(state_.humidity);
     if (state_.humidityModeValid && getMaximumHumidityModeLevels()>1 && (seed || !p.humidityModeValid || state_.humidityMode != p.humidityMode)) {
@@ -3299,7 +3305,7 @@ void DaikinDriver::invalidatePage(std::string_view c)
     if(c=="F4") state_.serialErrorValid=false;
     if(c=="F5") state_.swingValid=state_.humidityModeValid=false;
     if(c=="F6") {state_.specialModesValid=false;state_.ledState=daikin::LedState::Unknown;}
-    if(c=="F7") state_.demandValid=false;
+    if(c=="F7") state_.demandValid=state_.demandPercentageValid=false;
     if(c=="F9") {if(!support_.inside_temperature_query) state_.insideTemperatureValid=false;if(!support_.outside_temperature_query) state_.outsideTemperatureValid=false;if(!support_.humidity_query) state_.humidityValid=false;}
     if(c=="RH") {state_.insideTemperatureValid=false;support_.inside_temperature_query=false;}
     if(c=="Ra") {state_.outsideTemperatureValid=false;support_.outside_temperature_query=false;}
@@ -3339,7 +3345,7 @@ void DaikinDriver::invalidateTelemetry()
     state_.online=false;state_.protocol=daikin::ProtocolUndetected;state_.protocolVersion=0xFF;
     state_.basicValid=state_.targetTemperatureValid=state_.fanValid=state_.swingValid=false;
     state_.insideTemperatureValid=state_.outsideTemperatureValid=state_.humidityValid=false;
-    state_.specialModesValid=state_.demandValid=state_.compressorOnValid=state_.compressorHzValid=false;
+    state_.specialModesValid=state_.demandValid=state_.demandPercentageValid=state_.compressorOnValid=state_.compressorHzValid=false;
     state_.indoorHeatExchangerValid=state_.humidityModeValid=state_.unitStateValid=state_.systemStateValid=false;
     state_.vaneAngleValid=state_.vaneAngleSetpointValid=state_.vaneAngleDegreesValid=state_.vaneAngleSetpointDegreesValid=false;
     state_.fanRpmValid=state_.fanRpmSetpointValid=state_.timerLampValid=state_.serialErrorValid=false;

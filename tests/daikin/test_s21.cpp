@@ -582,7 +582,7 @@ void test_audit_regressions() {
     uint8_t fk[]={0x30,0x30,0x30,0x30};d.handle_fk_response(fk,4);d.setFanSpeed(6);assert(hal.tx.size()==n);
     uint8_t sx[]={'0','0','2','+'};d.state_.sensor=false;d.handle_rx_response(sx,4);assert(!d.state_.sensor);
     d.state_.humidityMode=daikin::HumidityMode::Low;d.state_.humidityModeValid=true;d.humidity_modes_=0x92;d.publishState();assert(a.humidityStep==1);
-    d.state_.demandValid=true;d.state_.demand_percentage=75;d.publishState();assert(a.demands);
+    d.state_.demandValid=d.state_.demandPercentageValid=true;d.state_.demand_percentage=75;d.publishState();assert(a.demands);
     other.state_.basicValid=true;other.state_.power=false;other.publishState();unsigned before=b.powers;
     d.state_.power=true;d.publishState();other.state_.power=true;other.publishState();assert(b.powers==before+1);
     unsigned readings=a.temperatures;d.state_.insideTemperatureValid=false;d.state_.homeC=99;d.publishState();assert(a.temperatures==readings);
@@ -1006,4 +1006,22 @@ void test_unsupported_econo_and_quiet_alias()
     assert(driver.pending_.climate.quiet);
 }
 
-int main() { test_unsupported_econo_and_quiet_alias(); test_lamp_write_immediate_and_delayed_reply(); test_delayed_climate_confirmation(); test_confirmation_poll_preserves_cycle(); test_console_unknown_optional_settings(); test_disabled_timer_retains_delay(); test_diagnostic_retains_unrecognised_payload(); test_timer_lamp_preserves_unknown_fields(); test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_faikout_ambiguous_demand_sentinel()
+{
+    Feedback feedback; DaikinDriver driver(feedback); driver.setup();
+    uint8_t g7[]={'1','2','0','0'}; driver.handle_f7_response(g7,4);
+    assert(driver.telemetry().demandValid && driver.telemetry().econo);
+    assert(!driver.telemetry().demandPercentageValid);
+    assert(!driver.demand_configured_); // readable register is not a verified profile
+    assert(driver.configureDemandLimits(0,1));
+    g7[0]='0'; driver.handle_f7_response(g7,4);
+    driver.setMaxPowerLevel(99);
+    driver.handle_serial_result(Result::Ack,nullptr,0);
+    g7[0]='1'; driver.handle_f7_response(g7,4);
+    assert(driver.writeOutcome("F7")!=DaikinDriver::WriteOutcome::Confirmed);
+    assert(!driver.fieldWriteVerified("F7",0,0xFF));
+    g7[0]=':'; driver.handle_f7_response(g7,4);
+    assert(driver.telemetry().demandPercentageValid && driver.telemetry().demand_percentage==90);
+}
+
+int main() { test_faikout_ambiguous_demand_sentinel(); test_unsupported_econo_and_quiet_alias(); test_lamp_write_immediate_and_delayed_reply(); test_delayed_climate_confirmation(); test_confirmation_poll_preserves_cycle(); test_console_unknown_optional_settings(); test_disabled_timer_retains_delay(); test_diagnostic_retains_unrecognised_payload(); test_timer_lamp_preserves_unknown_fields(); test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
