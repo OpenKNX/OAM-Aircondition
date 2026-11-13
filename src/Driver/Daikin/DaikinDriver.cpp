@@ -880,7 +880,8 @@ void DaikinDriver::sendVerticalPositionCommand()
     if (!vertical_pending_ || !dr_.valid) return;
     PayloadBuffer payload = dr_.confirmed;
     payload[0] = requested_vertical_position_==6 ? '?' : '0' + requested_vertical_position_;
-    payload[1]=payload[2]=payload[3]='0';
+    // FR can retain model-specific fields beyond byte 0. A vertical request
+    // must not reset another setting in the shared louvre register.
     if (sendCombined("DR", payload)) vertical_pending_ = false;
 }
 
