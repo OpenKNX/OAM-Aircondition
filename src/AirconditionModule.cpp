@@ -56,6 +56,9 @@ void AirconditionModule::setup()
         if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinTimers &&
             !_airConditionDriver->configureTimerGranularity(ParamAIR_DaikinTimerStep, ParamAIR_DaikinTimerMaximum))
             logErrorP("Invalid Daikin timer profile: step and maximum must be verified multiples of 10 minutes");
+        if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinDemand &&
+            !_airConditionDriver->configureDemandLimits(ParamAIR_DaikinDemandMinimum, ParamAIR_DaikinDemandStep))
+            logErrorP("Invalid Daikin demand profile: minimum and step must be verified for this model");
         logInfoP("Start communication");
         driverStateChanged(AirConditionDriverState::AirConditionDriverStateStarting);
         _airConditionDriver->startCommunication(false);

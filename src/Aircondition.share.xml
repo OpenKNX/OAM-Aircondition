@@ -492,6 +492,12 @@
                   <Enumeration Text="Position 5" Value="5" Id="%ENID%" />
                 </TypeRestriction>
               </ParameterType>
+              <ParameterType Id="%AID%_PT-AIRDemandMinimum" Name="AIRDemandMinimum">
+                <TypeNumber SizeInBit="8" Type="unsignedInt" minInclusive="0" maxInclusive="100" />
+              </ParameterType>
+              <ParameterType Id="%AID%_PT-AIRDemandStep" Name="AIRDemandStep">
+                <TypeNumber SizeInBit="8" Type="unsignedInt" minInclusive="1" maxInclusive="100" />
+              </ParameterType>
               <ParameterType Id="%AID%_PT-AIRTimerMinutes" Name="AIRTimerMinutes">
                 <TypeNumber SizeInBit="16" Type="unsignedInt" minInclusive="10" maxInclusive="1440" />
               </ParameterType>
@@ -558,6 +564,13 @@
                 <Parameter Id="%AID%_UP-%TT%00015" Offset="0" BitOffset="0" Name="DaikinTimerStep" ParameterType="%AID%_PT-AIRTimerMinutes" Text="Timer Schrittweite (Minuten, Vielfaches von 10)" Value="60" />
                 <Parameter Id="%AID%_UP-%TT%00016" Offset="2" BitOffset="0" Name="DaikinTimerMaximum" ParameterType="%AID%_PT-AIRTimerMinutes" Text="Timer Obergrenze (Minuten, Vielfaches der Schrittweite)" Value="720" />
               </Union>
+              <!-- Reserved bytes 12..14: opt-in installer-verified demand profile. -->
+              <Union SizeInBit="24">
+                <Memory CodeSegment="%MID%" Offset="12" BitOffset="0" />
+                <Parameter Id="%AID%_UP-%TT%00017" Offset="0" BitOffset="0" Name="DaikinDemand" ParameterType="%AID%_PT-OnOffYesNo" Text="Modellgeprüftes Demand-Profil verwenden" Value="0" />
+                <Parameter Id="%AID%_UP-%TT%00018" Offset="1" BitOffset="0" Name="DaikinDemandMinimum" ParameterType="%AID%_PT-AIRDemandMinimum" Text="Geprüftes Demand-Minimum (%)" Value="100" />
+                <Parameter Id="%AID%_UP-%TT%00019" Offset="2" BitOffset="0" Name="DaikinDemandStep" ParameterType="%AID%_PT-AIRDemandStep" Text="Geprüfte Demand-Schrittweite (% von 100 abwärts)" Value="1" />
+              </Union>
               <op:usePart name="Scene" xpath="//Parameters/*" />
             </Parameters>
             <ParameterRefs>
@@ -602,6 +615,9 @@
               <ParameterRef Id="%AID%_UP-%TT%00014_R-%TT%0001401" RefId="%AID%_UP-%TT%00014" />
               <ParameterRef Id="%AID%_UP-%TT%00015_R-%TT%0001501" RefId="%AID%_UP-%TT%00015" />
               <ParameterRef Id="%AID%_UP-%TT%00016_R-%TT%0001601" RefId="%AID%_UP-%TT%00016" />
+              <ParameterRef Id="%AID%_UP-%TT%00017_R-%TT%0001701" RefId="%AID%_UP-%TT%00017" />
+              <ParameterRef Id="%AID%_UP-%TT%00018_R-%TT%0001801" RefId="%AID%_UP-%TT%00018" />
+              <ParameterRef Id="%AID%_UP-%TT%00019_R-%TT%0001901" RefId="%AID%_UP-%TT%00019" />
               <op:usePart name="Scene" xpath="//ParameterRefs/*" />
 
             </ParameterRefs>
@@ -999,6 +1015,13 @@
                   <when test="1">
                     <!-- Daikin -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00013_R-%TT%0001301" IndentLevel="1" />
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00017_R-%TT%0001701" IndentLevel="1" HelpContext="AIR-Daikin-Demandprofil" />
+                    <choose ParamRefId="%AID%_UP-%TT%00017_R-%TT%0001701">
+                      <when test="1">
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00018_R-%TT%0001801" IndentLevel="2" />
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00019_R-%TT%0001901" IndentLevel="2" />
+                      </when>
+                    </choose>
                     <ParameterRefRef RefId="%AID%_UP-%TT%00014_R-%TT%0001401" IndentLevel="1" />
                     <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
                       <when test="1">

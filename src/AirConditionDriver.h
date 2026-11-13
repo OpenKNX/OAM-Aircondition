@@ -188,6 +188,7 @@ public:
     virtual bool setOptionalControl(AirConditionOptionalControl control, bool on) { return false; }
     virtual bool setUnitLed(AirConditionUnitLed state) { return false; }
     virtual bool setHumidityLevel(AirConditionHumidityLevel level) { return false; }
+    virtual bool configureDemandLimits(uint8_t minimum, uint8_t step) { return false; }
     virtual bool configureTimerGranularity(uint16_t stepMinutes, uint16_t maximumMinutes) { return false; }
     virtual bool setTimerDuration(AirConditionTimer timer, uint16_t minutes) { return false; }
     virtual bool setTimerEnabled(AirConditionTimer timer, bool enabled) { return false; }

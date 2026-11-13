@@ -373,7 +373,12 @@ Optionen für Toshiba:
 - 75%
 - 100%
 
-Für Daikin und Mitsubishi steht diese Option nicht zur Verfügung.
+Bei Daikin ist eine Reduzierung nur mit einem ausdrücklich konfigurierten,
+modellgeprüften Demand-Profil möglich. Minimum und Schrittweite können im
+Daikin-Bereich gespeichert werden. Ohne Profil bleibt die Untergrenze 100 %.
+Die Demand-Anforderung ist keine lineare Begrenzung der gemessenen Wattzahl.
+
+Für Mitsubishi steht diese Option nicht zur Verfügung.
 
 <!-- DOC -->
 #### Gerätemodus
@@ -382,8 +387,11 @@ Optionen für Daikin:
 
 - **Standard**: Normaler Betriebsmodus
 - **Hi-Power**: Entspricht Daikin "Powerful"-Modus für maximale Leistung
-- **ECO**: Entspricht Daikin "Econo"-Modus für energiesparenden Betrieb
-- **Leise**: Entspricht Daikin "Quiet"-Modus für reduzierten Außengeräuschpegel
+- **ECO**: Daikin "Econo", nur wenn das Gerät diese Funktion meldet. Bei ausgeschlossener oder noch unbekannter Verfügbarkeit wird der Auftrag ohne Änderung anderer Optionen abgewiesen.
+- **Leise 1**: Daikin "Quiet". S21 bietet dafür genau einen Ein/Aus-Zustand.
+- **Leise 2**: Kompatibilitätsalias für Leise 1, keine zweite Geräuschstufe. Die Rückmeldung erfolgt als Leise 1; Leise-2-Status bleibt 0.
+
+Die unabhängigen Optionen melden ihre Verfügbarkeit im Bitmaskenobjekt „Optionen abfragbar“ (Econo: Bit 1). Lesbarkeit und Verfügbarkeit bestätigen noch keinen erfolgreichen Schreibzugriff.
 
 Optionen für Toshiba:
 
@@ -406,3 +414,25 @@ Verfügbare Einstellungen:
 - Ein
 
 Für Daikin und Mitsubishi steht diese Option nicht zur Verfügung.
+
+<!-- DOC HelpContext="Daikin-Demandprofil" -->
+#### Modellgeprüftes Demand-Profil
+
+Nur aktivieren, wenn Minimum und Schrittweite für das konkrete Klimagerät
+geprüft wurden. Ein lesbarer F7-Status und ein ACK bestätigen diese Werte nicht.
+Die werkseitige Einstellung bleibt deaktiviert; das Minimum 100 % erlaubt keine
+Leistungsreduzierung. Das Profil wird durch ETS gespeichert und beim Start geladen.
+
+Demand begrenzt die angeforderte Konditionierungsleistung, nicht linear die
+Leistungsaufnahme in Watt. Die Werte werden von 100 % abwärts in der angegebenen
+Schrittweite gebildet. `(100 - Minimum)` muss durch die Schrittweite teilbar sein.
+
+Faikout bietet 30–100 % in 5-%-Schritten an. Die ältere Daikin-App kennt die
+Vorgaben 40/50/60 %. Das sind Bedienoberflächenwerte und keine bestätigte
+Modellfreigabe. Ein unbekanntes Modell erhält deshalb kein solches Profil
+automatisch. Der Rückgabewert 99 % wird wegen bekannter Mehrdeutigkeit nicht
+als gültige Demand-Rückmeldung verwendet.
+
+Die Konsole zeigt mit `s21 profiles` Modellkennung, konfigurierte Werte und
+feldbezogene Schreibbestätigung. Eine erfolgreiche Rückmeldung bestätigt nur
+den tatsächlich geschriebenen Wert, nicht den gesamten Bereich.

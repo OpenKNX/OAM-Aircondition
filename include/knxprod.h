@@ -851,6 +851,11 @@
 #define     AIR_DaikinTimersShift 7
 #define AIR_DaikinTimerStep                     413      // uint16_t
 #define AIR_DaikinTimerMaximum                  415      // uint16_t
+#define AIR_DaikinDemand                        417      // 1 Bit, Bit 7
+#define     AIR_DaikinDemandMask 0x80
+#define     AIR_DaikinDemandShift 7
+#define AIR_DaikinDemandMinimum                 418      // uint8_t
+#define AIR_DaikinDemandStep                    419      // uint8_t
 #define AIR_SCAActive                           425      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
 #define     AIR_SCAActiveShift 7
@@ -1160,6 +1165,12 @@
 #define ParamAIR_DaikinTimerStep                     (knx.paramWord(AIR_DaikinTimerStep))
 // Timer Obergrenze (Minuten, Vielfaches der Schrittweite)
 #define ParamAIR_DaikinTimerMaximum                  (knx.paramWord(AIR_DaikinTimerMaximum))
+// Modellgeprüftes Demand-Profil verwenden
+#define ParamAIR_DaikinDemand                        ((bool)(knx.paramByte(AIR_DaikinDemand) & AIR_DaikinDemandMask))
+// Geprüftes Demand-Minimum (%)
+#define ParamAIR_DaikinDemandMinimum                 (knx.paramByte(AIR_DaikinDemandMinimum))
+// Geprüfte Demand-Schrittweite (% von 100 abwärts)
+#define ParamAIR_DaikinDemandStep                    (knx.paramByte(AIR_DaikinDemandStep))
 // Szene A
 #define ParamAIR_SCAActive                           ((bool)(knx.paramByte(AIR_SCAActive) & AIR_SCAActiveMask))
 // Szenennummer

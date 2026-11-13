@@ -161,6 +161,8 @@ void DaikinDriver::showInformations()
     else if (support_.f2_known && getMaximumHumidityModeLevels() == 0) humidityModeStr = "Unavailable";
     logInfoP("Humidity Mode: %s", humidityModeStr);
 
+    showModelProfiles();
+
     // Advanced features
     logInfoP("--- Advanced Features ---");
     logInfoP("Powerful: %s", state_.powerful ? "On" : "Off");
@@ -499,6 +501,7 @@ bool DaikinDriver::processCommand(const std::string command,bool debugKo)
         const auto end=rest.find_first_of(" \t");words.push_back(rest.substr(0,end));if(end==std::string_view::npos) {rest={};break;}rest.remove_prefix(end);
     }
     if(words.empty()) return false;
+    if(words[0]=="profiles" && words.size()==1) {showModelProfiles();return true;}
     auto integer=[&](size_t i,unsigned& out){if(i>=words.size() || words[i].empty()) return false;out=0;for(char c:words[i]){if(c<'0'||c>'9'||out>10000)return false;out=out*10+c-'0';}return true;};
     auto floating=[&](size_t i,float& out){if(i>=words.size())return false;std::string text(words[i]);char* end=nullptr;out=std::strtof(text.c_str(),&end);return end==text.c_str()+text.size() && std::isfinite(out);};
     auto onoff=[&](bool& value){if(words.size()!=2 || (words[1]!="on" && words[1]!="off"))return false;value=words[1]=="on";return true;};
@@ -538,7 +541,7 @@ bool DaikinDriver::processCommand(const std::string command,bool debugKo)
     if(words[0]=="vane" && words.size()==2 && words[1].size()==1)return setVerticalPositionCode(words[1][0]);
     unsigned a=0,b=0;
     if(words[0]=="vane-scale" && words.size()==2 && integer(1,a) && a<=255)return configureVaneAngleScale(a);
-    if(words[0]=="demand" && words.size()==2 && integer(1,a) && a<=100){setMaxPowerLevel(a);return support_.demand || demand_configured_;}
+    if(words[0]=="demand" && words.size()==2 && integer(1,a) && a<=100){const bool accepted=demandRequestAllowed(a);setMaxPowerLevel(a);return accepted;}
     if(words[0]=="demand-range" && words.size()==3 && integer(1,a) && integer(2,b) && a<=100 && b<=100)return configureDemandLimits(a,b);
     if(words[0]=="timer-range" && words.size()==3 && integer(1,a) && integer(2,b) && a<=1440 && b<=1440)return configureTimerGranularity(a,b);
     if(words[0]=="timers" && words.size()==3 && integer(1,a) && integer(2,b) && a<=1440 && b<=1440)return setTimers(a,b);
@@ -1028,14 +1031,40 @@ void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
 
 void DaikinDriver::setMaxPowerLevel(uint8_t percentage)
 {
-    if ((!support_.demand && !demand_configured_) || percentage > 100 || percentage < demand_minimum_ ||
-        (100 - percentage) % demand_step_ != 0) {
+    if (!demandRequestAllowed(percentage)) {
         logInfoP("Demand percentage not verified for this model: %u", percentage);
         return;
     }
     requested_demand_ = percentage;
     demand_pending_ = true;
     sendEconoCommand();
+}
+
+bool DaikinDriver::demandRequestAllowed(uint8_t percentage) const
+{
+    return (support_.demand || demand_configured_) && percentage<=100 &&
+        percentage>=demand_minimum_ && (100-percentage)%demand_step_==0;
+}
+
+void DaikinDriver::showModelProfiles() const
+{
+    logInfoP("--- S21 model profiles ---");
+    logInfoP("Model: %s; fallback code: %s; indoor firmware: %s",
+        model_name_.empty()?"Unknown":model_name_.c_str(), identification_.modelCode.c_str(), firmware_version_.c_str());
+    logInfoP("Demand: FK advertised=%s, configured=%s, minimum=%u%%, step=%u%%",
+        support_.demand?"Yes":"No/not discovered", demand_configured_?"Yes":"No", demand_minimum_, demand_step_);
+    logInfoP("Demand readback: %s; demand field write verified=%s",
+        state_.demandPercentageValid?"Valid":"Unavailable", fieldWriteVerified("F7",0,0xFF)?"Yes":"No");
+    logInfoP("Timers: configured=%s, step=%u min, maximum=%u min; field write verified=%s",
+        timer_step_?"Yes":"No", timer_step_, timer_max_,
+        fieldWriteVerified("F3",0,0xFF)?"Yes":"No");
+    const std::array<const char*,8> outcomes={"None","Awaiting ACK","Awaiting readback","Confirmed","Rejected","Timeout","Error","Mismatch"};
+    logInfoP("Climate confirmation: %s", outcomes[static_cast<size_t>(climate_outcome_)]);
+    logInfoP("Timer lamp: %s; write=%s; field write verified=%s",
+        !state_.timerLampValid?"Unknown":state_.timerLamp?"On":"Off",
+        outcomes[static_cast<size_t>(fb_.outcome)],fieldWriteVerified("FB",0,0xFF)?"Yes":"No");
+    logInfoP("Configured ranges are installer assertions, not automatic model verification");
+    logInfoP("Timer delays are fixed at programming time, not remaining countdowns");
 }
 
 bool DaikinDriver::configureDemandLimits(uint8_t minimum, uint8_t step)

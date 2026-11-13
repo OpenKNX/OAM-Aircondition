@@ -226,7 +226,7 @@ public:
     virtual void setAirPurification(bool on) override;
 
     // Configure only after validating the model's reduced-demand range on hardware.
-    bool configureDemandLimits(uint8_t minimum, uint8_t step);
+    bool configureDemandLimits(uint8_t minimum, uint8_t step) override;
     bool configureTimerGranularity(uint16_t minutes, uint16_t maximum_minutes) override;
     bool setTimerDuration(AirConditionTimer timer, uint16_t minutes) override;
     bool setTimerEnabled(AirConditionTimer timer, bool enabled) override;
@@ -334,6 +334,8 @@ private:
     void confirmCombined(std::string_view command,const uint8_t* data);
     uint8_t swing_dirty_{0};
     bool demand_configured_{false};
+    bool demandRequestAllowed(uint8_t percentage) const;
+    void showModelProfiles() const;
     uint8_t verified_vertical_positions_{0};
     uint8_t humidity_modes_{0}, requested_humidity_{0};
     bool humidity_pending_{false};
