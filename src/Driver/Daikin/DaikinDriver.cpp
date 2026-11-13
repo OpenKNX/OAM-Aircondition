@@ -166,8 +166,10 @@ void DaikinDriver::showInformations()
     // Advanced features
     logInfoP("--- Advanced Features ---");
     logInfoP("Powerful: %s", state_.powerful ? "On" : "Off");
-    logInfoP("Econo: %s", support_.special_features_known && !support_.econo ?
-        "Unavailable (FU00 capability excludes Econo)" : !state_.demandValid ? "Unknown" : state_.econo ? "On" : "Off");
+    logInfoP("Econo: %s; FU00 advertised=%s, observed-On=%s, write-verified=%s",
+        !state_.demandValid?"Unknown":state_.econo?"On":"Off",
+        !support_.special_features_known?"Unknown":support_.econo?"Yes":"No",
+        econo_observed_on_?"Yes":"No",fieldWriteVerified("F7",1,0xFF)?"Yes":"No");
     logInfoP("Quiet: %s (one S21 level; legacy Quiet 2 aliases Quiet 1)", state_.specialModesValid ? (state_.quiet ? "On" : "Off") : "Unknown");
     logInfoP("Comfort: %s", state_.comfort ? "On" : "Off");
     logInfoP("Sensor: %s", state_.sensor ? "On" : "Off"); // Intelligent Eye/Presence sensor
@@ -288,6 +290,7 @@ void DaikinDriver::startCommunication(bool restart)
         failed_queries_.clear();
         protocol_version_ = daikin::ProtocolUndetected;
         support_ = {};
+        econo_observed_on_=econo_probe_pending_=false;
         d5_ = {}; d6_ = {}; d7_ = {}; dr_ = {}; d3_ = {}; fb_ = {};
         timer_disabled_bytes_ = {}; last_timer_minutes_={}; timer_dirty_=0; timer_lamp_pending_=false;
         requested_vertical_position_ = -1;
@@ -529,6 +532,7 @@ bool DaikinDriver::processCommand(const std::string command,bool debugKo)
         logInfoP("S21 diagnostic payload: %s",toHexString(diagnostic_result_.payload).c_str());return true;
     }
     bool value=false;
+    if(words[0]=="econo-probe" && onoff(value)) {if(debugKo)return false;return probeEcono(value);}
     if(words[0]=="comfort" && onoff(value)){setComfort(value);return true;}
     if(words[0]=="eye" && onoff(value)){setIntelligentEye(value);return true;}
     if(words[0]=="research" && onoff(value)){if(debugKo)return false;enableResearchPolling(value);return true;}
@@ -960,7 +964,7 @@ AirConditionOptionalState DaikinDriver::optionalControlState() const
         (d6_.read_supported && support_.sensor_hardware?16:0);
     if (support_.special_features_known) {
         if (!support_.powerful) result.available &= ~1;
-        if (!support_.econo) result.available &= ~2;
+        if (!econoControlAvailable()) result.available &= ~2;
         if (!support_.streamer) result.available &= ~32;
     }
     result.ledLevels=d6_.read_supported && support_.sensor_hardware_known ? (support_.sensor_hardware?5:7) : 0;
@@ -968,6 +972,24 @@ AirConditionOptionalState DaikinDriver::optionalControlState() const
     result.led=state_.ledState==daikin::LedState::On?AirConditionUnitLed::On:
         state_.ledState==daikin::LedState::Dark?AirConditionUnitLed::Dark:AirConditionUnitLed::Off;
     return result;
+}
+
+bool DaikinDriver::econoControlAvailable() const
+{
+    return d7_.read_supported && (!support_.special_features_known || support_.econo ||
+        econo_observed_on_ || fieldWriteVerified("F7",1,0xFF));
+}
+
+bool DaikinDriver::probeEcono(bool on)
+{
+    if (!serial_ || !d7_.read_supported || !state_.basicValid) return false;
+    // A deliberate probe changes only documented D7 Econo. Do not silently
+    // clear mutually exclusive presets or manufacture availability from ACK.
+    if (on && (state_.powerful || state_.quiet)) return false;
+    pending_.climate.econo=on;pending_.activate_econo=true;econo_probe_pending_=true;
+    d7_.rejected_valid=false;
+    sendEconoCommand();
+    return true;
 }
 
 bool DaikinDriver::setUnitLed(AirConditionUnitLed state)
@@ -1743,7 +1765,7 @@ void DaikinDriver::sendEconoCommand()
 {
     if ((!pending_.activate_econo && !demand_pending_) || !d7_.valid) return;
     if (pending_.activate_econo && pending_.climate.econo && (state_.powerful || state_.quiet)) return;
-    if (support_.special_features_known && !support_.econo) pending_.activate_econo = false;
+    if (!econoControlAvailable() && !econo_probe_pending_) pending_.activate_econo = false;
     if (!pending_.activate_econo && !demand_pending_) return;
     PayloadBuffer payload = d7_.confirmed;
     payload[2] = payload[3] = '0';
@@ -1752,6 +1774,7 @@ void DaikinDriver::sendEconoCommand()
     if (sendCombined("D7", payload)) {
         pending_.activate_econo = false;
         demand_pending_ = false;
+        econo_probe_pending_ = false;
     }
 }
 
@@ -2424,7 +2447,8 @@ void DaikinDriver::handle_f7_response(uint8_t* data, size_t data_size)
     state_.demandPercentageValid=data[0]!='1';
     if (state_.demandPercentageValid)
         state_.demand_percentage = 100 - (data[0] - 0x30);
-    if (data[1] == '0' || data[1] == '2') state_.econo = (!support_.special_features_known || support_.econo) && data[1] == '2';
+    state_.econo = data[1] == '2';
+    if (state_.econo) econo_observed_on_=true;
 
     if (state_.demandPercentageValid)
         logInfoP("F7: demand=%d%%, econo=%d (raw: %c %02X)", state_.demand_percentage, state_.econo, data[0], data[1]);
@@ -3638,7 +3662,7 @@ void DaikinDriver::checkOnlineTimeout()
         invalidateTelemetry();
         model_name_.clear();firmware_version_.clear();identification_={};
         protocol_version_=daikin::ProtocolUndetected;protocol_detection_phase_=false;
-        support_={};queries_.clear();query_index_=0;query_state_=QueryState::Idle;
+        support_={};econo_observed_on_=econo_probe_pending_=false;queries_.clear();query_index_=0;query_state_=QueryState::Idle;
         d3_={};d5_={};d6_={};d7_={};dr_={};fb_={};outstanding_write_={};
         timer_disabled_bytes_={};last_timer_minutes_={};timer_dirty_=0;timer_lamp_pending_=false;timer_request_error_=lamp_request_error_=AirConditionWriteResult::None;
         pending_={};humidity_pending_=demand_pending_=vertical_pending_=timer_pending_=false;

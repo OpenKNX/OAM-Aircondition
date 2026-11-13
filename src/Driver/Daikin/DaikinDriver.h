@@ -168,6 +168,7 @@ public:
     bool setVerticalPositionCode(char position);
     bool setFixedVerticalPosition(uint8_t position) override;
     bool setOptionalControl(AirConditionOptionalControl control, bool on) override;
+    bool probeEcono(bool on);
     bool setUnitLed(AirConditionUnitLed state) override;
     AirConditionOptionalState optionalControlState() const;
     bool setHumidityLevel(AirConditionHumidityLevel level) override;
@@ -335,6 +336,8 @@ private:
     void expireWriteConfirmations();
     uint8_t swing_dirty_{0};
     bool demand_configured_{false};
+    bool econo_observed_on_{false}, econo_probe_pending_{false};
+    bool econoControlAvailable() const;
     bool demandRequestAllowed(uint8_t percentage) const;
     void showModelProfiles() const;
     uint8_t verified_vertical_positions_{0};
