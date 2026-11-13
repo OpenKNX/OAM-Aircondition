@@ -861,10 +861,9 @@ void DaikinDriver::setSwingVertical(bool swing)
 
 void DaikinDriver::setSwingHorizontalFixPosition(unsigned int position)
 {
-    // S21 protocol doesn't support fixed positions. For Scene compatibility we accept the
-    // request but treat it as a no-op (the driver only supports swing on/off). Log the request
-    // so integrators can see that fixed positions are ignored.
-    logInfoP("Fixed horizontal positions not supported by S21 protocol (requested: %u) - accepted as no-op", position);
+    // No verified indexed horizontal command is known. The documented FTXA
+    // hold method is to stop horizontal swing at the desired position.
+    logInfoP("Indexed horizontal position %u unavailable; use horizontal swing Off to hold the current position", position);
 }
 
 void DaikinDriver::setSwingVerticalFixPosition(unsigned int position)
@@ -985,7 +984,7 @@ bool DaikinDriver::probeEcono(bool on)
     if (!serial_ || !d7_.read_supported || !state_.basicValid) return false;
     // A deliberate probe changes only documented D7 Econo. Do not silently
     // clear mutually exclusive presets or manufacture availability from ACK.
-    if (on && (state_.powerful || state_.quiet)) return false;
+    if (on && state_.powerful) return false;
     pending_.climate.econo=on;pending_.activate_econo=true;econo_probe_pending_=true;
     d7_.rejected_valid=false;
     sendEconoCommand();
@@ -1009,16 +1008,14 @@ bool DaikinDriver::setOptionalControl(AirConditionOptionalControl control, bool 
         return false;
     }
     using C=AirConditionOptionalControl;
-    // Turning one option off only clears that option. Enabling one of the three
-    // mutually exclusive power presets explicitly queues the required clears.
-    if (on && (control==C::Powerful || control==C::Quiet)) {
+    // Powerful excludes Econo and Outdoor Quiet. Econo and Quiet may coexist
+    // (FTXA user guide, section 5.3.6); independent controls preserve that pair.
+    if (on && control==C::Powerful) {
         pending_.climate.econo=false;pending_.activate_econo=true;
-        if (control==C::Powerful) {pending_.climate.quiet=false;pending_.activate_quiet=true;}
-        else {pending_.climate.powerful=false;pending_.activate_powerful=true;}
+        pending_.climate.quiet=false;pending_.activate_quiet=true;
     }
-    if (on && control==C::Econo) {
-        pending_.climate.powerful=pending_.climate.quiet=false;
-        pending_.activate_powerful=pending_.activate_quiet=true;
+    if (on && (control==C::Econo || control==C::Quiet)) {
+        pending_.climate.powerful=false;pending_.activate_powerful=true;
     }
     switch (control) {
         case C::Powerful:pending_.climate.powerful=on;pending_.activate_powerful=true;break;
@@ -1028,7 +1025,7 @@ bool DaikinDriver::setOptionalControl(AirConditionOptionalControl control, bool 
         case C::IntelligentEye:setIntelligentEye(on);return true;
         case C::Streamer:setAirPurification(on);return true;
     }
-    if (state_.econo && on && control!=C::Econo) sendEconoCommand();
+    if (state_.econo && on && control==C::Powerful) sendEconoCommand();
     else sendSpecialModesCommand();
     sendEconoCommand();return true;
 }
@@ -1764,7 +1761,7 @@ void DaikinDriver::sendPowerfulCommand()
 void DaikinDriver::sendEconoCommand()
 {
     if ((!pending_.activate_econo && !demand_pending_) || !d7_.valid) return;
-    if (pending_.activate_econo && pending_.climate.econo && (state_.powerful || state_.quiet)) return;
+    if (pending_.activate_econo && pending_.climate.econo && state_.powerful) return;
     if (!econoControlAvailable() && !econo_probe_pending_) pending_.activate_econo = false;
     if (!pending_.activate_econo && !demand_pending_) return;
     PayloadBuffer payload = d7_.confirmed;
@@ -1824,8 +1821,7 @@ bool DaikinDriver::sendCombined(std::string_view command,const PayloadBuffer& pa
 void DaikinDriver::sendSpecialModesCommand()
 {
     if (!d6_.valid) return; // read before modifying shared fields
-    if (state_.econo && ((pending_.activate_powerful && pending_.climate.powerful) ||
-                         (pending_.activate_quiet && pending_.climate.quiet))) return;
+    if (state_.econo && pending_.activate_powerful && pending_.climate.powerful) return;
     if (support_.special_features_known) {
         if (!support_.powerful) pending_.activate_powerful = false;
         if (!support_.streamer) pending_.activate_streamer = false;
