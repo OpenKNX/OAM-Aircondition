@@ -365,6 +365,17 @@ private:
     std::vector<DiagnosticRequest> diagnostic_queue_;
     DiagnosticResult diagnostic_result_{};
     bool diagnostic_active_{false}, diagnostic_ack_only_{false};
+    struct RejectedResponse {
+        uint32_t at{0};
+        std::string command;
+        std::vector<uint8_t> bytes;
+        bool headerMismatch{false};
+    };
+    std::array<RejectedResponse,8> rejected_responses_{};
+    size_t rejected_response_next_{0}, rejected_response_count_{0};
+    void recordRejectedResponse(std::string_view command,const uint8_t* bytes,size_t size,bool headerMismatch);
+    void showRejectedResponses() const;
+    void showWriteDiagnostics() const;
     bool extended_polling_{true}, research_polling_{false};
 #ifdef DAIKIN_PRODUCTION_DIAGNOSTICS
     bool production_polling_{true};

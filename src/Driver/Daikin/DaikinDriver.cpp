@@ -501,6 +501,8 @@ bool DaikinDriver::processCommand(const std::string command,bool debugKo)
         const auto end=rest.find_first_of(" \t");words.push_back(rest.substr(0,end));if(end==std::string_view::npos) {rest={};break;}rest.remove_prefix(end);
     }
     if(words.empty()) return false;
+    if(words[0]=="errors" && words.size()==1 && !debugKo) {showRejectedResponses();return true;}
+    if(words[0]=="writes" && words.size()==1 && !debugKo) {showWriteDiagnostics();return true;}
     if(words[0]=="profiles" && words.size()==1) {showModelProfiles();return true;}
     auto integer=[&](size_t i,unsigned& out){if(i>=words.size() || words[i].empty()) return false;out=0;for(char c:words[i]){if(c<'0'||c>'9'||out>10000)return false;out=out*10+c-'0';}return true;};
     auto floating=[&](size_t i,float& out){if(i>=words.size())return false;std::string text(words[i]);char* end=nullptr;out=std::strtof(text.c_str(),&end);return end==text.c_str()+text.size() && std::isfinite(out);};
@@ -1779,6 +1781,7 @@ bool DaikinDriver::sendCombined(std::string_view command,const PayloadBuffer& pa
     if(!changed) return true; // already confirmed; do not manufacture write capability
     p->requested=payload;p->outcome=WriteOutcome::AwaitingAck;p->sent_ms=millis();p->awaiting_readback=false;p->readback_seen=false;
     outstanding_write_=command;
+    logInfoP("S21 write %.*s payload: %s",int(command.size()),command.data(),toHexString(std::vector<uint8_t>(payload.begin(),payload.begin()+size)).c_str());
     if(!serial_->send_frame(command,payload.data(),size,command=="FB")) {p->outcome=WriteOutcome::Error;outstanding_write_={};return false;}
     p->valid=false;last_send_time_=millis();
     handleWriteCommandSent(command=="D5"?LastWriteCommand::D5_Swing:LastWriteCommand::Other);
@@ -2946,6 +2949,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
     if(!outstanding_write_.empty()) {
         auto* c=combinedFor(outstanding_write_);
         if(c) {
+            logInfoP("S21 write %.*s transport result=%u",int(outstanding_write_.size()),outstanding_write_.data(),unsigned(result));
             if(result==daikin::DaikinSerial::Result::Ack) {c->awaiting_readback=true;c->outcome=WriteOutcome::AwaitingReadback;}
             if(result==daikin::DaikinSerial::Result::Frame && outstanding_write_=="FB") {c->awaiting_readback=true;c->outcome=WriteOutcome::AwaitingReadback;}
             if(result==daikin::DaikinSerial::Result::Nak) {c->rejected=c->requested;c->rejected_valid=true;c->last_rejection_ms=now;c->outcome=WriteOutcome::Rejected;c->awaiting_readback=false;}
@@ -3063,6 +3067,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                 {
                     if (!s21_valid_response(query.command,payload,payload_len)) {
                         stats_.frames_bad_format++;
+                        recordRejectedResponse(query.command,payload,payload_len,false);
                         advanceQuery(); query_state_=QueryState::WaitingToSend; state_start_time_=now;
                         return;
                     }
@@ -3090,6 +3095,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
                               static_cast<int>(query.command.size()), query.command.data(),
                               static_cast<int>(std::min(data_size, expected_cmd_len)), data);
                     stats_.frames_bad_format++;
+                    recordRejectedResponse(query.command,data,data_size,true);
                     return; // unrelated frames must not advance the outstanding query
                 }
             }
@@ -3318,6 +3324,39 @@ void DaikinDriver::advanceQuery()
         query_index_=confirmation_resume_;
         confirmation_resume_=SIZE_MAX;
     } else ++query_index_;
+}
+
+void DaikinDriver::recordRejectedResponse(std::string_view command,const uint8_t* bytes,size_t size,bool headerMismatch)
+{
+    auto& entry=rejected_responses_[rejected_response_next_];
+    entry.at=millis();entry.command=std::string(command.substr(0,6));entry.headerMismatch=headerMismatch;
+    entry.bytes.clear();
+    if(bytes && size) entry.bytes.assign(bytes,bytes+std::min<size_t>(size,38));
+    rejected_response_next_=(rejected_response_next_+1)%rejected_responses_.size();
+    rejected_response_count_=std::min(rejected_response_count_+1,rejected_responses_.size());
+    logInfoP("Rejected S21 %s %s: %s",entry.command.c_str(),headerMismatch?"header":"payload",toHexString(entry.bytes).c_str());
+}
+
+void DaikinDriver::showRejectedResponses() const
+{
+    logInfoP("Last %u rejected S21 responses (bounded to 38 bytes each)",unsigned(rejected_response_count_));
+    const size_t first=(rejected_response_next_+rejected_responses_.size()-rejected_response_count_)%rejected_responses_.size();
+    for(size_t i=0;i<rejected_response_count_;i++) {
+        const auto& entry=rejected_responses_[(first+i)%rejected_responses_.size()];
+        logInfoP("%lu ms %s %s: %s",static_cast<unsigned long>(entry.at),entry.command.c_str(),entry.headerMismatch?"header":"payload",toHexString(entry.bytes).c_str());
+    }
+}
+
+void DaikinDriver::showWriteDiagnostics() const
+{
+    for(auto cmd:{"D3","D5","D6","D7","DR","FB"}) {
+        const auto* page=combinedFor(cmd);
+        logInfoP("%s outcome=%u awaiting=%u valid=%u age=%lu ms",cmd,unsigned(page->outcome),unsigned(page->awaiting_readback),unsigned(page->valid),static_cast<unsigned long>(millis()-page->sent_ms));
+        logInfoP("requested=%s mask=%s read=%s",toHexString(std::vector<uint8_t>(page->requested.begin(),page->requested.end())).c_str(),
+            toHexString(std::vector<uint8_t>(page->mask.begin(),page->mask.end())).c_str(),
+            toHexString(std::vector<uint8_t>(page->confirmed.begin(),page->confirmed.end())).c_str());
+    }
+    logInfoP("D7 queued: econo=%u/%u demand=%u/%u",unsigned(pending_.activate_econo),unsigned(pending_.climate.econo),unsigned(demand_pending_),unsigned(requested_demand_));
 }
 
 void DaikinDriver::rejectClimateWrite()
