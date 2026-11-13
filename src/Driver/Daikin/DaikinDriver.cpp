@@ -963,7 +963,8 @@ AirConditionOptionalState DaikinDriver::optionalControlState() const
         (d6_.read_supported && support_.sensor_hardware?16:0);
     if (support_.special_features_known) {
         if (!support_.powerful) result.available &= ~1;
-        if (!econoControlAvailable()) result.available &= ~2;
+        // F7 read support exposes Econo. FU00 is advisory: some units
+        // implement Econo while reporting its advertised flag as zero.
         if (!support_.streamer) result.available &= ~32;
     }
     result.ledLevels=d6_.read_supported && support_.sensor_hardware_known ? (support_.sensor_hardware?5:7) : 0;
@@ -975,13 +976,20 @@ AirConditionOptionalState DaikinDriver::optionalControlState() const
 
 bool DaikinDriver::econoControlAvailable() const
 {
-    return d7_.read_supported && (!support_.special_features_known || support_.econo ||
-        econo_observed_on_ || fieldWriteVerified("F7",1,0xFF));
+    return d7_.read_supported;
+}
+
+bool DaikinDriver::econoWriteEstablished() const
+{
+    return (support_.special_features_known && support_.econo) ||
+        econo_observed_on_ || fieldWriteVerified("F7",1,0xFF);
 }
 
 bool DaikinDriver::probeEcono(bool on)
 {
-    if (!serial_ || !d7_.read_supported || !state_.basicValid) return false;
+    if (!serial_ || !d7_.read_supported || !(sample_seen_mask_ & SEEN_F1)) {
+        logInfoP("Econo probe needs confirmed F1 and F7 samples");return false;
+    }
     // A deliberate probe changes only documented D7 Econo. Do not silently
     // clear mutually exclusive presets or manufacture availability from ACK.
     if (on && state_.powerful) return false;
@@ -1008,6 +1016,9 @@ bool DaikinDriver::setOptionalControl(AirConditionOptionalControl control, bool 
         return false;
     }
     using C=AirConditionOptionalControl;
+    if (on && control==C::Econo && state_.powerful && !econoWriteEstablished()) {
+        logInfoP("Econo write unverified: turn Powerful off before an explicit Econo trial");return false;
+    }
     // Powerful excludes Econo and Outdoor Quiet. Econo and Quiet may coexist
     // (FTXA user guide, section 5.3.6); independent controls preserve that pair.
     if (on && control==C::Powerful) {
@@ -1044,7 +1055,7 @@ void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
     if (!serial_) return;
     // Reject before queuing clears: unsupported Econo must not silently disable
     // an active Powerful/Quiet setting through the legacy preset selector.
-    if (mode==AirConditionDeviceModeEco && !(optionalControlState().available & 2)) {
+    if (mode==AirConditionDeviceModeEco && (!(optionalControlState().available & 2) || (state_.powerful && !econoWriteEstablished()))) {
         logInfoP("Econo preset unavailable or not discovered; request ignored");
         return;
     }

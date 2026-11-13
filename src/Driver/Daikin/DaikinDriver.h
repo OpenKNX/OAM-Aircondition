@@ -338,6 +338,7 @@ private:
     bool demand_configured_{false};
     bool econo_observed_on_{false}, econo_probe_pending_{false};
     bool econoControlAvailable() const;
+    bool econoWriteEstablished() const;
     bool demandRequestAllowed(uint8_t percentage) const;
     void showModelProfiles() const;
     uint8_t verified_vertical_positions_{0};
