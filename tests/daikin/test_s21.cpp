@@ -793,7 +793,7 @@ void test_shared_timers_and_lamp() {
     test_now+=30001;d.expireWriteConfirmations();assert(f.timers.timerResult==W::Mismatch);
     d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;d.last_write_time_=0;hal.tx.clear();
     uint8_t gb[]={'0','0','0','0'};d.handle_fb_response(gb,4);assert(f.timers.lampValid && !f.timers.lamp);
-    assert(base.setTimerLamp(true));assert(hal.tx[1]=='F' && hal.tx[2]=='B' && hal.tx[3]=='1');
+    assert(base.setTimerLamp(true));assert(hal.tx[1]=='D' && hal.tx[2]=='B' && hal.tx[3]=='1');
     assert(f.timers.lampResult==W::AwaitingAck && !f.timers.lamp);
     d.handle_serial_result(Result::Ack,nullptr,0);assert(f.timers.lampResult==W::AwaitingReadback && !f.timers.lamp);
     gb[0]='1';d.handle_fb_response(gb,4);assert(f.timers.lampResult==W::Confirmed && f.timers.lamp && d.state_.led);
@@ -822,7 +822,7 @@ void test_timer_lamp_preserves_unknown_fields()
     auto& hal = *static_cast<FakeHAL*>(driver.serial_->serial_hal_.get());
     assert(driver.setTimerLamp(true));
     assert(hal.tx.size() == 9);
-    assert(hal.tx[1] == 'F' && hal.tx[2] == 'B');
+    assert(hal.tx[1] == 'D' && hal.tx[2] == 'B');
     assert(hal.tx[3] == '1' && hal.tx[4] == '3' && hal.tx[5] == '3' && hal.tx[6] == '1');
     driver.handle_serial_result(Result::Ack, nullptr, 0);
     reply[0] = '1';
@@ -1140,4 +1140,14 @@ void test_unadvertised_econo_normal_request()
     assert(!driver.telemetry().econo && !driver.fieldWriteVerified("F7",1,0xFF));
 }
 
-int main() { test_unadvertised_econo_normal_request(); test_econo_and_outdoor_quiet_can_coexist(); test_econo_readback_overrides_negative_advertisement(); test_delayed_shared_register_confirmation(); test_rejected_response_evidence(); test_model_profile_validation_and_reporting(); test_faikout_ambiguous_demand_sentinel(); test_unsupported_econo_and_quiet_alias(); test_lamp_write_immediate_and_delayed_reply(); test_delayed_climate_confirmation(); test_confirmation_poll_preserves_cycle(); test_console_unknown_optional_settings(); test_disabled_timer_retains_delay(); test_diagnostic_retains_unrecognised_payload(); test_timer_lamp_preserves_unknown_fields(); test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_db_lamp_setter_transport()
+{
+    Transport t;uint8_t data[]={'1','3','3','1'};
+    assert(t.serial.send_frame("DB",data,4));t.receive({6});
+    assert(!t.serial.busy() && t.results.back()==Result::Ack);
+    // A subsequent FB query, rather than ACK, is authoritative for lamp state.
+    t.serial.send_frame("FB");t.receive({6});
+    assert(t.serial.busy());
+}
+
+int main() { test_db_lamp_setter_transport(); test_unadvertised_econo_normal_request(); test_econo_and_outdoor_quiet_can_coexist(); test_econo_readback_overrides_negative_advertisement(); test_delayed_shared_register_confirmation(); test_rejected_response_evidence(); test_model_profile_validation_and_reporting(); test_faikout_ambiguous_demand_sentinel(); test_unsupported_econo_and_quiet_alias(); test_lamp_write_immediate_and_delayed_reply(); test_delayed_climate_confirmation(); test_confirmation_poll_preserves_cycle(); test_console_unknown_optional_settings(); test_disabled_timer_retains_delay(); test_diagnostic_retains_unrecognised_payload(); test_timer_lamp_preserves_unknown_fields(); test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

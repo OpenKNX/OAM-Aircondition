@@ -317,6 +317,7 @@ void DaikinDriver::startCommunication(bool restart)
     pending_.activate_sensor = false;
     pending_.activate_comfort = false;
     humidity_pending_ = demand_pending_ = timer_pending_ = vertical_pending_ = false;
+    econo_probe_pending_=false;
     timer_dirty_=0;timer_lamp_pending_=false;timer_request_error_=lamp_request_error_=AirConditionWriteResult::None;
     pending_explicit_off_ = false;
     pending_explicit_fan_ = false;
@@ -444,7 +445,7 @@ DaikinDriver::CombinedCommand* DaikinDriver::combinedFor(std::string_view c)
     if(c=="D6" || c=="F6") return &d6_;
     if(c=="D7" || c=="F7") return &d7_;
     if(c=="DR" || c=="FR") return &dr_;
-    if(c=="FB") return &fb_;
+    if(c=="FB" || c=="DB") return &fb_;
     return nullptr;
 }
 const DaikinDriver::CombinedCommand* DaikinDriver::combinedFor(std::string_view c) const { return const_cast<DaikinDriver*>(this)->combinedFor(c); }
@@ -610,7 +611,7 @@ void DaikinDriver::sendTimerLampCommand()
     if (!timer_lamp_pending_ || !fb_.valid) return;
     PayloadBuffer payload = fb_.confirmed;
     payload[0] = requested_timer_lamp_ ? '1' : '0';
-    if (sendCombined("FB",payload)) timer_lamp_pending_=false;
+    if (sendCombined("DB",payload)) timer_lamp_pending_=false;
 }
 
 bool DaikinDriver::configureTemperatureLimits(daikin::Mode mode,float minimum,float maximum)
@@ -1815,7 +1816,7 @@ bool DaikinDriver::sendCombined(std::string_view command,const PayloadBuffer& pa
     if(p->rejected_valid && payload==p->rejected && millis()-p->last_rejection_ms<timing_.reprobe_ms) return true; // report rejection, never replay it later
     p->mask.fill(0);
     for(size_t i=0;i<size;i++) {
-        if((command=="D5" && i==3) || (command=="D7" && i>=2) || (command=="DR" && i>=1) || (command=="FB" && i>=1)) continue;
+        if((command=="D5" && i==3) || (command=="D7" && i>=2) || (command=="DR" && i>=1) || ((command=="FB" || command=="DB") && i>=1)) continue;
         if(payload[i]!=p->confirmed[i]) p->mask[i]=command=="D6" ? payload[i]^p->confirmed[i] : 0xFF;
     }
     bool changed=false;for(auto m:p->mask) changed|=m!=0;
@@ -2997,7 +2998,7 @@ void DaikinDriver::handle_serial_result(daikin::DaikinSerial::Result result, uin
             if(result==daikin::DaikinSerial::Result::Timeout) c->outcome=WriteOutcome::Timeout;
             if(result==daikin::DaikinSerial::Result::Error) c->outcome=WriteOutcome::Error;
         }
-        const bool timerWrite=outstanding_write_=="D3" || outstanding_write_=="FB";
+        const bool timerWrite=outstanding_write_=="D3" || outstanding_write_=="DB" || outstanding_write_=="FB";
         if(result!=daikin::DaikinSerial::Result::Frame || outstanding_write_=="FB") outstanding_write_={};
         if(timerWrite) publishTimerStatus();
     }
@@ -3390,7 +3391,7 @@ void DaikinDriver::showRejectedResponses() const
 
 void DaikinDriver::showWriteDiagnostics() const
 {
-    for(auto cmd:{"D3","D5","D6","D7","DR","FB"}) {
+    for(auto cmd:{"D3","D5","D6","D7","DR","DB"}) {
         const auto* page=combinedFor(cmd);
         logInfoP("%s outcome=%u awaiting=%u valid=%u age=%lu ms",cmd,unsigned(page->outcome),unsigned(page->awaiting_readback),unsigned(page->valid),static_cast<unsigned long>(millis()-page->sent_ms));
         logInfoP("requested=%s mask=%s read=%s",toHexString(std::vector<uint8_t>(page->requested.begin(),page->requested.end())).c_str(),
