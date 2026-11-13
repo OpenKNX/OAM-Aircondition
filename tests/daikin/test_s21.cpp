@@ -639,7 +639,8 @@ void test_confirmed_combined_capabilities() {
     d.pending_.activate_powerful=true;d.pending_.climate.powerful=true;d.sendPowerfulCommand();
     assert(d.writeOutcome("F6")==W::AwaitingAck);d.handle_serial_result(Result::Ack,nullptr,0);
     assert(d.writeOutcome("F6")==W::AwaitingReadback && d.commandAccess("F6")==A::ReadSupported);
-    d.handle_f6_response(g6,4);assert(d.writeOutcome("F6")==W::Mismatch);
+    d.handle_f6_response(g6,4);assert(d.writeOutcome("F6")==W::AwaitingReadback);
+    test_now+=30001;d.expireWriteConfirmations();assert(d.writeOutcome("F6")==W::Mismatch);
     d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;
     d.pending_.activate_powerful=true;d.pending_.climate.powerful=true;d.sendPowerfulCommand();d.handle_serial_result(Result::Ack,nullptr,0);g6[0]=0x32;d.handle_f6_response(g6,4);
     assert(d.commandAccess("F6")==A::Writable && d.fieldWriteVerified("F6",0,2) && !d.fieldWriteVerified("F6",1,0x80));
@@ -788,7 +789,8 @@ void test_shared_timers_and_lamp() {
     d.handle_serial_result(Result::Ack,nullptr,0);g3[0]='2';g3[1]=0x30;d.handle_f3_response(g3,4);
     d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;d.last_write_time_=0;hal.tx.clear();
     assert(base.setTimerEnabled(T::On,true));assert(hal.tx[4]==0x36 && hal.tx[5]==0x3C);
-    d.handle_serial_result(Result::Ack,nullptr,0);d.handle_f3_response(g3,4);assert(f.timers.timerResult==W::Mismatch);
+    d.handle_serial_result(Result::Ack,nullptr,0);d.handle_f3_response(g3,4);assert(f.timers.timerResult==W::AwaitingReadback);
+    test_now+=30001;d.expireWriteConfirmations();assert(f.timers.timerResult==W::Mismatch);
     d.serial_->force_framed_mode();d.query_state_=DaikinDriver::QueryState::Idle;d.last_write_time_=0;hal.tx.clear();
     uint8_t gb[]={'0','0','0','0'};d.handle_fb_response(gb,4);assert(f.timers.lampValid && !f.timers.lamp);
     assert(base.setTimerLamp(true));assert(hal.tx[1]=='F' && hal.tx[2]=='B' && hal.tx[3]=='1');
@@ -1063,4 +1065,23 @@ void test_rejected_response_evidence()
     assert(!driver.processCommand("s21 errors",true));
 }
 
-int main() { test_rejected_response_evidence(); test_model_profile_validation_and_reporting(); test_faikout_ambiguous_demand_sentinel(); test_unsupported_econo_and_quiet_alias(); test_lamp_write_immediate_and_delayed_reply(); test_delayed_climate_confirmation(); test_confirmation_poll_preserves_cycle(); test_console_unknown_optional_settings(); test_disabled_timer_retains_delay(); test_diagnostic_retains_unrecognised_payload(); test_timer_lamp_preserves_unknown_fields(); test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }
+void test_delayed_shared_register_confirmation()
+{
+    using W=DaikinDriver::WriteOutcome;
+    Feedback f;DaikinDriver driver(f);driver.setup();
+    uint8_t g7[]={'0','0','N','o'};driver.handle_f7_response(g7,4);
+    assert(driver.configureDemandLimits(90,10));driver.setMaxPowerLevel(90);
+    auto& hal=*static_cast<FakeHAL*>(driver.serial_->serial_hal_.get());const auto count=hal.tx.size();
+    driver.handle_serial_result(Result::Ack,nullptr,0);
+    driver.serial_->force_framed_mode();driver.query_state_=DaikinDriver::QueryState::Idle;
+    driver.handle_f7_response(g7,4);
+    assert(driver.writeOutcome("F7")==W::AwaitingReadback && !driver.fieldWriteVerified("F7",0,0xFF));
+    test_now+=15000;g7[0]=':';driver.handle_f7_response(g7,4);
+    assert(driver.writeOutcome("F7")==W::Confirmed && driver.fieldWriteVerified("F7",0,0xFF));
+    assert(hal.tx.size()==count); // observing stale status never retransmits
+    driver.setMaxPowerLevel(100);driver.handle_serial_result(Result::Ack,nullptr,0);
+    driver.handle_f7_response(g7,4);test_now+=30001;driver.expireWriteConfirmations();
+    assert(driver.writeOutcome("F7")==W::Mismatch);
+}
+
+int main() { test_delayed_shared_register_confirmation(); test_rejected_response_evidence(); test_model_profile_validation_and_reporting(); test_faikout_ambiguous_demand_sentinel(); test_unsupported_econo_and_quiet_alias(); test_lamp_write_immediate_and_delayed_reply(); test_delayed_climate_confirmation(); test_confirmation_poll_preserves_cycle(); test_console_unknown_optional_settings(); test_disabled_timer_retains_delay(); test_diagnostic_retains_unrecognised_payload(); test_timer_lamp_preserves_unknown_fields(); test_driver_online_lifecycle(); test_timer_lamp_optional_reply(); test_shared_timers_and_lamp(); test_shared_energy_telemetry(); test_shared_humidity_control(); test_shared_optional_controls(); test_shared_telemetry_contract(); test_shared_fixed_position_contract(); test_temperature_numeric_edges(); test_timing_reprobe_and_missing_samples(); test_metadata_schema_and_model_discovery(); test_confirmed_combined_capabilities(); test_compound_and_queued_humidity(); test_legacy_and_diagnostic_transactions(); test_audit_regressions(); test_unknown_optional_state(); test_optional_query_configuration(); test_large_pages_and_tx_failures(); test_compatibility_fixtures(); test_unknown_sensor_led_gate(); test_explicit_settings_readback(); test_combined_mode_changes(); test_decoder_lengths(); test_delayed_wire_frames(); test_coarse_sentinels(); test_real_timers(); test_unknown_extension_pages(); test_live_power(); test_energy_counters(); test_model_name(); test_temperature_limits(); test_identification(); test_raw_research(); test_supplemental_sensors(); test_vane_angles(); test_fan_rpm(); test_indoor_coil(); test_independent_status(); test_vertical_position(); test_timer_lamp(); test_f4(); test_read_write_capabilities(); test_query_rates(); test_rz_identity(); test_versions(); test_special_decoders(); test_capability_bits(); test_no_f3_special_fallback(); test_humidity(); test_swing_preserves_humidity(); test_confirmed_d1(); test_explicit_d1(); test_led(); test_demand(); test_econo(); test_d6(); test_handshake(); test_checksums(); test_recovery(); test_no_unframed_fallback(); test_correlation(); std::cout << "S21 native tests passed\n"; }

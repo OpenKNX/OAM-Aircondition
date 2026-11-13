@@ -398,7 +398,7 @@ void DaikinDriver::loop()
         climate_outcome_=climate_readback_seen_?WriteOutcome::Mismatch:WriteOutcome::Timeout;
         rejectClimateWrite();
     }
-    for(auto* c:{&d3_,&d5_,&d6_,&d7_,&dr_,&fb_}) if(c->awaiting_readback && millis()-c->sent_ms>30000) {c->awaiting_readback=false;c->outcome=c->readback_seen?WriteOutcome::Mismatch:WriteOutcome::Timeout;if(c==&d3_ || c==&fb_) publishTimerStatus();}
+    expireWriteConfirmations();
     if(version_changed_ && !serial_->busy() && !diagnostic_active_) {version_changed_=false;startCommunication(true);}
 
     // Check online timeout (independent of query state machine)
@@ -471,15 +471,25 @@ void DaikinDriver::confirmCombined(std::string_view c,const uint8_t* data)
     // return it spuriously. It must not verify a requested demand write.
     if (c=="D7" && p->mask[0] && data[0]=='1') matches=false;
     p->readback_seen=true;
-    // Some timer lamps apply asynchronously. Observe the full confirmation
-    // window; an ACK or a single unchanged GB must not certify a working write.
-    if (c=="FB" && !matches) {p->outcome=WriteOutcome::AwaitingReadback;return;}
+    // All shared pages can lag a write. Keep observing, without resending,
+    // until the requested fields match or the bounded deadline expires.
+    if (!matches) {p->outcome=WriteOutcome::AwaitingReadback;return;}
     p->awaiting_readback=false;
     p->outcome=matches?WriteOutcome::Confirmed:WriteOutcome::Mismatch;
     if(matches) {
         p->write=CommandSupport::Supported;
         for(size_t i=0;i<4;i++) p->verified_mask[i]|=p->mask[i];
         if(c=="DR" && data[0]>='0' && data[0]<='5') verified_vertical_positions_|=1U<<(data[0]-'0');
+    }
+}
+
+void DaikinDriver::expireWriteConfirmations()
+{
+    for(auto* page:{&d3_,&d5_,&d6_,&d7_,&dr_,&fb_}) {
+        if(!page->awaiting_readback || millis()-page->sent_ms<=30000) continue;
+        page->awaiting_readback=false;
+        page->outcome=page->readback_seen?WriteOutcome::Mismatch:WriteOutcome::Timeout;
+        if(page==&d3_ || page==&fb_) publishTimerStatus();
     }
 }
 
@@ -1768,7 +1778,7 @@ void DaikinDriver::sendStreamerCommand()
 bool DaikinDriver::sendCombined(std::string_view command,const PayloadBuffer& payload)
 {
     auto* p=combinedFor(command);
-    if(!p || !serial_ || serial_->busy() || diagnostic_active_ || isInPostWriteSettle() || !p->valid) return false;
+    if(!p || !serial_ || serial_->busy() || diagnostic_active_ || isInPostWriteSettle() || !p->valid || p->awaiting_readback) return false;
     const size_t size=command=="D3"?3:4;
     for(size_t i=0;i<size;i++) if(daikin::s21::forbidden(payload[i])) return false;
     if(p->rejected_valid && payload==p->rejected && millis()-p->last_rejection_ms<timing_.reprobe_ms) return true; // report rejection, never replay it later

@@ -332,6 +332,7 @@ private:
     CombinedCommand* combinedFor(std::string_view command);
     const CombinedCommand* combinedFor(std::string_view command) const;
     void confirmCombined(std::string_view command,const uint8_t* data);
+    void expireWriteConfirmations();
     uint8_t swing_dirty_{0};
     bool demand_configured_{false};
     bool demandRequestAllowed(uint8_t percentage) const;
