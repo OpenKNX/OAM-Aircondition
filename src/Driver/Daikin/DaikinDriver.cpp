@@ -1078,9 +1078,10 @@ void DaikinDriver::setLedState(daikin::LedState led)
 void DaikinDriver::setDeviceMode(AirConditionDeviceMode mode)
 {
     if (!serial_) return;
-    // Reject before queuing clears: unsupported Econo must not silently disable
-    // an active Powerful/Quiet setting through the legacy preset selector.
-    if (mode==AirConditionDeviceModeEco && (!(optionalControlState().available & 2) || (state_.powerful && !econoWriteEstablished()))) {
+    // A preset explicitly replaces Powerful/Quiet. Require a readable Econo
+    // field, then clear Powerful and await its readback before writing Econo.
+    // Independent first-time Econo requests keep their non-destructive guard.
+    if (mode==AirConditionDeviceModeEco && !(optionalControlState().available & 2)) {
         logInfoP("Econo preset unavailable or not discovered; request ignored");
         return;
     }
