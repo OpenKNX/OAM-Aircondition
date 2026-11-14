@@ -121,6 +121,7 @@ public:
     virtual void updateHumidityMode(uint8_t step) = 0;
     // Position 6 is the S21 automatic marker; verifiedMask is independent of read support.
     virtual void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) {}
+    virtual void updateHorizontalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint16_t verifiedMask, AirConditionWriteResult result) {}
     virtual void updateAdditionalTelemetry(const AirConditionTelemetry& sample) {}
     virtual void updateEnergyTelemetry(const AirConditionEnergyTelemetry& sample) {}
     virtual void updateTimerStatus(const AirConditionTimerStatus& sample) {}
@@ -185,6 +186,8 @@ public:
     virtual void setSwingHorizontalFixPosition(unsigned int position) = 0;
     virtual void setSwingVerticalFixPosition(unsigned int position) = 0;
     virtual bool setFixedVerticalPosition(uint8_t position) { return false; }
+    virtual bool setFixedHorizontalPosition(uint8_t position) { return false; }
+    virtual bool configureHorizontalPositions(uint8_t maximum) { return false; }
     virtual bool setOptionalControl(AirConditionOptionalControl control, bool on) { return false; }
     virtual bool setUnitLed(AirConditionUnitLed state) { return false; }
     virtual bool setHumidityLevel(AirConditionHumidityLevel level) { return false; }

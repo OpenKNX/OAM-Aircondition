@@ -317,6 +317,8 @@ namespace daikin
         int16_t coarseTargetC{0};
         bool verticalPositionValid{false}, verticalPositionVerified{false}, verticalPositionCodeValid{false};
         uint8_t verticalPosition{0};
+        bool horizontalPositionValid{false};
+        uint8_t horizontalPosition{0};
         bool timerLampValid{false}, timerLamp{false};
         bool serialErrorValid{false}, serialError{false};
         uint8_t serialErrorByte{0};

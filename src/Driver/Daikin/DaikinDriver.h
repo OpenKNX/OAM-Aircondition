@@ -167,6 +167,8 @@ public:
     bool setClimateVariant(daikin::ClimateVariant mode, daikin::HumidityMode humidity = daikin::HumidityMode::Standard);
     bool setVerticalPositionCode(char position);
     bool setFixedVerticalPosition(uint8_t position) override;
+    bool setFixedHorizontalPosition(uint8_t position) override;
+    bool configureHorizontalPositions(uint8_t maximum) override;
     bool setOptionalControl(AirConditionOptionalControl control, bool on) override;
     bool probeEcono(bool on);
     bool setUnitLed(AirConditionUnitLed state) override;
@@ -348,6 +350,11 @@ private:
     bool demand_pending_{false};
     int requested_vertical_position_{-1};
     bool vertical_pending_{false};
+    uint8_t horizontal_maximum_{0};
+    uint16_t verified_horizontal_positions_{0};
+    int requested_horizontal_position_{-1};
+    bool horizontal_pending_{false};
+    AirConditionWriteResult horizontal_request_error_{AirConditionWriteResult::None};
     void sendVerticalPositionCommand();
     void sendTimerCommand();
     void sendTimerLampCommand();

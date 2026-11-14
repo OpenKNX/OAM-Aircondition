@@ -294,7 +294,7 @@ void DaikinDriver::startCommunication(bool restart)
         d5_ = {}; d6_ = {}; d7_ = {}; dr_ = {}; d3_ = {}; fb_ = {};
         timer_disabled_bytes_ = {}; last_timer_minutes_={}; timer_dirty_=0; timer_lamp_pending_=false;
         requested_vertical_position_ = -1;
-        vertical_pending_ = false;
+        vertical_pending_ = horizontal_pending_ = false;
         outstanding_write_ = {};
         humidity_modes_ = 0;
         humidity_pending_ = demand_pending_ = false;
@@ -316,8 +316,9 @@ void DaikinDriver::startCommunication(bool restart)
     pending_.activate_streamer = false;
     pending_.activate_sensor = false;
     pending_.activate_comfort = false;
-    humidity_pending_ = demand_pending_ = timer_pending_ = vertical_pending_ = false;
+    humidity_pending_ = demand_pending_ = timer_pending_ = vertical_pending_ = horizontal_pending_ = false;
     econo_probe_pending_=false;
+    horizontal_request_error_=AirConditionWriteResult::None;
     timer_dirty_=0;timer_lamp_pending_=false;timer_request_error_=lamp_request_error_=AirConditionWriteResult::None;
     pending_explicit_off_ = false;
     pending_explicit_fan_ = false;
@@ -391,7 +392,7 @@ void DaikinDriver::loop()
             pending_.activate_sensor || pending_.activate_led || pending_.activate_streamer)
             sendSpecialModesCommand();
         if (pending_.activate_econo || demand_pending_) sendEconoCommand();
-        if (vertical_pending_) sendVerticalPositionCommand();
+        if (vertical_pending_ || horizontal_pending_) sendVerticalPositionCommand();
         if (timer_pending_) sendTimerCommand();
         if (timer_lamp_pending_) sendTimerLampCommand();
     }
@@ -483,7 +484,8 @@ void DaikinDriver::confirmCombined(std::string_view c,const uint8_t* data)
     if(matches) {
         p->write=CommandSupport::Supported;
         for(size_t i=0;i<4;i++) p->verified_mask[i]|=p->mask[i];
-        if(c=="DR" && data[0]>='0' && data[0]<='5') verified_vertical_positions_|=1U<<(data[0]-'0');
+        if(c=="DR" && p->mask[0] && data[0]>='0' && data[0]<='5') verified_vertical_positions_|=1U<<(data[0]-'0');
+        if(c=="DR" && p->mask[1] && data[1]>='0' && data[1]<='8') verified_horizontal_positions_|=1U<<(data[1]-'0');
     }
 }
 
@@ -556,6 +558,7 @@ bool DaikinDriver::processCommand(const std::string command,bool debugKo)
         for(size_t i=0;i<names.size();i++)if(words[1]==names[i])return setClimateVariant(static_cast<V>(i));return false;
     }
     if(words[0]=="vane" && words.size()==2 && words[1].size()==1)return setVerticalPositionCode(words[1][0]);
+    if(words[0]=="horizontal" && words.size()==2 && words[1].size()==1 && words[1][0]>='0' && words[1][0]<='9')return setFixedHorizontalPosition(words[1][0]-'0');
     unsigned a=0,b=0;
     if(words[0]=="vane-scale" && words.size()==2 && integer(1,a) && a<=255)return configureVaneAngleScale(a);
     if(words[0]=="demand" && words.size()==2 && integer(1,a) && a<=100){const bool accepted=demandRequestAllowed(a);setMaxPowerLevel(a);return accepted;}
@@ -680,7 +683,7 @@ unsigned int DaikinDriver::getMaximumFanSpeed()
 
 unsigned int DaikinDriver::getMaximumHorizontalFixPosition()
 {
-    return 0; // Horizontal fixed positions have no established S21 command.
+    return dr_.read_supported ? horizontal_maximum_ : 0; // installer-verified model profile
 }
 
 unsigned int DaikinDriver::getMaximumVerticalFixPosition()
@@ -860,11 +863,30 @@ void DaikinDriver::setSwingVertical(bool swing)
     sendSwingCommand();
 }
 
+bool DaikinDriver::configureHorizontalPositions(uint8_t maximum)
+{
+    if (maximum > 8) return false;
+    horizontal_maximum_ = maximum;
+    if (!maximum) { horizontal_pending_ = false; requested_horizontal_position_ = -1; state_.horizontalPositionValid = false; }
+    return true;
+}
+
+bool DaikinDriver::setFixedHorizontalPosition(uint8_t position)
+{
+    if (!serial_ || !horizontal_maximum_ || !dr_.read_supported || position > horizontal_maximum_) {
+        horizontal_request_error_ = !horizontal_maximum_ || !dr_.read_supported ? AirConditionWriteResult::Unavailable : AirConditionWriteResult::InvalidRequest;
+        return false;
+    }
+    horizontal_request_error_ = AirConditionWriteResult::None;
+    requested_horizontal_position_ = position;
+    horizontal_pending_ = true;
+    sendVerticalPositionCommand();
+    return true;
+}
+
 void DaikinDriver::setSwingHorizontalFixPosition(unsigned int position)
 {
-    // No verified indexed horizontal command is known. The documented FTXA
-    // hold method is to stop horizontal swing at the desired position.
-    logInfoP("Indexed horizontal position %u unavailable; use horizontal swing Off to hold the current position", position);
+    if (position <= 255) setFixedHorizontalPosition(uint8_t(position));
 }
 
 void DaikinDriver::setSwingVerticalFixPosition(unsigned int position)
@@ -877,12 +899,13 @@ void DaikinDriver::setSwingVerticalFixPosition(unsigned int position)
 
 void DaikinDriver::sendVerticalPositionCommand()
 {
-    if (!vertical_pending_ || !dr_.valid) return;
+    if ((!vertical_pending_ && !horizontal_pending_) || !dr_.valid) return;
     PayloadBuffer payload = dr_.confirmed;
-    payload[0] = requested_vertical_position_==6 ? '?' : '0' + requested_vertical_position_;
-    // FR can retain model-specific fields beyond byte 0. A vertical request
-    // must not reset another setting in the shared louvre register.
-    if (sendCombined("DR", payload)) vertical_pending_ = false;
+    if (vertical_pending_) payload[0] = requested_vertical_position_==6 ? '?' : '0' + requested_vertical_position_;
+    if (horizontal_pending_) payload[1] = '0' + requested_horizontal_position_;
+    // Modify only requested axes. Zero holds the current angle; bytes 2–3
+    // remain model-specific. Coalesce queued axes after prior readback confirms.
+    if (sendCombined("DR", payload)) vertical_pending_ = horizontal_pending_ = false;
 }
 
 void DaikinDriver::setExternalSensorRoomTemperature(float)
@@ -1094,6 +1117,7 @@ void DaikinDriver::showModelProfiles() const
 {
     logInfoP("--- S21 model profiles ---");
     logInfoP("Model: %s; fallback code: %s; indoor firmware: %s",
+    logInfoP("Horizontal indexed profile: maximum=%u (0=disabled); 0 holds the current angle", horizontal_maximum_);
         model_name_.empty()?"Unknown":model_name_.c_str(), identification_.modelCode.c_str(), firmware_version_.c_str());
     logInfoP("Demand: FK advertised=%s, configured=%s, minimum=%u%%, step=%u%%",
         support_.demand?"Yes":"No/not discovered", demand_configured_?"Yes":"No", demand_minimum_, demand_step_);
@@ -1817,7 +1841,7 @@ bool DaikinDriver::sendCombined(std::string_view command,const PayloadBuffer& pa
     if(p->rejected_valid && payload==p->rejected && millis()-p->last_rejection_ms<timing_.reprobe_ms) return true; // report rejection, never replay it later
     p->mask.fill(0);
     for(size_t i=0;i<size;i++) {
-        if((command=="D5" && i==3) || (command=="D7" && i>=2) || (command=="DR" && i>=1) || ((command=="FB" || command=="DB") && i>=1)) continue;
+        if((command=="D5" && i==3) || (command=="D7" && i>=2) || (command=="DR" && i>=2) || ((command=="FB" || command=="DB") && i>=1)) continue;
         if(payload[i]!=p->confirmed[i]) p->mask[i]=command=="D6" ? payload[i]^p->confirmed[i] : 0xFF;
     }
     bool changed=false;for(auto m:p->mask) changed|=m!=0;
@@ -2200,6 +2224,8 @@ void DaikinDriver::handle_fr_response(uint8_t* data, size_t size)
     confirmCombined("DR",data);
     std::copy_n(data, 4, dr_.confirmed.begin());
     dr_.valid = true;
+    state_.horizontalPositionValid = horizontal_maximum_ && data[1] >= '0' && data[1] <= '0' + horizontal_maximum_;
+    if (state_.horizontalPositionValid) state_.horizontalPosition = data[1] - '0';
     state_.verticalPositionCodeValid = true;
     state_.verticalPositionValid = data[0] != '?';
     state_.verticalPosition = data[0] == '?' ? 6 : data[0] - '0';
@@ -3255,6 +3281,8 @@ void DaikinDriver::publishState()
     }
     if (state_.verticalPositionValid && getMaximumVerticalFixPosition() && (seed || !p.verticalPositionValid || p.verticalPosition != state_.verticalPosition))
         statusFeedback.swingVerticalFixPositionChanged(state_.verticalPosition);
+    if (state_.horizontalPositionValid && (seed || !p.horizontalPositionValid || p.horizontalPosition != state_.horizontalPosition))
+        statusFeedback.swingHorizontalFixPositionChanged(state_.horizontalPosition);
     if (state_.specialModesValid || state_.demandValid) {
         if (seed || !p.specialModesValid || state_.powerful!=p.powerful || state_.quiet!=p.quiet || state_.econo!=p.econo)
             statusFeedback.updateDeviceMode(state_.specialModesValid && state_.powerful ? AirConditionDeviceModeHiPower : state_.specialModesValid && state_.quiet ? AirConditionDeviceModeSilent1 : state_.demandValid && state_.econo ? AirConditionDeviceModeEco : AirConditionDeviceModeStandard);
@@ -3281,6 +3309,11 @@ void DaikinDriver::publishState()
             uint32_t(std::min<uint64_t>(state_.fu04_cooling_wh,UINT32_MAX)),uint32_t(std::min<uint64_t>(state_.fu04_heating_wh,UINT32_MAX)),state_.fx60_valid,state_.fx60_power_w*10U);
     state_.action = calculateCurrentAction(); state_.actionValid=state_.action!=daikin::Action::Unknown;
     statusFeedback.updateVerticalPositionStatus(state_.verticalPositionCodeValid, state_.verticalPosition, getMaximumVerticalFixPosition(), verified_vertical_positions_);
+    const auto horizontalResult = horizontal_request_error_ != AirConditionWriteResult::None ? horizontal_request_error_ :
+        horizontal_pending_ ? AirConditionWriteResult::Queued : dr_.outcome == WriteOutcome::None ? AirConditionWriteResult::None :
+        static_cast<AirConditionWriteResult>(uint8_t(dr_.outcome)+1);
+    statusFeedback.updateHorizontalPositionStatus(state_.horizontalPositionValid, state_.horizontalPosition,
+        getMaximumHorizontalFixPosition(), verified_horizontal_positions_, horizontalResult);
     AirConditionTelemetry sample;
     using T=AirConditionTelemetry;
     sample.valid=(state_.indoorHeatExchangerValid?T::Coil:0) | (state_.fanRpmValid?T::FanRpm:0) |
@@ -3430,7 +3463,7 @@ void DaikinDriver::invalidatePage(std::string_view c)
     if(c=="RL") state_.fanRpmValid=false;
     if(c=="RM") state_.vaneAngleSetpointValid=state_.vaneAngleSetpointDegreesValid=false;
     if(c=="RN") state_.vaneAngleValid=state_.vaneAngleDegreesValid=false;
-    if(c=="FR") state_.verticalPositionValid=state_.verticalPositionCodeValid=false;
+    if(c=="FR") state_.horizontalPositionValid=state_.verticalPositionValid=state_.verticalPositionCodeValid=false;
     if(c=="FB") state_.timerLampValid=false;
     if(c=="FM") state_.totalEnergyValid=false;
     if(c=="FG") state_.irCounterValid=false;
@@ -3674,8 +3707,8 @@ void DaikinDriver::checkOnlineTimeout()
         support_={};econo_observed_on_=econo_probe_pending_=false;queries_.clear();query_index_=0;query_state_=QueryState::Idle;
         d3_={};d5_={};d6_={};d7_={};dr_={};fb_={};outstanding_write_={};
         timer_disabled_bytes_={};last_timer_minutes_={};timer_dirty_=0;timer_lamp_pending_=false;timer_request_error_=lamp_request_error_=AirConditionWriteResult::None;
-        pending_={};humidity_pending_=demand_pending_=vertical_pending_=timer_pending_=false;
-        verified_vertical_positions_=0;last_write_time_=last_command_time_=0;
+        pending_={};humidity_pending_=demand_pending_=vertical_pending_=horizontal_pending_=timer_pending_=false;
+        verified_vertical_positions_=0;verified_horizontal_positions_=0;last_write_time_=last_command_time_=0;
         publishTimerStatus();
         logInfoP("S21 online status changed: Offline (no ACK/frame for %lu ms)", (unsigned long)(now - last_rx_ok_ms_));
         statusFeedback.updateOnlineStatus(false); // → KO463 = 0
