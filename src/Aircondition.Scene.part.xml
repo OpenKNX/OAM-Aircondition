@@ -87,7 +87,8 @@
                                 <!-- Szene Luftreinigung -->
                                 <Parameter Id="%AID%_UP-%TT%00%PPP+16%" Offset="7" BitOffset="0" Name="SC%SN%SceneAirPurificationDaikin" ParameterType="%AID%_PT-AIRSceneAirPurificationDaikin" Text="Luftreinigung/Streamer" Value="255" />
 
-                                <!-- 7 Bytes free  -->
+                                <Parameter Id="%AID%_UP-%TT%00%PPP+18%" Offset="8" BitOffset="0" Name="SC%SN%SceneHorizontalPositionDaikin" ParameterType="%AID%_PT-AIRSceneHorizontalPositionDaikin" Text="Horizontale Lamellenstellung (Modellprofil erforderlich)" Value="255" />
+                                <!-- 6 Bytes free -->
                             </Union>
 
                             <!-- Mitsubishi-->
@@ -138,6 +139,8 @@
                             <ParameterRef Id="%AID%_UP-%TT%00%PPP+16%_R-%TT%00%PPP+16%01" RefId="%AID%_UP-%TT%00%PPP+16%" />
 
 
+
+                            <ParameterRef Id="%AID%_UP-%TT%00%PPP+18%_R-%TT%00%PPP+18%01" RefId="%AID%_UP-%TT%00%PPP+18%" />
 
                             <!-- *** Toshiba *** -->
                             <!-- Szene Function Operation Mode -->
@@ -196,6 +199,7 @@
                                         <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                                             <when test="1"><!-- Daikin -->
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" IndentLevel="2" HelpContext="%DOC%" />
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+18%_R-%TT%00%PPP+18%01" IndentLevel="2" />
                                                 <!-- Betriebsmodus -->
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+11%_R-%TT%00%PPP+11%01" IndentLevel="2" HelpContext="%DOC%" />
                                                 <!-- Solltemperatur -->

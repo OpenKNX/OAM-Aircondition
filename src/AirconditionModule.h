@@ -80,6 +80,7 @@ class AirconditionModule : public OpenKNX::Module, AirConditionDriverStatusFeedb
     void updateWifiLed(bool on) override;
     void updateHumidity(uint8_t humidity) override;
     void updateHumidityMode(uint8_t step) override;
+    void updateHorizontalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint16_t verifiedMask, AirConditionWriteResult result) override;
     void updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask) override;
     void updateAdditionalTelemetry(const AirConditionTelemetry& sample) override;
     void updateEnergyTelemetry(const AirConditionEnergyTelemetry& sample) override;

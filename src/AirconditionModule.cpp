@@ -56,6 +56,9 @@ void AirconditionModule::setup()
         if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinTimers &&
             !_airConditionDriver->configureTimerGranularity(ParamAIR_DaikinTimerStep, ParamAIR_DaikinTimerMaximum))
             logErrorP("Invalid Daikin timer profile: step and maximum must be verified multiples of 10 minutes");
+        if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin &&
+            !_airConditionDriver->configureHorizontalPositions(ParamAIR_DaikinHorizontalMaximum))
+            logErrorP("Invalid Daikin horizontal model profile");
         if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinDemand &&
             !_airConditionDriver->configureDemandLimits(ParamAIR_DaikinDemandMinimum, ParamAIR_DaikinDemandStep))
             logErrorP("Invalid Daikin demand profile: minimum and step must be verified for this model");
@@ -639,6 +642,9 @@ void AirconditionModule::processInputKo(GroupObject& ko)
                 if (ParamAIR_DeviceType == PT_AIRDeviceType::Daikin && ParamAIR_DaikinIndependentLed)
                     _airConditionDriver->setUnitLed(static_cast<AirConditionUnitLed>(uint8_t(ko.value(DPT_Value_1_Ucount))));
                 break;
+            case AIR_KoHorizontalPositionCode:
+                _airConditionDriver->setFixedHorizontalPosition(uint8_t(ko.value(DPT_Value_1_Ucount)));
+                break;
             case AIR_KoVerticalPositionCode:
                 _airConditionDriver->setFixedVerticalPosition(uint8_t(ko.value(DPT_Value_1_Ucount)));
                 break;
@@ -1024,6 +1030,7 @@ void AirconditionModule::showHelp()
     openknx.console.printHelpLine("power on", "Switch the air condition on");
     openknx.console.printHelpLine("power off", "Switch the air condition off");
     openknx.console.printHelpLine("temp <value>", "Set the target temperature in Celsius (e.g., temp 22)");
+    openknx.console.printHelpLine("s21 horizontal <0-8>", "Horizontal index (0=hold); requires a verified model profile");
     openknx.console.printHelpLine("fan <value>", "Set the fan speed in percent (0-100, e.g., fan 50)");
     openknx.console.printHelpLine("fan+", "Increase the fan speed");
     openknx.console.printHelpLine("fan-", "Decrease the fan speed");
@@ -1137,6 +1144,15 @@ void AirconditionModule::updateDaikinExtensionTelemetry(bool fu04Valid,
     // Full-resolution KNX objects use updateEnergyTelemetry(), with explicit units.
     logDebugP("Daikin extension telemetry updated (FU04 valid=%d, FX60 valid=%d)",
               fu04Valid ? 1 : 0, fx60Valid ? 1 : 0);
+}
+
+void AirconditionModule::updateHorizontalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint16_t verifiedMask, AirConditionWriteResult result)
+{
+    KoAIR_HorizontalPositionValid.valueCompare(valid, DPT_Bool);
+    KoAIR_HorizontalPositionMaximum.valueCompare(maximum, DPT_Value_1_Ucount);
+    KoAIR_HorizontalPositionVerified.valueCompare(verifiedMask, DPT_Value_2_Ucount);
+    KoAIR_LouvreWriteResult.valueCompare(uint8_t(result), DPT_Value_1_Ucount);
+    if (valid) KoAIR_HorizontalPositionCodeState.valueCompare(position, DPT_Value_1_Ucount);
 }
 
 void AirconditionModule::updateVerticalPositionStatus(bool valid, uint8_t position, uint8_t maximum, uint8_t verifiedMask)

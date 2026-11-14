@@ -19,11 +19,11 @@
 #define MAIN_FirmwareName "Klimaanlagen KNX Adapter"
 #define MAIN_OpenKnxId 0xAE
 #define MAIN_ApplicationNumber 54
-#define MAIN_ApplicationVersion 13
+#define MAIN_ApplicationVersion 14
 #define MAIN_FirmwareRevision 0
 #define MAIN_ApplicationEncoding iso-8859-15
 #define MAIN_ParameterSize 9298
-#define MAIN_MaxKoNumber 528
+#define MAIN_MaxKoNumber 534
 #define MAIN_OrderNumber "MGKnxAIR"
 #define BASE_ModuleVersion 25
 #define NET_ModuleVersion 8
@@ -856,6 +856,7 @@
 #define     AIR_DaikinDemandShift 7
 #define AIR_DaikinDemandMinimum                 418      // uint8_t
 #define AIR_DaikinDemandStep                    419      // uint8_t
+#define AIR_DaikinHorizontalMaximum             420      // uint8_t
 #define AIR_SCAActive                           425      // 1 Bit, Bit 7
 #define     AIR_SCAActiveMask 0x80
 #define     AIR_SCAActiveShift 7
@@ -878,6 +879,7 @@
 #define AIR_SCAScenePositionDaikin              434      // 8 Bits, Bit 7-0
 #define AIR_SCASceneDeviceModeDaikin            436      // 8 Bits, Bit 7-0
 #define AIR_SCASceneAirPurificationDaikin       437      // 8 Bits, Bit 7-0
+#define AIR_SCASceneHorizontalPositionDaikin    438      // 8 Bits, Bit 7-0
 #define AIR_SCAOperationModeMitsubishi          430      // 8 Bits, Bit 7-0
 #define AIR_SCASceneTemperatureMitsubishi       431      // 8 Bits, Bit 7-0
 #define AIR_SCASceneFanMitsubishi               432      // 8 Bits, Bit 7-0
@@ -905,6 +907,7 @@
 #define AIR_SCBScenePositionDaikin              454      // 8 Bits, Bit 7-0
 #define AIR_SCBSceneDeviceModeDaikin            456      // 8 Bits, Bit 7-0
 #define AIR_SCBSceneAirPurificationDaikin       457      // 8 Bits, Bit 7-0
+#define AIR_SCBSceneHorizontalPositionDaikin    458      // 8 Bits, Bit 7-0
 #define AIR_SCBOperationModeMitsubishi          450      // 8 Bits, Bit 7-0
 #define AIR_SCBSceneTemperatureMitsubishi       451      // 8 Bits, Bit 7-0
 #define AIR_SCBSceneFanMitsubishi               452      // 8 Bits, Bit 7-0
@@ -932,6 +935,7 @@
 #define AIR_SCCScenePositionDaikin              474      // 8 Bits, Bit 7-0
 #define AIR_SCCSceneDeviceModeDaikin            476      // 8 Bits, Bit 7-0
 #define AIR_SCCSceneAirPurificationDaikin       477      // 8 Bits, Bit 7-0
+#define AIR_SCCSceneHorizontalPositionDaikin    478      // 8 Bits, Bit 7-0
 #define AIR_SCCOperationModeMitsubishi          470      // 8 Bits, Bit 7-0
 #define AIR_SCCSceneTemperatureMitsubishi       471      // 8 Bits, Bit 7-0
 #define AIR_SCCSceneFanMitsubishi               472      // 8 Bits, Bit 7-0
@@ -959,6 +963,7 @@
 #define AIR_SCDScenePositionDaikin              494      // 8 Bits, Bit 7-0
 #define AIR_SCDSceneDeviceModeDaikin            496      // 8 Bits, Bit 7-0
 #define AIR_SCDSceneAirPurificationDaikin       497      // 8 Bits, Bit 7-0
+#define AIR_SCDSceneHorizontalPositionDaikin    498      // 8 Bits, Bit 7-0
 #define AIR_SCDOperationModeMitsubishi          490      // 8 Bits, Bit 7-0
 #define AIR_SCDSceneTemperatureMitsubishi       491      // 8 Bits, Bit 7-0
 #define AIR_SCDSceneFanMitsubishi               492      // 8 Bits, Bit 7-0
@@ -986,6 +991,7 @@
 #define AIR_SCEScenePositionDaikin              514      // 8 Bits, Bit 7-0
 #define AIR_SCESceneDeviceModeDaikin            516      // 8 Bits, Bit 7-0
 #define AIR_SCESceneAirPurificationDaikin       517      // 8 Bits, Bit 7-0
+#define AIR_SCESceneHorizontalPositionDaikin    518      // 8 Bits, Bit 7-0
 #define AIR_SCEOperationModeMitsubishi          510      // 8 Bits, Bit 7-0
 #define AIR_SCESceneTemperatureMitsubishi       511      // 8 Bits, Bit 7-0
 #define AIR_SCESceneFanMitsubishi               512      // 8 Bits, Bit 7-0
@@ -1013,6 +1019,7 @@
 #define AIR_SCFScenePositionDaikin              534      // 8 Bits, Bit 7-0
 #define AIR_SCFSceneDeviceModeDaikin            536      // 8 Bits, Bit 7-0
 #define AIR_SCFSceneAirPurificationDaikin       537      // 8 Bits, Bit 7-0
+#define AIR_SCFSceneHorizontalPositionDaikin    538      // 8 Bits, Bit 7-0
 #define AIR_SCFOperationModeMitsubishi          530      // 8 Bits, Bit 7-0
 #define AIR_SCFSceneTemperatureMitsubishi       531      // 8 Bits, Bit 7-0
 #define AIR_SCFSceneFanMitsubishi               532      // 8 Bits, Bit 7-0
@@ -1040,6 +1047,7 @@
 #define AIR_SCGScenePositionDaikin              554      // 8 Bits, Bit 7-0
 #define AIR_SCGSceneDeviceModeDaikin            556      // 8 Bits, Bit 7-0
 #define AIR_SCGSceneAirPurificationDaikin       557      // 8 Bits, Bit 7-0
+#define AIR_SCGSceneHorizontalPositionDaikin    558      // 8 Bits, Bit 7-0
 #define AIR_SCGOperationModeMitsubishi          550      // 8 Bits, Bit 7-0
 #define AIR_SCGSceneTemperatureMitsubishi       551      // 8 Bits, Bit 7-0
 #define AIR_SCGSceneFanMitsubishi               552      // 8 Bits, Bit 7-0
@@ -1067,6 +1075,7 @@
 #define AIR_SCHScenePositionDaikin              574      // 8 Bits, Bit 7-0
 #define AIR_SCHSceneDeviceModeDaikin            576      // 8 Bits, Bit 7-0
 #define AIR_SCHSceneAirPurificationDaikin       577      // 8 Bits, Bit 7-0
+#define AIR_SCHSceneHorizontalPositionDaikin    578      // 8 Bits, Bit 7-0
 #define AIR_SCHOperationModeMitsubishi          570      // 8 Bits, Bit 7-0
 #define AIR_SCHSceneTemperatureMitsubishi       571      // 8 Bits, Bit 7-0
 #define AIR_SCHSceneFanMitsubishi               572      // 8 Bits, Bit 7-0
@@ -1094,6 +1103,7 @@
 #define AIR_SCIScenePositionDaikin              594      // 8 Bits, Bit 7-0
 #define AIR_SCISceneDeviceModeDaikin            596      // 8 Bits, Bit 7-0
 #define AIR_SCISceneAirPurificationDaikin       597      // 8 Bits, Bit 7-0
+#define AIR_SCISceneHorizontalPositionDaikin    598      // 8 Bits, Bit 7-0
 #define AIR_SCIOperationModeMitsubishi          590      // 8 Bits, Bit 7-0
 #define AIR_SCISceneTemperatureMitsubishi       591      // 8 Bits, Bit 7-0
 #define AIR_SCISceneFanMitsubishi               592      // 8 Bits, Bit 7-0
@@ -1121,6 +1131,7 @@
 #define AIR_SCJScenePositionDaikin              614      // 8 Bits, Bit 7-0
 #define AIR_SCJSceneDeviceModeDaikin            616      // 8 Bits, Bit 7-0
 #define AIR_SCJSceneAirPurificationDaikin       617      // 8 Bits, Bit 7-0
+#define AIR_SCJSceneHorizontalPositionDaikin    618      // 8 Bits, Bit 7-0
 #define AIR_SCJOperationModeMitsubishi          610      // 8 Bits, Bit 7-0
 #define AIR_SCJSceneTemperatureMitsubishi       611      // 8 Bits, Bit 7-0
 #define AIR_SCJSceneFanMitsubishi               612      // 8 Bits, Bit 7-0
@@ -1171,6 +1182,8 @@
 #define ParamAIR_DaikinDemandMinimum                 (knx.paramByte(AIR_DaikinDemandMinimum))
 // Geprüfte Demand-Schrittweite (% von 100 abwärts)
 #define ParamAIR_DaikinDemandStep                    (knx.paramByte(AIR_DaikinDemandStep))
+// Modellgeprüfte horizontale Positionen (0=deaktiviert, max. 8)
+#define ParamAIR_DaikinHorizontalMaximum             (knx.paramByte(AIR_DaikinHorizontalMaximum))
 // Szene A
 #define ParamAIR_SCAActive                           ((bool)(knx.paramByte(AIR_SCAActive) & AIR_SCAActiveMask))
 // Szenennummer
@@ -1207,6 +1220,8 @@
 #define ParamAIR_SCASceneDeviceModeDaikin            (knx.paramByte(AIR_SCASceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCASceneAirPurificationDaikin       (knx.paramByte(AIR_SCASceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCASceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCASceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCAOperationModeMitsubishi          (knx.paramByte(AIR_SCAOperationModeMitsubishi))
 // Solltemperatur
@@ -1253,6 +1268,8 @@
 #define ParamAIR_SCBSceneDeviceModeDaikin            (knx.paramByte(AIR_SCBSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCBSceneAirPurificationDaikin       (knx.paramByte(AIR_SCBSceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCBSceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCBSceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCBOperationModeMitsubishi          (knx.paramByte(AIR_SCBOperationModeMitsubishi))
 // Solltemperatur
@@ -1299,6 +1316,8 @@
 #define ParamAIR_SCCSceneDeviceModeDaikin            (knx.paramByte(AIR_SCCSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCCSceneAirPurificationDaikin       (knx.paramByte(AIR_SCCSceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCCSceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCCSceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCCOperationModeMitsubishi          (knx.paramByte(AIR_SCCOperationModeMitsubishi))
 // Solltemperatur
@@ -1345,6 +1364,8 @@
 #define ParamAIR_SCDSceneDeviceModeDaikin            (knx.paramByte(AIR_SCDSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCDSceneAirPurificationDaikin       (knx.paramByte(AIR_SCDSceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCDSceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCDSceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCDOperationModeMitsubishi          (knx.paramByte(AIR_SCDOperationModeMitsubishi))
 // Solltemperatur
@@ -1391,6 +1412,8 @@
 #define ParamAIR_SCESceneDeviceModeDaikin            (knx.paramByte(AIR_SCESceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCESceneAirPurificationDaikin       (knx.paramByte(AIR_SCESceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCESceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCESceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCEOperationModeMitsubishi          (knx.paramByte(AIR_SCEOperationModeMitsubishi))
 // Solltemperatur
@@ -1437,6 +1460,8 @@
 #define ParamAIR_SCFSceneDeviceModeDaikin            (knx.paramByte(AIR_SCFSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCFSceneAirPurificationDaikin       (knx.paramByte(AIR_SCFSceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCFSceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCFSceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCFOperationModeMitsubishi          (knx.paramByte(AIR_SCFOperationModeMitsubishi))
 // Solltemperatur
@@ -1483,6 +1508,8 @@
 #define ParamAIR_SCGSceneDeviceModeDaikin            (knx.paramByte(AIR_SCGSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCGSceneAirPurificationDaikin       (knx.paramByte(AIR_SCGSceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCGSceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCGSceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCGOperationModeMitsubishi          (knx.paramByte(AIR_SCGOperationModeMitsubishi))
 // Solltemperatur
@@ -1529,6 +1556,8 @@
 #define ParamAIR_SCHSceneDeviceModeDaikin            (knx.paramByte(AIR_SCHSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCHSceneAirPurificationDaikin       (knx.paramByte(AIR_SCHSceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCHSceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCHSceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCHOperationModeMitsubishi          (knx.paramByte(AIR_SCHOperationModeMitsubishi))
 // Solltemperatur
@@ -1575,6 +1604,8 @@
 #define ParamAIR_SCISceneDeviceModeDaikin            (knx.paramByte(AIR_SCISceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCISceneAirPurificationDaikin       (knx.paramByte(AIR_SCISceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCISceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCISceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCIOperationModeMitsubishi          (knx.paramByte(AIR_SCIOperationModeMitsubishi))
 // Solltemperatur
@@ -1621,6 +1652,8 @@
 #define ParamAIR_SCJSceneDeviceModeDaikin            (knx.paramByte(AIR_SCJSceneDeviceModeDaikin))
 // Luftreinigung/Streamer
 #define ParamAIR_SCJSceneAirPurificationDaikin       (knx.paramByte(AIR_SCJSceneAirPurificationDaikin))
+// Horizontale Lamellenstellung (Modellprofil erforderlich)
+#define ParamAIR_SCJSceneHorizontalPositionDaikin    (knx.paramByte(AIR_SCJSceneHorizontalPositionDaikin))
 // Betriebsmodus
 #define ParamAIR_SCJOperationModeMitsubishi          (knx.paramByte(AIR_SCJOperationModeMitsubishi))
 // Solltemperatur
@@ -1752,6 +1785,12 @@
 #define AIR_KoTimerLampWriteResult 526
 #define AIR_KoTimerConfiguredStep 527
 #define AIR_KoTimerConfiguredMaximum 528
+#define AIR_KoHorizontalPositionCode 529
+#define AIR_KoHorizontalPositionCodeState 530
+#define AIR_KoHorizontalPositionValid 531
+#define AIR_KoHorizontalPositionMaximum 532
+#define AIR_KoHorizontalPositionVerified 533
+#define AIR_KoLouvreWriteResult 534
 
 // Ein
 #define KoAIR_Power                               (knx.getGroupObject(AIR_KoPower))
@@ -1993,6 +2032,18 @@
 #define KoAIR_TimerConfiguredStep                 (knx.getGroupObject(AIR_KoTimerConfiguredStep))
 // Timer konfigurierte Obergrenze (Minuten)
 #define KoAIR_TimerConfiguredMaximum              (knx.getGroupObject(AIR_KoTimerConfiguredMaximum))
+// Horizontale Lamellenposition (0=Halten)
+#define KoAIR_HorizontalPositionCode              (knx.getGroupObject(AIR_KoHorizontalPositionCode))
+// Horizontale Lamellenposition Status
+#define KoAIR_HorizontalPositionCodeState         (knx.getGroupObject(AIR_KoHorizontalPositionCodeState))
+// Horizontale Lamellenposition gültig
+#define KoAIR_HorizontalPositionValid             (knx.getGroupObject(AIR_KoHorizontalPositionValid))
+// Horizontale Positionen konfiguriertes Maximum
+#define KoAIR_HorizontalPositionMaximum           (knx.getGroupObject(AIR_KoHorizontalPositionMaximum))
+// Horizontale Positionen schreibgeprüft (Bitmaske)
+#define KoAIR_HorizontalPositionVerified          (knx.getGroupObject(AIR_KoHorizontalPositionVerified))
+// Lamellen gemeinsamer Schreibstatus
+#define KoAIR_LouvreWriteResult                   (knx.getGroupObject(AIR_KoLouvreWriteResult))
 
 #define LOG_VisibleChannels                     625      // uint8_t
 #define LOG_VacationKo                          626      // 1 Bit, Bit 7

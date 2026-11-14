@@ -484,7 +484,7 @@
               <ParameterType Id="%AID%_PT-AIRSceneVerticalPositionDaikin" Name="AIRSceneVerticalPositionDaikin">
                 <TypeRestriction Base="Value" SizeInBit="8">
                   <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
-                  <Enumeration Text="Position 0" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Halten" Value="0" Id="%ENID%" />
                   <Enumeration Text="Position 1" Value="1" Id="%ENID%" />
                   <Enumeration Text="Position 2" Value="2" Id="%ENID%" />
                   <Enumeration Text="Position 3" Value="3" Id="%ENID%" />
@@ -500,6 +500,23 @@
               </ParameterType>
               <ParameterType Id="%AID%_PT-AIRTimerMinutes" Name="AIRTimerMinutes">
                 <TypeNumber SizeInBit="16" Type="unsignedInt" minInclusive="10" maxInclusive="1440" />
+              </ParameterType>
+              <ParameterType Id="%AID%_PT-AIRHorizontalMaximum" Name="AIRHorizontalMaximum">
+                <TypeNumber SizeInBit="8" Type="unsignedInt" minInclusive="0" maxInclusive="8" />
+              </ParameterType>
+              <ParameterType Id="%AID%_PT-AIRSceneHorizontalPositionDaikin" Name="AIRSceneHorizontalPositionDaikin">
+                <TypeRestriction Base="Value" SizeInBit="8">
+                  <Enumeration Text="Keine Änderung" Value="255" Id="%ENID%" />
+                  <Enumeration Text="Halten" Value="0" Id="%ENID%" />
+                  <Enumeration Text="Position 1" Value="1" Id="%ENID%" />
+                  <Enumeration Text="Position 2" Value="2" Id="%ENID%" />
+                  <Enumeration Text="Position 3" Value="3" Id="%ENID%" />
+                  <Enumeration Text="Position 4" Value="4" Id="%ENID%" />
+                  <Enumeration Text="Position 5" Value="5" Id="%ENID%" />
+                  <Enumeration Text="Position 6" Value="6" Id="%ENID%" />
+                  <Enumeration Text="Position 7" Value="7" Id="%ENID%" />
+                  <Enumeration Text="Position 8" Value="8" Id="%ENID%" />
+                </TypeRestriction>
               </ParameterType>
             </ParameterTypes>
             <Parameters>
@@ -571,6 +588,11 @@
                 <Parameter Id="%AID%_UP-%TT%00018" Offset="1" BitOffset="0" Name="DaikinDemandMinimum" ParameterType="%AID%_PT-AIRDemandMinimum" Text="Geprüftes Demand-Minimum (%)" Value="100" />
                 <Parameter Id="%AID%_UP-%TT%00019" Offset="2" BitOffset="0" Name="DaikinDemandStep" ParameterType="%AID%_PT-AIRDemandStep" Text="Geprüfte Demand-Schrittweite (% von 100 abwärts)" Value="1" />
               </Union>
+              <!-- Reserved byte 15: opt-in model-verified horizontal range; zero disables. -->
+              <Union SizeInBit="8">
+                <Memory CodeSegment="%MID%" Offset="15" BitOffset="0" />
+                <Parameter Id="%AID%_UP-%TT%00020" Offset="0" BitOffset="0" Name="DaikinHorizontalMaximum" ParameterType="%AID%_PT-AIRHorizontalMaximum" Text="Modellgeprüfte horizontale Positionen (0=deaktiviert, max. 8)" Value="0" />
+              </Union>
               <op:usePart name="Scene" xpath="//Parameters/*" />
             </Parameters>
             <ParameterRefs>
@@ -618,6 +640,7 @@
               <ParameterRef Id="%AID%_UP-%TT%00017_R-%TT%0001701" RefId="%AID%_UP-%TT%00017" />
               <ParameterRef Id="%AID%_UP-%TT%00018_R-%TT%0001801" RefId="%AID%_UP-%TT%00018" />
               <ParameterRef Id="%AID%_UP-%TT%00019_R-%TT%0001901" RefId="%AID%_UP-%TT%00019" />
+              <ParameterRef Id="%AID%_UP-%TT%00020_R-%TT%0002001" RefId="%AID%_UP-%TT%00020" />
               <op:usePart name="Scene" xpath="//ParameterRefs/*" />
 
             </ParameterRefs>
@@ -808,6 +831,12 @@
               <ComObject Id="%AID%_O-%TT%00126" Number="126" Name="TimerLampWriteResult" Text="Timerleuchte Schreibstatus" FunctionText="AC: Timerleuchte Schreibstatus" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <ComObject Id="%AID%_O-%TT%00127" Number="127" Name="TimerConfiguredStep" Text="Timer konfigurierte Schrittweite (Minuten)" FunctionText="AC: Timer konfigurierte Schrittweite (Minuten)" ObjectSize="2 Bytes" DatapointType="DPST-7-6" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
               <ComObject Id="%AID%_O-%TT%00128" Number="128" Name="TimerConfiguredMaximum" Text="Timer konfigurierte Obergrenze (Minuten)" FunctionText="AC: Timer konfigurierte Obergrenze (Minuten)" ObjectSize="2 Bytes" DatapointType="DPST-7-6" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00129" Number="129" Name="HorizontalPositionCode" Text="Horizontale Lamellenposition (0=Halten)" FunctionText="AC: Horizontale Lamellenposition (0=Halten)" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Enabled" UpdateFlag="Disabled" ReadFlag="Disabled" TransmitFlag="Disabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00130" Number="130" Name="HorizontalPositionCodeState" Text="Horizontale Lamellenposition Status" FunctionText="AC: Horizontale Lamellenposition Status" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00131" Number="131" Name="HorizontalPositionValid" Text="Horizontale Lamellenposition gültig" FunctionText="AC: Horizontale Lamellenposition gültig" ObjectSize="1 Bit" DatapointType="DPST-1-2" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00132" Number="132" Name="HorizontalPositionMaximum" Text="Horizontale Positionen konfiguriertes Maximum" FunctionText="AC: Horizontale Positionen konfiguriertes Maximum" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00133" Number="133" Name="HorizontalPositionVerified" Text="Horizontale Positionen schreibgeprüft (Bitmaske)" FunctionText="AC: Horizontale Positionen schreibgeprüft (Bitmaske)" ObjectSize="2 Bytes" DatapointType="DPST-7-1" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
+              <ComObject Id="%AID%_O-%TT%00134" Number="134" Name="LouvreWriteResult" Text="Lamellen gemeinsamer Schreibstatus" FunctionText="AC: Lamellen gemeinsamer Schreibstatus" ObjectSize="1 Byte" DatapointType="DPST-5-10" WriteFlag="Disabled" UpdateFlag="Disabled" ReadFlag="Enabled" TransmitFlag="Enabled" CommunicationFlag="Enabled" ReadOnInitFlag="Disabled" />
             </ComObjectTable>
             <ComObjectRefs>
               <!-- Power -->
@@ -991,6 +1020,12 @@
               <ComObjectRef Id="%AID%_O-%TT%00126_R-%TT%0012601" RefId="%AID%_O-%TT%00126" />
               <ComObjectRef Id="%AID%_O-%TT%00127_R-%TT%0012701" RefId="%AID%_O-%TT%00127" />
               <ComObjectRef Id="%AID%_O-%TT%00128_R-%TT%0012801" RefId="%AID%_O-%TT%00128" />
+              <ComObjectRef Id="%AID%_O-%TT%00129_R-%TT%0012901" RefId="%AID%_O-%TT%00129" />
+              <ComObjectRef Id="%AID%_O-%TT%00130_R-%TT%0013001" RefId="%AID%_O-%TT%00130" />
+              <ComObjectRef Id="%AID%_O-%TT%00131_R-%TT%0013101" RefId="%AID%_O-%TT%00131" />
+              <ComObjectRef Id="%AID%_O-%TT%00132_R-%TT%0013201" RefId="%AID%_O-%TT%00132" />
+              <ComObjectRef Id="%AID%_O-%TT%00133_R-%TT%0013301" RefId="%AID%_O-%TT%00133" />
+              <ComObjectRef Id="%AID%_O-%TT%00134_R-%TT%0013401" RefId="%AID%_O-%TT%00134" />
             </ComObjectRefs>
           </Static>
           <Dynamic>
@@ -1015,6 +1050,7 @@
                   <when test="1">
                     <!-- Daikin -->
                     <ParameterRefRef RefId="%AID%_UP-%TT%00013_R-%TT%0001301" IndentLevel="1" />
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00020_R-%TT%0002001" IndentLevel="1" />
                     <ParameterRefRef RefId="%AID%_UP-%TT%00017_R-%TT%0001701" IndentLevel="1" HelpContext="AIR-Daikin-Demandprofil" />
                     <choose ParamRefId="%AID%_UP-%TT%00017_R-%TT%0001701">
                       <when test="1">
@@ -1416,6 +1452,12 @@
                           <ComObjectRefRef RefId="%AID%_O-%TT%00128_R-%TT%0012801" />
                             </when>
                           </choose>
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00129_R-%TT%0012901" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00130_R-%TT%0013001" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00131_R-%TT%0013101" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00132_R-%TT%0013201" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00133_R-%TT%0013301" />
+                          <ComObjectRefRef RefId="%AID%_O-%TT%00134_R-%TT%0013401" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00108_R-%TT%0010801" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00109_R-%TT%0010901" />
                           <ComObjectRefRef RefId="%AID%_O-%TT%00110_R-%TT%0011001" />

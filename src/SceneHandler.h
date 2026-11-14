@@ -10,6 +10,7 @@ struct SceneParameters
     uint8_t fan = 255;
     uint8_t swing = 255;
     uint8_t position = 255;
+    uint8_t horizontalPosition = 255;
     uint8_t powerLimit = 255;
     uint8_t deviceMode = 255;
     uint8_t airPurification = 255;

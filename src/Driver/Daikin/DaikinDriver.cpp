@@ -1117,8 +1117,8 @@ void DaikinDriver::showModelProfiles() const
 {
     logInfoP("--- S21 model profiles ---");
     logInfoP("Model: %s; fallback code: %s; indoor firmware: %s",
-    logInfoP("Horizontal indexed profile: maximum=%u (0=disabled); 0 holds the current angle", horizontal_maximum_);
         model_name_.empty()?"Unknown":model_name_.c_str(), identification_.modelCode.c_str(), firmware_version_.c_str());
+    logInfoP("Horizontal indexed profile: maximum=%u (0=disabled); 0 holds the current angle", horizontal_maximum_);
     logInfoP("Demand: FK advertised=%s, configured=%s, minimum=%u%%, step=%u%%",
         support_.demand?"Yes":"No/not discovered", demand_configured_?"Yes":"No", demand_minimum_, demand_step_);
     logInfoP("Demand readback: %s; demand field write verified=%s",
