@@ -1,8 +1,8 @@
-### Lamellenbewegung
+﻿### Lamellenbewegung
 
 Steuert die Bewegung der Lamellen.
 
-Daikin: Horizontal „Aus“ hält die aktuelle Stellung. Ein verifizierter S21-Befehl für nummerierte horizontale Zielpositionen ist bisher nicht bekannt.
+Daikin unterstützt getrennte vertikale und horizontale Swing-Achsen. „Aus“ beendet Swing auf der jeweiligen Achse. Feste Positionscodes sind separate Einstellungen; horizontale Codes benötigen das konfigurierte Modellprofil. Für reproduzierbare Positionen Swing auf der betreffenden Achse vorher ausschalten.
 
 Optionen für Toshiba:
 
@@ -11,4 +11,3 @@ Optionen für Toshiba:
 - Vertikal
 - Horizontal
 - Vertikal und Horizontal
-

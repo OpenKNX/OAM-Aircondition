@@ -1,7 +1,6 @@
-### Vertikale Lamellenstellung
+﻿### Vertikale Lamellenstellung
 
-Diese Einstellung ist nur verfügbar, wenn bei Lamellenbewegung "Keine Änderung" oder "Aus" gewählt wurde.
-Gibt die Position der Lamellen an. 
+Gibt die vertikale Position der Lamellen an. Bei Toshiba/Mitsubishi wird diese Szenenoption nur bei Lamellenbewegung „Keine Änderung“ oder „Aus“ angeboten.
 
 Optionen für Toshiba:
 
@@ -12,5 +11,19 @@ Optionen für Toshiba:
 - Unten
 - Ganz Unten
 
-Daikin: DR/FR unterstützt vertikale Codes 0–5 sowie Automatik (Code 6). Andere Felder des Lamellenregisters bleiben bei vertikalen Änderungen erhalten.
+Optionen für Mitsubishi:
 
+- Keine Änderung
+- Ganz Oben
+- Oben
+- Mitte
+- Unten
+- Ganz Unten
+
+Daikin-Szenen bieten:
+
+- Keine Änderung
+- Halten (Code 0)
+- Position 1–5
+
+Code 0 hält die aktuelle Stellung. Nach Erkennung des FR-Status sind die Indizes adressierbar; daraus folgt keine Anzahl verschiedener physischer Winkel. Über das separate Code-Gruppenobjekt ist zusätzlich Code 6 für den S21-Automatikmarker `?` verfügbar, nicht über die Szene. Änderungen erhalten die horizontale Position und die übrigen Registerbytes. Für feste Positionen Swing auf dieser Achse vorher ausschalten.

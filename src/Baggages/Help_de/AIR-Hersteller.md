@@ -4,4 +4,4 @@ Auswahl des Herstellers der Klimaanlage:
 
 - Daikin
 - Toshiba
-
+- Mitsubishi

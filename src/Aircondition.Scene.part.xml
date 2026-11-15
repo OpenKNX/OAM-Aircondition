@@ -198,8 +198,8 @@
                                         <!-- Device Type -->
                                         <choose ParamRefId="%AID%_UP-%TT%00000_R-%TT%0000001">
                                             <when test="1"><!-- Daikin -->
-                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" IndentLevel="2" HelpContext="%DOC%" />
-                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+18%_R-%TT%00%PPP+18%01" IndentLevel="2" />
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+17%_R-%TT%00%PPP+17%01" IndentLevel="2" HelpContext="AIR-Vertikale-Lamellenstellung" />
+                                                <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+18%_R-%TT%00%PPP+18%01" IndentLevel="2" HelpContext="AIR-Horizontale-Lamellenstellung" />
                                                 <!-- Betriebsmodus -->
                                                 <ParameterRefRef RefId="%AID%_UP-%TT%00%PPP+11%_R-%TT%00%PPP+11%01" IndentLevel="2" HelpContext="%DOC%" />
                                                 <!-- Solltemperatur -->

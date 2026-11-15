@@ -6,6 +6,8 @@ Dieser Abschnitt dient rein für die Dokumentation einer künftigen Entwicklung.
 <!-- DOC -->
 ### Eingang für externe Raumtemperatur
 
+Dieser Abschnitt beschreibt einen geplanten Regelungsansatz, keine aktuell implementierte automatische Sollwertkorrektur. Bei Daikin überträgt der Treiber keine externe Raumtemperatur an das Innengerät. Die folgenden Beispiele erläutern den künftigen Ansatz.
+
 Stellt ein Gruppenobjekt für einen externen Raumtemperatursensor bereit.
 Bei Klimageräten, die dies nicht unterstützen, erfolgt die Auswertung in der Steuerung durch Vorgabe einer angepassten Solltemperatur an das Klimagerät.
 

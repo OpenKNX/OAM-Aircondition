@@ -1049,20 +1049,20 @@
                   </when>
                   <when test="1">
                     <!-- Daikin -->
-                    <ParameterRefRef RefId="%AID%_UP-%TT%00013_R-%TT%0001301" IndentLevel="1" />
-                    <ParameterRefRef RefId="%AID%_UP-%TT%00020_R-%TT%0002001" IndentLevel="1" />
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00013_R-%TT%0001301" IndentLevel="1" HelpContext="AIR-Daikin-Geraete-LED" />
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00020_R-%TT%0002001" IndentLevel="1" HelpContext="AIR-Daikin-Horizontalprofil" />
                     <ParameterRefRef RefId="%AID%_UP-%TT%00017_R-%TT%0001701" IndentLevel="1" HelpContext="AIR-Daikin-Demandprofil" />
                     <choose ParamRefId="%AID%_UP-%TT%00017_R-%TT%0001701">
                       <when test="1">
-                        <ParameterRefRef RefId="%AID%_UP-%TT%00018_R-%TT%0001801" IndentLevel="2" />
-                        <ParameterRefRef RefId="%AID%_UP-%TT%00019_R-%TT%0001901" IndentLevel="2" />
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00018_R-%TT%0001801" IndentLevel="2" HelpContext="AIR-Daikin-Demand-Minimum" />
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00019_R-%TT%0001901" IndentLevel="2" HelpContext="AIR-Daikin-Demand-Schrittweite" />
                       </when>
                     </choose>
-                    <ParameterRefRef RefId="%AID%_UP-%TT%00014_R-%TT%0001401" IndentLevel="1" />
+                    <ParameterRefRef RefId="%AID%_UP-%TT%00014_R-%TT%0001401" IndentLevel="1" HelpContext="AIR-Daikin-Timer" />
                     <choose ParamRefId="%AID%_UP-%TT%00014_R-%TT%0001401">
                       <when test="1">
-                        <ParameterRefRef RefId="%AID%_UP-%TT%00015_R-%TT%0001501" IndentLevel="2" />
-                        <ParameterRefRef RefId="%AID%_UP-%TT%00016_R-%TT%0001601" IndentLevel="2" />
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00015_R-%TT%0001501" IndentLevel="2" HelpContext="AIR-Daikin-Timer-Schrittweite" />
+                        <ParameterRefRef RefId="%AID%_UP-%TT%00016_R-%TT%0001601" IndentLevel="2" HelpContext="AIR-Daikin-Timer-Obergrenze" />
                       </when>
                     </choose>
                   </when>

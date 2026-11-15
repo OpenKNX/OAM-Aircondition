@@ -20,3 +20,11 @@ Optionen für Toshiba:
 - Trocknen
 - Lüfter
 
+Optionen für Mitsubishi:
+
+- Keine Änderung
+- Automatik
+- Kühlen
+- Heizen
+- Trocknen
+- Lüfter

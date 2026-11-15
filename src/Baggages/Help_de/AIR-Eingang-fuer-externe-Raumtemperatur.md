@@ -1,5 +1,7 @@
 ﻿### Eingang für externe Raumtemperatur
 
+Dieser Abschnitt beschreibt einen geplanten Regelungsansatz, keine aktuell implementierte automatische Sollwertkorrektur. Bei Daikin überträgt der Treiber keine externe Raumtemperatur an das Innengerät. Die folgenden Beispiele erläutern den künftigen Ansatz.
+
 Stellt ein Gruppenobjekt für einen externen Raumtemperatursensor bereit.
 Bei Klimageräten, die dies nicht unterstützen, erfolgt die Auswertung in der Steuerung durch Vorgabe einer angepassten Solltemperatur an das Klimagerät.
 
@@ -22,4 +24,3 @@ Die Anpassung der Solltemperatur geht natürlich nur innerhalb der Grenzen des K
 Wichtig: Durch die modifizierte Solltemperatur funktioniert eine eventuell am Klimagerät vorhandene Solltemperatur-Anzeige nicht richtig und kann daher nicht mehr genutzt werden.
 Das Gruppenobjekt 'Solltemperatur Status' liefert aber den richtigen, für die Regelung verwendeten Temperaturwert.
 Eine Änderung der Solltemperatur über die Infrarot-Fernbedienung funktioniert weiterhin, da die Steuerung den angeforderten Wert entsprechend korrigiert.
-

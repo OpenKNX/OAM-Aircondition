@@ -9,9 +9,9 @@
 
 Die Klimaanlagen App besteht aus folgenden Modulen:
 
-- [Basiseinstellungen](https://github.com/OpenKNX/OGM-Common/blob/v1/doc/Applikationsbeschreibung-Common.md)
+- [Basiseinstellungen](https://github.com/OpenKNX/OGM-Common/blob/v1dev/doc/Applikationsbeschreibung-Common.md)
 - [Konfigurationstransfer](https://github.com/OpenKNX/OFM-ConfigTransfer/blob/v1/doc/Applikationsbeschreibung-ConfigTransfer.md)
-- [Netzwerk](https://github.com/OpenKNX/OFM-Network/blob/v1/doc/Applikationsbeschreibung-Netzwerk.md)
+- [Netzwerk](https://github.com/OpenKNX/OFM-Network/blob/v1dev/doc/Applikationsbeschreibung-Netzwerk.md)
 - [Logik](https://github.com/OpenKNX/OFM-LogicModule/blob/v1/doc/Applikationsbeschreibung-Logik.md)
 - [Funktionsblöcke](https://github.com/OpenKNX/OFM-FunctionBlocks/blob/v1/doc/Applikationsbeschreibung-FunctionBlocks.md)
 
@@ -49,16 +49,6 @@ Hier muss die für das Klimagerät passende minimale Solltemperatur eingestellt 
 
 In diesem Abschnitt werden allgemeine Konfigurationen vorgenommen
 
-<!-- 
-### Nach Busspannungsausfall / Neustart
-
-Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Neustart geschalten werden soll.
-
-- Keine Änderung
-  Das Klimagerät erhält keine Steuerbefehle.
-- Einstellungen wiederherstellen
-  Die Einstellungen werden wieder hergestellt und das Klimagerät entsprechend konfiguriert.  
--->
 <!-- DOC -->
 ### Wifi LED
 
@@ -68,6 +58,8 @@ Hier wird konfiguriert, ob die Klimaanlage nach einem Busspannungsaufall oder Ne
 - Immer Aus
 - Immer Ein
 - Schaltbar über Gruppenobjekt
+
+Daikin: Ohne separate Geräte-/Sensor-LED-Freigabe bleibt diese WLAN-LED-Regelung aktiv. Wird die separate LED-Steuerung aktiviert, schreibt die automatische WLAN-LED-Regelung nicht mehr in das Daikin-LED-Register.
 
 
 <!-- DOC -->
@@ -130,100 +122,22 @@ Zur Auswahl:
 
 ### Daikin
 
-Folgende Einstellungen und Funktionen stehen für Daikin Klimageräte zur Verfügung:
+Der Treiber steuert Innengeräte über S21. Der Funktionsumfang hängt vom Modell, dessen Firmware und dem Betriebsmodus ab; eine erkannte Protokollversion ist keine vollständige Funktionsfreigabe.
 
-Diese Implementierung bietet vollständige Unterstützung für Daikin Klimageräte über das S21-Protokoll. Die Kommunikation erfolgt direkt über die serielle Schnittstelle des Daikin-Innengeräts.
+- Grundsteuerung: Ein/Aus, Auto/Kühlen/Heizen/Trocknen/Lüfter, Auto/Geräuscharm/Stufe 1–5 und getrennte Swing-Achsen.
+- Solltemperaturen werden auf 0,5 °C gerundet. Ohne verfeinerte Modellgrenzen gilt als Rückfallbereich 18–32 °C; FU02 und lokale Modellprofile können die Grenzen ändern. Szenen bieten 17–30 °C einschließlich der halben Zwischenwerte an; der Treiber lehnt Werte außerhalb seiner aktiven Grenzen ab. Die Temperatur-Auf/Ab-Objekte verwenden weiterhin ganze Gradschritte.
+- Powerful, Econo, Außengerät Quiet, Comfort, Intelligent Eye und Streamer besitzen unabhängige Steuer-/Statusobjekte. Econo und Quiet können gemeinsam angefordert werden; Powerful ist dazu exklusiv. Der einzelne Gerätemodus-/Szenen-Preset ersetzt die anderen Power-Presets.
+- Vertikale Positionscodes und modellabhängig freigeschaltete horizontale Positionscodes sind auch in Szenen verfügbar. Code 0 hält die aktuelle Position; Codes sind keine Gradangaben.
+- Demand benötigt ein gespeichertes, ausdrücklich aktiviertes Modellprofil für Minimum und Schrittweite. Timer benötigen eine eigene Freigabe mit Schrittweite und Obergrenze.
+- Relative Ein-/Ausschalttimer melden konfigurierte Verzögerungen und Aktiv-Bits, keinen Countdown. Die separate Timerleuchte wird über DB geschrieben und über FB gelesen.
+- Leistungsaufnahme, 64-Bit-Energiezähler, Innen-/Außentemperatur, Raumfeuchte, Innengerät-Lüfterdrehzahl, rohe Lamellenwinkel und Kompressordaten stehen je nach Antwortumfang mit Gültigkeitskennzeichen bereit. Rohwinkel werden nur mit konfigurierter Modellskalierung in Grad umgerechnet.
+- Qualitative Feuchtestufen (Aus/Niedrig/Standard/Hoch/Kontinuierlich) sind von gemessenen RH-Prozentwerten getrennt und werden gegen Gerätefähigkeiten und Betriebsmodus geprüft. Erweiterte Klima-Varianten sind derzeit lokale Diagnosekommandos, keine zusätzlichen Standard-KNX-HVAC-Modi.
 
-#### Unterstützte Funktionen
+Ein S21-ACK bestätigt nur die Annahme auf Transportebene. Der Treiber wartet auf passende Rückmeldung und erhält dabei andere Felder desselben Registers. Es gibt keinen F6→F3-Fallback für Spezialmodi; F3 enthält Timerdaten. Econo wird aus F7 gelesen, ein negatives FU00-Flag unterdrückt diesen Status nicht. Rz-basierte Betriebs-/Abtauinterpretation erfordert eine ausdrückliche lokale Vertrauensfreigabe.
 
-##### Grundfunktionen
-- **Ein/Aus-Steuerung**: Vollständige Kontrolle über den Gerätestatus
-- **Betriebsmodi**: Automatik, Kühlen, Heizen, Trocknen, Lüfter
-- **Temperatursteuerung**: Präzise Solltemperatur-Einstellung (18-32°C, 0,5°C Schritte)
-- **Lüftergeschwindigkeit**: Automatik + 5 manuelle Stufen
-- **Lamellenkontrolle**: Vertikale und horizontale Schwenkbewegung
+Für Daikin ist weder eine native Übergabe externer Raumtemperaturen noch eine automatische Sollwertkorrektur aus einem KNX-Raumsensor implementiert. Das F6-Sensorbit betrifft Intelligent Eye, keine alternative Temperaturquelle. Die allgemeine Beschreibung der externen Regelung beschreibt einen künftigen Ansatz.
 
-##### Erweiterte Funktionen
-- **Powerful-Modus**: Erhöhte Kühl-/Heizleistung für schnelles Erreichen der Solltemperatur
-- **Econo-Modus**: Energiesparender Betrieb mit reduzierter Leistung
-- **Quiet-Modus**: Leiserer Betrieb des Außengeräts
-- **LED-Steuerung**: Kontrolle der Wifi-LED am Innengerät
-- **Streamer**: Daikin Flash Streamer Luftreinigungstechnologie
-- **(Kein nativer Externer Raumtemperatur-Eingang)**: S21 bietet keine dokumentierte Möglichkeit, eine externe Raumtemperatur direkt an das Innengerät zu übergeben. Die interne Regeltemperaturquelle bleibt das Gerät.
-
-##### Externe Raumtemperaturerfassung
-Es existiert im bislang veröffentlichten und revers‑engineerten S21-Protokoll (Faikin Wiki v0–v3.40) **kein** dokumentierter Befehl, der eine alternative Raumtemperatursensorquelle (externer KNX Sensor) direkt als Regelgröße an das Daikin-Innengerät übergibt. 
-
-Die in F6 / G6 als "Sensor" bezeichneten Bits beziehen sich auf spezielle Komfort-/Präsenz-/Intelligent‑Eye Funktionen des Geräts (inkl. LED Verhalten) – **nicht** auf einen externen Temperatursensor.
-
-OpenKNX bietet optional eine rein logische Korrektur (Sollwertverschiebung) gegenüber der vom Gerät gemeldeten internen Raumtemperatur, um einen externen KNX-Sensor zu berücksichtigen. Dabei wird keine externe Temperatur in das Gerät injiziert, sondern nur die an das Gerät gesendete Solltemperatur rechnerisch angepasst (siehe Abschnitt "Externe Raumtemperatur" in der allgemeinen Dokumentation).
-
-Zusammenfassung:
-- Keine native S21-Funktion zur Übergabe eines externen Raumtemperaturwertes
-- F6 Sensor-/LED-Bits = Komfort-/Anwesenheitsfunktion, nicht Temperaturquelle
-- Externe KNX-Temperatur → nur indirekte Beeinflussung durch Sollwertkorrektur
-
-### Daikin
-
-Folgende Einstellungen und Funktionen stehen für Daikin Klimageräte (S21 Schnittstelle am Innengerät) zur Verfügung.
-
-Hinweis: Das S21-Protokoll ist nicht vollständig dokumentiert und einige Funktionen sind je nach Gerätemodell / Protokoll-Version optional. Die Implementierung nutzt nur dokumentierte beziehungsweise verifizierte Teile (Stand: Faikin Wiki Protokoll v0–v3.40). Nicht unterstützte oder unsichere Bereiche wurden bewusst weggelassen.
-##### Telemetrie und Überwachung
-##### Grundfunktionen
-- **Ein/Aus**: Steuerung über D1 (Power Bit)
-- **Betriebsmodi**: Automatik, Kühlen, Heizen, Trocknen, Lüfter (gemäß F1 Rückmeldung)
-- **Solltemperatur**: 18,0–30,0 °C in 0,5 °C Schritten (ASCII Kodierung @ … X). Temperaturen >30 °C werden aktuell nicht gesetzt (Spezial-/Region‑Fälle werden ignoriert)
-- **Lüftergeschwindigkeit**: Automatik + 5 Stufen (Low → High). Quiet/Night wird intern als eigener Modus behandelt – Rückmeldung über RG korrekt, F1 zeigt Quiet wie Auto (Protokoll-Einschränkung)
-- **Swing**: Vertikal / Horizontal / Beides über D5 sofern vom Gerät gemeldet (F2 Featurebits). Keine absolute Lamellenpositions-Steuerung.
-
-##### Erweiterte / Optionale Funktionen
-Die Verfügbarkeit wird zur Laufzeit über F2 / FK / (bei v3+) FU00 erkannt. Nicht jedes Gerät unterstützt alle Funktionen.
-
-- **Powerful** (F6 / D6): Wenn F6 unterstützt (ab vielen v2/v3 Geräten). Frühe Geräte evtl. nur Status über F3 Bitmuster.
-- **Econo** (F7 / D7): Energiesparmodus (Bit im zweiten Byte von F7)
-- **Quiet** (D4 proprietär in dieser Implementierung / Status in F6 Quiet-Bit). Fan Quiet wird durch RG korrekt gelesen; F1 meldet ihn als Auto (Protokoll-Eigenheit).
-- **Streamer**: Wenn in FU00 Byte 5 gesetzt und F6 Streamer-Bit reagiert.
-- **LED**: Steuerung (abhängig von LED-Bit in F6 Byte 3, invertierte Logik). Fehlt bei älteren Modellen.
-- **Kein externer Temperatursensor via S21**: F6 Sensor-Bit dient nicht zur Auswahl einer externen Raumtemperaturquelle; eine Übergabe externer Temperaturdaten findet nicht statt.
-- **Demand / Leistungsvorgabe (F7)**: Auswertung des Rohwertes (1‑stellige Lastkennzahl), Umsetzung derzeit auf Prozent heuristisch (experimentell).
-
-Hinweis: Eine eventuelle zukünftige Erweiterung würde deutlich gekennzeichnet und setzt belastbare Protokollnachweise voraus.
-- **Robuste Kommunikation**: Retry-Mechanismen und Timeout-Behandlung
-- **Innengerät Temperatur (RH)**
-- **Außentemperatur (Ra)**
-- **Feuchtigkeit (Re)**: Falls Gerät Sensor meldet (nicht zuverlässig bei Geräten ohne echten Sensor → oft 50%)
-- **Leistungsaufnahme**: Aktuell nicht ausgewertet (FM liefert kumulierten Verbrauch Wh/10 – geplante zukünftige Auswertung)
-- **Kompressorfrequenz (Rd)**
-- **Fan Speed (RL / RK)**: Drehzahl / Tap (wenn verfügbar)
-- **Echter Zielwert (RX)**: Interner Reglerzielwert (inkl. Powerful/Intelligent Eye Einflüsse)
-- **Unit/System State (RzB2 / RzC3)**: Bitfelder für Aktiv / Defrost / Powerful etc.
-
-**Protokollversionen**: Dynamische Erkennung v0 / v2 / v3.x (F8 + FY00 Probe). Antwort ‚v2‘ über F8 bei v3 ist Daikin-Rückwärtskompatibilität.
-# Gerätemodus-Einstellungen über Gruppenobjekte
-**Automatische Funktionen:**
-- **Protokoll-Detection**: F8 → ggf. FY00 für v3+; Feature-Bits über F2/FK/F6/FU00
-- **Polaritätshandling**: Automatische Polarity-Versuche (Inversion RX/TX Kombinationen)
-- **Fallback F6→F3**: Falls F6 (Special Modes) nicht reagiert werden ggf. F3 Bits genutzt (eingeschränkt)
-- **Retry / Timeout**: ACK- und Grace-Window Handling (angepasst an beobachtete Zeiten)
-Der Vorgabewert wird auf den nächstliegenden fest definierten Wert gerundet.
-**Getestete Geräte (Beispiele – nicht vollständig):**
-- Daikin Stylish FTXA25AW 
-Rückmeldungen aus Tests willkommen – unbekannte Feature-Kombinationen werden protokolliert und können zukünftige Erweiterungen steuern.
-
-**Faikin-Bezug:**
-Konzepte (Timing, Query-Reihenfolge, Interpretation von F*/R*/Rz*-Kommandos) orientieren sich an den im Faikin-Projekt dokumentierten Erkenntnissen. Nicht jede dort aufgeführte experimentelle Funktion ist hier aktiv umgesetzt.
-
-| Szenennummer | Beschreibung         | Toshiba | Daikin |
-|--------------|----------------------|---------|--------|
-| 1            | Standard             | Ja      | Ja     |
-| 2            | Hi-Power/Powerful    | Ja      | Ja     |
-| 3            | Eco/Econo            | Ja      | Ja     |
-| 4            | Leise/Quiet          | Ja      | Ja     |
-| 5            | Luftreinigung        | Nein    | Ja*    |
-
-*Für Daikin: Streamer (Flash Streamer Luftreinigungstechnologie)
-
-Für jeden Betriebsmodus stehen auch separate Gruppenobjekte für das Schalten und den aktuellen Status zur Verfügung.
+Objektnummern, Datentypen und Statusmasken stehen in der [Daikin-KNX-Referenz](Daikin-KNX-controls.md). Lokale `s21 profiles`, `s21 writes` und `s21 errors` zeigen Konfiguration, Schreibzustände und begrenzte Rohdaten abgewiesener Antworten. Abfragbarkeit bestätigt weder Schreibunterstützung noch physische Wirkung.
 
 ### Mitsubishi
 
@@ -235,7 +149,9 @@ Folgende Sonder-Einstellungen und Funktionen stehen für Mitsubishi Klimageräte
 <!-- DOC -->
 ## Szenen
 
-In diesem Abschnitt können Szenennummer und das zugehörige Verhalten konfiguriert werden.
+Zehn unabhängige Szenendefinitionen A–J können aktiviert und einer Szenennummer 1–64 zugeordnet werden. Die Nummer löst die jeweilige Konfiguration aus; sie ist kein fest vorgegebener Gerätemodus. Mehrere aktive Definitionen mit gleicher Nummer werden nacheinander ausgeführt.
+
+„Keine Änderung“ lässt das jeweilige Feld unverändert. Bei Daikin können Modus, Temperatur, Lüfter, Swing, vertikale/horizontale Position, Power-Preset und Streamer konfiguriert werden. Der Treiber prüft Werte gegen seine aktiven Grenzen und Fähigkeiten. Der Power-Auftrag wird nach den anderen Szenenaufträgen gesetzt; die Gerätebestätigung kann zeitversetzt eintreffen.
 
 <!-- DOC -->
 ### Szene
@@ -293,6 +209,8 @@ Optionen für Mitsubishi:
 
 Vorgabe der Solltemperatur
 
+Daikin-Szenen bieten 17–30 °C einschließlich halber Zwischenwerte. Es gelten zusätzlich die aktiven Treiber-/Modellgrenzen; außerhalb liegende Vorgaben werden abgewiesen. Absolute Gruppenobjekte erlauben 0,5 °C, die Auf/Ab-Objekte ändern um 1 °C.
+
 - Keine Änderung
 - Temperaturvorgabe
 
@@ -300,6 +218,8 @@ Vorgabe der Solltemperatur
 #### Lüfter
 
 Lüftergeschwindigkeit
+
+Daikin: „Keine Änderung“, Automatik, Geräuscharm und Stufe 1–5. Geräuscharm am Innengerät-Lüfter und Außengerät Quiet sind unterschiedliche Funktionen. Prozent-Gruppenobjekte werden auf die numerischen Lüfterstufen gerundet; Prozentwerte sind keine Drehzahlvorgabe.
 
 Optionen für Toshiba:
 
@@ -327,7 +247,7 @@ Optionen für Mitsubishi:
 
 Steuert die Bewegung der Lamellen.
 
-Daikin: Horizontal „Aus“ hält die aktuelle Stellung. Ein verifizierter S21-Befehl für nummerierte horizontale Zielpositionen ist bisher nicht bekannt.
+Daikin unterstützt getrennte vertikale und horizontale Swing-Achsen. „Aus“ beendet Swing auf der jeweiligen Achse. Feste Positionscodes sind separate Einstellungen; horizontale Codes benötigen das konfigurierte Modellprofil. Für reproduzierbare Positionen Swing auf der betreffenden Achse vorher ausschalten.
 
 Optionen für Toshiba:
 
@@ -340,8 +260,7 @@ Optionen für Toshiba:
 <!-- DOC -->
 #### Vertikale Lamellenstellung
 
-Diese Einstellung ist nur verfügbar, wenn bei Lamellenbewegung "Keine Änderung" oder "Aus" gewählt wurde.
-Gibt die Position der Lamellen an. 
+Gibt die vertikale Position der Lamellen an. Bei Toshiba/Mitsubishi wird diese Szenenoption nur bei Lamellenbewegung „Keine Änderung“ oder „Aus“ angeboten.
 
 Optionen für Toshiba:
 
@@ -361,7 +280,29 @@ Optionen für Mitsubishi:
 - Unten
 - Ganz Unten
 
-Daikin: DR/FR unterstützt vertikale Codes 0–5 sowie Automatik (Code 6). Andere Felder des Lamellenregisters bleiben bei vertikalen Änderungen erhalten.
+Daikin-Szenen bieten:
+
+- Keine Änderung
+- Halten (Code 0)
+- Position 1–5
+
+Code 0 hält die aktuelle Stellung. Nach Erkennung des FR-Status sind die Indizes adressierbar; daraus folgt keine Anzahl verschiedener physischer Winkel. Über das separate Code-Gruppenobjekt ist zusätzlich Code 6 für den S21-Automatikmarker `?` verfügbar, nicht über die Szene. Änderungen erhalten die horizontale Position und die übrigen Registerbytes. Für feste Positionen Swing auf dieser Achse vorher ausschalten.
+
+<!-- DOC HelpContext="Horizontale-Lamellenstellung" -->
+#### Horizontale Lamellenstellung
+
+Daikin-Szenen bieten:
+
+- Keine Änderung
+- Halten (Code 0)
+- Position 1–8
+
+Voraussetzung sind ein lesbarer FR-Status und ein ausdrücklich konfiguriertes horizontales Modellmaximum. Werte oberhalb dieses Maximums werden abgewiesen. Für feste Stellungen Swing auf der horizontalen Achse vorher ausschalten.
+
+Der Code 0 hält die aktuelle Position und bezeichnet weder Mitte noch einen Winkel. Die Indizes sind modellabhängig; die Anzahl unterschiedlicher Winkel muss am Gerät bestimmt werden. Eine Änderung erhält den vertikalen Code und die übrigen Registerbytes.
+
+Das separate Code-Objekt hat Status, Gültigkeit, konfiguriertes Maximum und eine Bestätigungsmaske. Eine passende Rückmeldung bestätigt den geschriebenen Code, nicht die physische Stellung.
+
 
 <!-- DOC -->
 #### Leistungsbegrenzung
@@ -378,7 +319,7 @@ Optionen für Toshiba:
 Bei Daikin ist eine Reduzierung nur mit einem ausdrücklich konfigurierten,
 modellgeprüften Demand-Profil möglich. Minimum und Schrittweite können im
 Daikin-Bereich gespeichert werden. Ohne Profil bleibt die Untergrenze 100 %.
-Die Demand-Anforderung ist keine lineare Begrenzung der gemessenen Wattzahl.
+Die Demand-Anforderung ist keine lineare Begrenzung der gemessenen Wattzahl. In Daikin-Szenen gibt es dafür kein eigenes Feld; die Steuerung erfolgt über das separate Leistungsbegrenzungsobjekt mit dem konfigurierten Profil.
 
 Für Mitsubishi steht diese Option nicht zur Verfügung.
 
@@ -389,11 +330,15 @@ Optionen für Daikin:
 
 - **Standard**: Normaler Betriebsmodus
 - **Hi-Power**: Entspricht Daikin "Powerful"-Modus für maximale Leistung
-- **ECO**: Daikin "Econo" über F7. Das FU00-Flag ist ein Hinweis und kann fehlen. Unbestätigte Econo-Aufträge beenden aktives Powerful nicht automatisch; für den ersten Versuch Powerful vorher ausschalten.
+- **ECO**: Econo über D7/F7. Der Gerätemodus-/Szenen-Preset schaltet Powerful und Quiet ab und wartet auf die passende Rückmeldung, bevor Econo gesetzt wird. Ein negatives FU00-Flag allein sperrt Econo nicht.
 - **Leise 1**: Daikin "Quiet". S21 bietet dafür genau einen Ein/Aus-Zustand.
-- **Leise 2**: Kompatibilitätsalias für Leise 1, keine zweite Geräuschstufe. Die Rückmeldung erfolgt als Leise 1; Leise-2-Status bleibt 0.
+- **Leise 2 (Legacy-Gruppenobjekte)**: Kompatibilitätsalias für Leise 1, keine zweite Geräuschstufe. Die Rückmeldung erfolgt als Leise 1; Leise-2-Status bleibt 0. Daikin-Szenen bieten diese Alias-Auswahl nicht an.
 
-Econo und Außengerät Quiet können gemeinsam aktiv sein. Powerful schließt beide aus.
+In Szenen steht zusätzlich „Keine Änderung“ zur Verfügung.
+
+Über die unabhängigen Objekte können Econo und Außengerät Quiet gemeinsam angefordert werden. Powerful schließt beide aus; der einzelne Gerätemodus-/Szenen-Preset wählt dagegen jeweils einen Power-Preset.
+
+Ein noch nicht schreibbestätigter unabhängiger Econo-Ein-Auftrag wird bei aktivem Powerful zurückgewiesen. Für diesen ersten Einzelversuch Powerful vorher ausschalten; die ausdrückliche Preset-Wahl ECO führt den Wechsel selbst aus. Die tatsächliche Ausführung bleibt modell- und betriebsmodusabhängig.
 
 Die unabhängigen Optionen melden ihre Lesbarkeit/Verfügbarkeit im Bitmaskenobjekt „Optionen abfragbar“ (Econo: Bit 1). Lesbarkeit und Verfügbarkeit bestätigen noch keinen erfolgreichen Schreibzugriff.
 
@@ -417,26 +362,110 @@ Verfügbare Einstellungen:
 - Aus
 - Ein
 
-Für Daikin und Mitsubishi steht diese Option nicht zur Verfügung.
+Bei Daikin steuert diese Option Streamer, sofern der Status lesbar und die Funktion verfügbar ist. Für Mitsubishi ist hier keine Luftreinigungssteuerung implementiert.
+
+<!-- DOCEND -->
+## Daikin-Modellprofile
 
 <!-- DOC HelpContext="Daikin-Demandprofil" -->
 #### Modellgeprüftes Demand-Profil
 
-Nur aktivieren, wenn Minimum und Schrittweite für das konkrete Klimagerät
-geprüft wurden. Ein lesbarer F7-Status und ein ACK bestätigen diese Werte nicht.
-Die werkseitige Einstellung bleibt deaktiviert; das Minimum 100 % erlaubt keine
-Leistungsreduzierung. Das Profil wird durch ETS gespeichert und beim Start geladen.
+Gibt die reduzierte Leistungsbegrenzung für das Daikin-Gerät frei. Minimum und Schrittweite müssen für das konkrete Gerät geeignet sein.
 
-Demand begrenzt die angeforderte Konditionierungsleistung, nicht linear die
-Leistungsaufnahme in Watt. Die Werte werden von 100 % abwärts in der angegebenen
-Schrittweite gebildet. `(100 - Minimum)` muss durch die Schrittweite teilbar sein.
+Zur Auswahl:
+- Nein
+  Reduzierte Demand-Werte sind gesperrt.
+- Ja
+  Die Vorgaben „Geprüftes Demand-Minimum“ und „Geprüfte Demand-Schrittweite“ werden verwendet.
 
-Faikout bietet 30–100 % in 5-%-Schritten an. Die ältere Daikin-App kennt die
-Vorgaben 40/50/60 %. Das sind Bedienoberflächenwerte und keine bestätigte
-Modellfreigabe. Ein unbekanntes Modell erhält deshalb kein solches Profil
-automatisch. Der Rückgabewert 99 % wird wegen bekannter Mehrdeutigkeit nicht
-als gültige Demand-Rückmeldung verwendet.
+Standard: Nein. Das Profil wird gespeichert und beim Start geladen. Das Ändern der Freigabe allein sendet keinen Leistungsauftrag und setzt keine bereits am Gerät eingestellte Begrenzung zurück. Lesbarer Status oder ein ACK bestätigen noch keine erfolgreiche Leistungsbegrenzung.
 
-Die Konsole zeigt mit `s21 profiles` Modellkennung, konfigurierte Werte und
-feldbezogene Schreibbestätigung. Eine erfolgreiche Rückmeldung bestätigt nur
-den tatsächlich geschriebenen Wert, nicht den gesamten Bereich.
+Demand begrenzt die angeforderte Konditionierungsleistung, nicht linear die Leistungsaufnahme in Watt. Die Ausführung ist modell- und betriebsmodusabhängig.
+
+<!-- DOC HelpContext="Daikin-Demand-Minimum" -->
+#### Geprüftes Demand-Minimum
+
+Kleinster Prozentwert, der bei aktiviertem Demand-Profil angefordert werden darf.
+
+- Wertebereich: 0–100 %
+- Standard: 100 % (keine Leistungsreduzierung)
+
+Nur einen für das Gerät geeigneten Mindestwert eintragen. Die zugelassenen Werte werden von 100 % abwärts in der konfigurierten Schrittweite gebildet. Die Differenz zwischen 100 % und dem Minimum muss durch die Schrittweite teilbar sein. 99 % ist kein geeigneter Profilwert, da der mehrdeutige Rückgabewert 99 % nicht als gültige Demand-Rückmeldung bestätigt wird.
+
+<!-- DOC HelpContext="Daikin-Demand-Schrittweite" -->
+#### Geprüfte Demand-Schrittweite
+
+Abstand der zugelassenen Prozentwerte von 100 % abwärts bis zum konfigurierten Minimum.
+
+- Wertebereich: 1–100 Prozentpunkte
+- Standard: 1 Prozentpunkt
+
+Die Differenz zwischen 100 % und dem Minimum muss durch die Schrittweite teilbar sein. Die Einstellung gibt keine ungeprüften Gerätestufen frei. Der mehrdeutige Wert 99 % wird nicht als gültige Demand-Rückmeldung verwendet und ist deshalb kein geeigneter Profilwert.
+
+<!-- DOC HelpContext="Daikin-Horizontalprofil" -->
+#### Modellgeprüfte horizontale Positionen
+
+Legt das höchste freigegebene horizontale Positionskennzeichen des Daikin-Geräts fest.
+
+Zur Auswahl:
+- 0
+  Horizontale Positionsaufträge deaktiviert (Standard).
+- 1–8
+  Codes 0 bis zum eingestellten Maximum freigeben. Innerhalb eines aktivierten Profils bedeutet Positionscode 0 „Halten“.
+
+Das Maximum muss für das konkrete Gerät bestimmt werden. Ein lesbarer FR-Status oder ACK bestätigt noch keine physisch nutzbare Lamellenposition. Positionscodes sind keine Grad- oder Prozentwinkel. Das gespeicherte Profil wird beim Start geladen; dabei wird kein Positionsauftrag gesendet.
+
+<!-- DOC HelpContext="Daikin-Timer" -->
+#### Timer-Steuerung aktivieren
+
+Gibt die relative Ein-/Ausschalttimer-Steuerung und die separate Timerleuchte für Daikin frei.
+
+Zur Auswahl:
+- Nein
+  Timer-Gruppenobjekte ausblenden (Standard). Bereits im Gerät aktive Timer werden dadurch nicht ausgeschaltet.
+- Ja
+  Timer-Gruppenobjekte mit der eingestellten Schrittweite und Obergrenze verwenden.
+
+Nur aktivieren, wenn die Timerwerte zum Gerät passen. Die Freigabe allein schaltet keinen Timer ein. Ein positiver Minutenauftrag aktiviert den jeweiligen Timer, 0 deaktiviert ihn. Ein Aktiv-Auftrag benötigt eine zuletzt bekannte positive Verzögerung; diese muss nach Neustart oder Kommunikationsverlust erneut bekannt sein.
+
+Die Rückmeldung zeigt die konfigurierte Verzögerung und zählt nicht herunter. Die Aktiv-Bits entscheiden, ob ein Timer läuft. Änderungen an einem Timer können den Zeitbezug des anderen Timers neu starten; es ist kein Uhrzeit- oder Wochenprogramm.
+
+Timeraufträge benötigen einen lesbaren F3-Status. Zum Deaktivieren muss die Aus-Kodierung der jeweiligen Achse bekannt sein. Die orange Timerleuchte wird getrennt von Geräte-/Sensor-LEDs gesteuert (DB schreiben, FB lesen). Ein ACK allein bestätigt weder das Setzen eines Timers noch dessen Auslösung.
+
+<!-- DOC HelpContext="Daikin-Timer-Schrittweite" -->
+#### Timer-Schrittweite
+
+Zeitabstand der erlaubten Timerverzögerungen in Minuten.
+
+- Wertebereich: 10–1440 Minuten, positive Vielfache von 10
+- Standard: 60 Minuten
+
+Das S21-Protokoll verwendet Zehn-Minuten-Einheiten. Das konkrete Gerät kann gröbere Schritte verlangen. Die Schrittweite muss zur Timer-Obergrenze passen; die Obergrenze muss ein Vielfaches der Schrittweite sein. Eine kleinere Schrittweite verkürzt nicht automatisch einen bereits programmierten Timer.
+
+<!-- DOC HelpContext="Daikin-Timer-Obergrenze" -->
+#### Timer-Obergrenze
+
+Größte erlaubte Verzögerung für Ein- und Ausschalttimer in Minuten.
+
+- Wertebereich: 10–1440 Minuten
+- Standard: 720 Minuten
+
+Der Wert muss mindestens der Schrittweite entsprechen und durch sie teilbar sein. Nur eine zum Gerät passende Obergrenze eintragen. Der Protokollbereich bis 1440 Minuten bestätigt nicht, dass jedes Gerät diese Zeitspanne unterstützt. Die Rückmeldung ist eine konfigurierte Verzögerung, kein Restzeitwert.
+
+<!-- DOC HelpContext="Daikin-Geraete-LED" -->
+#### Geräte-/Sensor-LED separat steuern
+
+Legt fest, ob die Daikin-Geräte-/Sensor-LED unabhängig vom WLAN-Status gesteuert wird.
+
+Zur Auswahl:
+- Nein
+  Die bisherige WLAN-LED-Regelung bleibt zuständig (Standard).
+- Ja
+  Separate LED-Gruppenobjekte verwenden; die automatische WLAN-LED-Regelung schreibt nicht mehr in das Daikin-LED-Register.
+
+Das LED-Objekt verwendet 0=Ein, 1=Dunkel, 2=Aus. Verfügbare Stufen und Statusgültigkeit haben eigene Rückmeldungen. Bei Intelligent-Eye-Hardware sind nur Ein/Aus verfügbar; Dunkel wird abgewiesen. Ohne diese Hardware hängt Ein/Dunkel/Aus vom Gerät ab. Hardwareerkennung und F6-Status müssen zuerst vorliegen. Das Sensorbit bezeichnet keine externe Raumtemperaturquelle.
+
+<!-- DOC HelpContext="LuftreinigungStreamer" -->
+#### Luftreinigung / Streamer
+
+Schaltet die Streamer-Funktion ein oder aus, sofern das Daikin-Gerät sie bereitstellt. Die Szene bietet „Keine Änderung“, „Aus“ oder „Ein“. Die bestätigte Rückmeldung beschreibt die Geräteeinstellung, nicht eine gemessene Luftreinigungswirkung.

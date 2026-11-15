@@ -7,24 +7,37 @@ All status values are confirmed readings, not acknowledgements of a request.
 
 ## Fixed vane positions
 
-The existing percent objects 421/422 are also visible for Daikin. A read FR page
-permits explicit position probes; it does not certify physical support. The new
-objects expose the distinction:
+The existing percent objects 421/422 expose numeric vertical codes for Daikin.
+After FR discovery, codes 0–5 are addressable; discovery is not physical feature
+certification. Zero holds the current angle, and an index is not a calibrated
+angle. The explicit objects distinguish read support from confirmed writes:
 
 | Object | Meaning |
 | --- | --- |
-| 466 VerticalPositionCode | Request code 0…5, or 6 for S21 `?` (automatic marker). |
+| 466 VerticalPositionCode | Request 0–5, or 6 for the S21 `?` automatic marker. |
 | 467 VerticalPositionCodeState | Confirmed code, including 6 for `?`. |
-| 468 VerticalPositionMaximum | Addressable maximum, 5 after FR is discovered; 0 before discovery. |
-| 469 VerticalPositionVerified | Bit 0…5 records positions with a write ACK and matching readback. |
-| 470 VerticalPositionValid | Whether the last position-code sample is valid. |
+| 468 VerticalPositionMaximum | Addressable maximum 5 after FR discovery; 0 before discovery. |
+| 469 VerticalPositionVerified | Bits 0–5 record matching post-write readbacks for changed vertical fields. |
+| 470 VerticalPositionValid | Position-code sample validity; also check OnlineState. |
+| 529 HorizontalPositionCode | Request 0–configured maximum, DPT 5.010. Zero holds. |
+| 530 HorizontalPositionCodeState | Confirmed horizontal code, DPT 5.010. |
+| 531 HorizontalPositionValid | Horizontal sample validity, DPT 1.002. |
+| 532 HorizontalPositionMaximum | Configured model maximum once FR is readable, otherwise 0. |
+| 533 HorizontalPositionVerified | DPT 7.001 bitmask, bits 0–8: changed horizontal codes confirmed by readback. |
+| 534 LouvreWriteResult | Shared DR transaction result, using the write-result enumeration below. |
 
-The percent objects represent only numeric positions. They do not map `?` to a
-physical position. Daikin scenes gain a position selector using a new parameter ID
-at the previously reserved position byte; old scene settings and other vendors'
-parameters retain their identities/defaults/offsets. No power-limit scene changes
-are included. Unsupported positions can still NAK; each position needs a real
-model/physical check before it is considered supported.
+The horizontal installer profile defaults to 0 (disabled). A model-verified
+maximum 1–8 enables codes 0 through that maximum; reading FR alone never enables
+horizontal writes. Vertical uses DR/FR byte 0, horizontal byte 1. Each setter
+preserves the other axis and unknown bytes 2–3, merging queued changes only after
+prior readback. Swing should be stopped on the affected axis before requesting a
+fixed position. The raw/code feedback does not independently establish movement.
+
+Vertical percent objects represent only numeric positions, not the `?` marker.
+Scenes expose vertical 0–5 and horizontal 0–8 (subject to the model maximum), plus
+255 for no change. The automatic marker is only available through the explicit
+vertical code API/object. Demand power limiting is not a Daikin scene field.
+New profile/scene fields use reserved storage; existing offsets remain fixed.
 
 ## Additional telemetry
 
@@ -70,10 +83,14 @@ is Powerful, Econo, Quiet, Comfort, Intelligent Eye, Streamer (bits 0…5).
 Availability means a read page exists and no known capability excludes the option;
 it is not verified write support. An ACK alone does not change status.
 
-Turning an individual control off only clears that control. Enabling Powerful,
-Econo or Quiet queues the necessary clears for the other mutually exclusive power
-presets. Comfort, Eye, Streamer and LED settings are preserved. Legacy preset
-objects retain their existing behavior and associations.
+Turning an individual control off only clears that control. Powerful excludes
+both Econo and Outdoor Quiet; independent Econo and Quiet controls preserve one
+another and can be requested together. An unverified first independent Econo-On
+trial is rejected while Powerful is active. The explicit single-preset selector
+(including scenes) instead replaces the other power presets: selecting Econo
+clears Powerful first and waits for its readback. Comfort, Eye, Streamer and LED
+fields are preserved. A negative FU00 Econo flag does not mask valid F7 feedback.
+Readability does not guarantee execution in every operating mode.
 
 For independent unit/sensor LED control, enable the new ETS parameter
 **Geräte-/Sensor-LED separat steuern (ersetzt WLAN-LED-Regelung)**. Its default is
@@ -155,18 +172,19 @@ New objects are visible when the timer parameter is enabled:
 | 515/516 TimerOnMinutesState / TimerOffMinutesState | Confirmed configured delays. These do not count down. |
 | 517/518 TimerOnEnable / TimerOffEnable | Disable, or re-enable with the last known positive delay for that axis. An unknown delay is rejected. |
 | 519/520 TimerOnEnabledState / TimerOffEnabledState | Confirmed enabled flags. |
-| 521/522 TimerLamp / TimerLampState | Set/read the independent orange timer lamp (FB), not the D6 unit/sensor LED. |
+| 521/522 TimerLamp / TimerLampState | Set the independent orange timer lamp with DB and read it with FB, not the D6 unit/sensor LED. |
 | 523 TimerStatusValid | Bit 0: timer sample valid; bit 1: lamp sample valid. |
 | 524 TimerControlAvailable | Bit 0: F3 read discovered; 1: FB read discovered; 2: step/range configured; 3/4: on/off disabled encoding observed. This does not certify write support. |
 | 525 TimerWriteResult | Last timer request/transaction result. |
 | 526 TimerLampWriteResult | Last lamp request/transaction result. |
 | 527/528 TimerConfiguredStep / TimerConfiguredMaximum | Actual configured step and maximum in minutes. |
 
-Write results: 0 None/already unchanged, 1 Queued, 2 Awaiting ACK, 3 Awaiting
+Write results: 0 None/no recorded transaction, 1 Queued, 2 Awaiting ACK, 3 Awaiting
 readback, 4 Confirmed, 5 Rejected (NAK), 6 Timeout, 7 Transport error, 8 Readback
 mismatch, 9 Invalid request, 10 Unavailable prerequisites. A matching post-write
 readback is required for Confirmed; an ACK alone never changes numeric or enabled
-status. Fields without valid samples retain their last value and must be checked
+status. An unchanged request need not create a new transaction and can retain
+the prior result. Fields without valid samples retain their last value and must be checked
 against TimerStatusValid and OnlineState.
 
 The unit must provide a valid F3/FB sample before the corresponding KNX control
@@ -183,8 +201,10 @@ setting. Queued writes merge against fresh readback so an earlier change cannot
 be overwritten by stale data. S21 writes both fields together and evaluates them
 relative to programming time; changing a timer may also restart the other timer's
 reference. The driver does not invent remaining time or a wall-clock schedule.
-The lamp's write transaction drains/acknowledges an optional GB reply and also
-accepts ACK-only units; independent FB readback verifies the applied setting.
+The production lamp setter writes DB and confirms with independent FB/GB
+readback. All four bytes are preserved except the requested lamp byte. Legacy
+raw FB-with-payload diagnostic transactions may drain an optional GB reply; they
+are not the production setter.
 
 The minute objects retain DPT 7.006 metadata in ETS. Their wire integer is encoded
 directly with the equivalent unsigned-16 codec to avoid the local-time conversion
@@ -193,31 +213,25 @@ verify the declared minute decoding in UTC and Europe/Vienna.
 
 ## ETS update compatibility and validation
 
-Release/beta retain application number 0x36 and advance 0.11 → 0.12, explicitly
-replacing 0.11, 0.10 and their predecessors. Development retains application number 0x35
-and advances 1.0 → 1.1. The previous rollover from 0.15 respected the four-bit minor field. Development
-also retains 1.0, 0.15 and all predecessors in its replacement list. Product/order and
-manufacturer identities are unchanged.
+Release/beta retain application number 0x36 and use application 0.15; development
+retains 0x35 and uses 1.3. Both replacement lists include their preceding versions.
+The 0.15 update accommodates LogicModule 4.4; its available-channel UI is now
+read-only and defaults to the compiled channel count. Product/order/manufacturer
+identities and the 9,298-byte parameter area remain unchanged.
 
-The regression in `tests/ets/check_compatibility.py` checks the generated product
-against the previous release. It preserves all 437 existing objects, 28,853
-parameters, their references and encodings, and 3,956 header definitions. It also
-requires an increased application version, the replacement history and strictly
-appended object numbers. Development and beta are checked against their baselines
-as well. Existing parameter memory size remains 9,298 bytes.
+Deploy firmware and product as a matching pair. Preserve project parameters and
+object associations when replacing an application; a local product import alone
+does not migrate a configured device. Use the appropriate ETS application-version
+update/replacement workflow. The automatic Update button documented by KNX
+requires an online-catalog update; see [KNX's application update documentation](https://support.knx.org/hc/en-us/articles/360022260019-Change-Update-Application-Program).
 
-Use the ETS application-version update/replacement workflow appropriate to the
-installed ETS version. The automatic Update button described by KNX requires an
-online-catalog update; a local import alone does not establish that workflow.
-See [KNX's application update documentation](https://support.knx.org/hc/en-us/articles/360022260019-Change-Update-Application-Program).
-The firmware and product must be deployed as a matching pair.
-
-OpenKNXproducer structural checks and XML/header generation pass for release,
-beta and development. Final signed `.knxprod` creation, XSD validation and an actual
-ETS project migration cannot be run here because ETS/converter/XSD support is not
-installed. Native ASan/UBSan regressions and ESP32 TP/IP plus RP2040 firmware builds
-validate the implementation. No device was flashed or commanded; hardware and ETS
-acceptance remain pending.
+`tests/ets/check_compatibility.py` compares against the frozen 0.11 contract. Later
+upstream module metadata/default changes intentionally exceed that strict
+baseline, so it is not a blanket certification of lossless upgrades. Its guard
+self-tests and product XML/header checks are available locally. Full signing,
+XSD validation and actual ETS replacement require the corresponding toolchain.
+Native and firmware checks do not certify physical device behavior or ETS
+project replacement.
 
 ## Driver connection lifecycle
 
@@ -230,8 +244,8 @@ the telemetry online flag. A healthy connection therefore clears the module's
 60-second recovery timer. Actual loss of traffic still reports Error and permits
 recovery; startup without a response remains Starting until detection fails.
 
-Timer-indicator writes modify only FB byte 0 and preserve the other three bytes
-from the confirmed GB response. Those fields are model-dependent and are not
+Timer-indicator writes modify only DB byte 0 and preserve the other three bytes
+from the confirmed FB/GB register response. Those fields are model-dependent and are not
 reset to invented defaults. Success still requires a subsequent matching readback.
 
 Local raw diagnostics retain the payload of a correctly addressed frame even if

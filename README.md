@@ -11,10 +11,14 @@ Feedback zu weiteren funktionierenden Geräten folgender Hersteller gerne [KNX-U
   - [Anschluss an UP1-GW-UART](doc/toshiba.md)
 
 ## Daikin
-  - S21-Protokoll mit automatischer Protokoll-/Feature-Erkennung (inkl. v3.30 Kernfunktionen)
-  - Unterstützung für viele Modelle mit S21-Schnittstelle (HA-Anschluss), abhängig von Gerätefähigkeiten/Firmware
-  - Features: Grundsteuerung, modellabhängige Spezialmodi (Powerful, Econo, Quiet, Comfort, Streamer), Intelligent Eye, Humidity-Mode-Rückmeldung, Swing-Modi
-  - Getestet mit verschiedenen FTXM/FTXF Serien
+
+- Anbindung über die S21-Schnittstelle des Innengeräts; Funktionen sind modell- und betriebsmodusabhängig.
+- Ein/Aus, Auto/Kühlen/Heizen/Trocknen/Lüfter, halbe Solltemperaturgrade, Lüfter Auto/Geräuscharm/Stufe 1–5 und getrennte Swing-Achsen.
+- Unabhängige KNX-Steuerung für Powerful, Econo, Außengerät Quiet, Comfort, Intelligent Eye, Streamer und Geräte-/Sensor-LED, soweit verfügbar.
+- Vertikale Positionscodes sowie horizontale Positionscodes mit ausdrücklich konfiguriertem Modellprofil; beide Achsen auch in Szenen.
+- Modellprofile für Demand-Leistungsbegrenzung und relative Ein-/Ausschalttimer, separate Timerleuchte sowie Status-/Schreibbestätigungen.
+- Zusätzliche Temperatur-, Lüfter-, Leistungs-/Energie- und Diagnosedaten mit Gültigkeitskennzeichen.
+- Bedienung und Gruppenobjekte: [Daikin-KNX-Referenz](doc/Daikin-KNX-controls.md).
 
 ## Mitsubishi (Mitsubishi Electric)
   - Geräte: Es sollten alle Geräte unterstützt werden, die den CN105 Connector haben
@@ -33,6 +37,9 @@ Feedback zu weiteren funktionierenden Geräten folgender Hersteller gerne [KNX-U
 
 
 # Release notes
+
+- 0.15 Aktualisierte Abhängigkeiten, LogicModule 4.4 und angepasste Applikationsmetadaten.
+- 0.14 Modellprofil für horizontale Daikin-Positionen, zusätzliche KNX-Objekte und horizontale Szenenpositionen.
 
 - 0.10 Fix issue for missing scene after upgrade from version 0.8
 - 0.9 Fix Szenen setzen bei Toshiba
@@ -60,20 +67,17 @@ Feedback zu weiteren funktionierenden Geräten folgender Hersteller gerne [KNX-U
 - WLAN-LED Kontrolle
 - Erweiterte Lüftersteuerung
 
-#### Daikin (S21 Protocol)
+#### Daikin (S21)
 
-- **Spezialmodi**: Powerful, Econo, Quiet, Comfort, Streamer
-- **Intelligent Eye Sensor**: Automatische Temperaturanpassung basierend auf Anwesenheitserkennung
-- **Humidity Mode Rückmeldung**: 5 Stufen (Off, Low, Standard, High, Continuous)
-- **Swing Modi**: Vertikal, Horizontal, Both
-- **Lamellenposition**: Vertikale DR/FR-Positionen werden erst nach ACK und passender Rückmeldung freigegeben; feste horizontale Positionen sind nicht dokumentiert.
-- **Umfassende Sensorik**: Innen-/Außentemperatur, Luftfeuchtigkeit, Kompressorfrequenz
-- **Energy Monitoring**: Stromverbrauch-Tracking
-- **Erweiterte Diagnostik**: Query-basierte Feature-Erkennung und Fallback-Mechanismen je nach Gerät
+Lesbarer Status, Geräte-Fähigkeiten und bestätigte Schreibzugriffe werden getrennt behandelt. Ein ACK allein bestätigt keine angewendete Einstellung; Rückmeldungen können verzögert eintreffen. Unbekannte oder veraltete Messwerte müssen zusammen mit ihrem Gültigkeitskennzeichen und dem Online-Status ausgewertet werden.
 
-Hinweis: Nicht jedes Daikin-Gerät unterstützt jeden S21-Befehl. Nicht verfügbare Features werden automatisch erkannt und entsprechend übersprungen.
-Hinweis: D7-Leistungsbegrenzung setzt erkannte Geräteunterstützung und einen am konkreten Modell geprüften Prozentbereich voraus. Reduzierte Werte sind ohne diese Freigabe deaktiviert.
+Econo und Außengerät Quiet können über ihre unabhängigen Objekte gemeinsam angefordert werden; Powerful schließt beide aus. „Leise 2“ ist auf S21 ein Alias für „Leise 1“. Der einzelne Gerätemodus-/Szenen-Preset wählt weiterhin genau einen dieser Presets. Die Ausführung bleibt vom Gerät und Betriebsmodus abhängig.
 
+Vertikal stehen nach FR-Erkennung Codes 0–5 und über das Code-Objekt der Automatikmarker 6 zur Verfügung. Szenen verwenden 0–5. Horizontal ist die Steuerung standardmäßig deaktiviert; erst das modellgeprüfte Maximum (bis 8) gibt Codes 0–Maximum frei. Code 0 hält die aktuelle Stellung. Positionscodes und Prozentwerte sind keine kalibrierten Winkel.
+
+Demand und Timer sind ebenfalls opt-in: Minimum/Schrittweite beziehungsweise Timer-Schrittweite/Obergrenze müssen zum konkreten Gerät passen. Die S21-Timerkodierung hat Zehn-Minuten-Schritte; ein Gerät kann gröbere Schritte verlangen. Timerstatuswerte sind konfigurierte Verzögerungen, kein Countdown. Die Timerleuchte wird über DB geschrieben und über FB zurückgelesen.
+
+Luftfeuchtemessung und qualitative Feuchteregelung sind verschiedene Funktionen. Feuchtestufen, LED-Stufen und zusätzliche Sensorwerte werden nur entsprechend der erkannten Möglichkeiten bereitgestellt. Ein externer KNX-Raumtemperaturwert wird vom Daikin-Treiber nicht als Regelgröße an das Innengerät übertragen; eine automatische Sollwertkorrektur ist ebenfalls nicht implementiert.
 
 ## Anwenderdokumentation
 
@@ -131,18 +135,9 @@ Die Farben entsprechen den üblichen Farben bei den Geräten, können aber auch 
 
 #### Daikin (S21 Protocol)
 
-Verbindung über den S21/HA-Anschluss des Innengeräts. Meistens ein 5-poliger Stecker.
+Verbindung über den S21-Anschluss des Innengeräts. Pinbelegung, Versorgung und Pegelanpassung müssen aus der Dokumentation des konkreten Geräts und Adapters übernommen werden; hier wird keine universelle Steckerbelegung vorgegeben.
 
-| Pin | Signal         | Klimagerät      |
-| --- | -------------- | --------------- |
-| 1   | +12V/+5V       | VCC             |
-| 2   | TX (vom Gerät) | TX              |
-| 3   | RX (zum Gerät) | RX              |
-| 4   | GND            | GND             |
-| 5   | NC/Shield      | nicht verwendet |
-
-**Wichtig**: Vor Anschluss Spannungslevel prüfen! Manche Geräte nutzen 12V, andere 5V.
-Die S21-Schnittstelle arbeitet mit 2400 baud, even parity, 2 stop bits.
+Die serielle Kommunikation verwendet 2400 Baud, 8 Datenbits, gerade Parität und 2 Stoppbits (8E2). RX/TX-Pins und die verwendete serielle Schnittstelle sind in der jeweiligen Build-Konfiguration festgelegt.
 
 #### Mitsubishi
 
@@ -222,8 +217,8 @@ Besonderen Dank an folgende Projekte:
 
 ### Daikin
 
-- [revk/ESP32-Faikout](https://github.com/revk/ESP32-Faikout) für die umfassende S21 Protokoll-Dokumentation und Reverse Engineering
-- [ESP32-Faikout S21 Protocol Wiki](https://github.com/revk/ESP32-Faikout/wiki/S21-Protocol) für die detaillierte S21 v3.30 Spezifikation
+- [revk/ESP32-Faikout](https://codeberg.org/RevK/ESP32-Faikout) für die umfassende S21 Protokoll-Dokumentation und Reverse Engineering
+- [ESP32-Faikout S21 Protocol Wiki](https://codeberg.org/RevK/ESP32-Faikout/wiki/S21-Protocol) für die Dokumentation der S21-Befehle
 - Die Daikin S21 Community für Feldtests und Protokoll-Verifikation
 
 ## Lizenz
